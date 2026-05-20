@@ -62,8 +62,9 @@ app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/learning', require('./routes/learning'));
 app.use('/api/finance', require('./routes/finance'));
-app.use('/api/savings', require('./routes/savings'));
-app.use('/api/bets',    require('./routes/bets'));
+app.use('/api/savings',  require('./routes/savings'));
+app.use('/api/bets',     require('./routes/bets'));
+app.use('/api/rewards',  require('./routes/rewards'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rpg', require('./routes/rpg'));
 

@@ -153,3 +153,10 @@ export const rpgApi = {
   character:  () => api.get('/rpg/character'),
   penitence:  () => api.post('/rpg/penitence/accept'),
 }
+
+// ─── Rewards ─────────────────────────────────────────────────────
+export const rewardsApi = {
+  list:   () => api.get('/rewards'),
+  sync:   () => api.post('/rewards/sync'),
+  redeem: (id: string) => api.post(`/rewards/${id}/redeem`),
+}

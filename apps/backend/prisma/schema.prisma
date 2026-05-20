@@ -51,6 +51,7 @@ model User {
   savingsEntries    SavingsEntry[]
   betsCreated       Bet[]           @relation("BetsCreated")
   betsAccepted      BetAcceptance[]
+  earnedRewards     EarnedReward[]
   userBadges      UserBadge[]
   sentMessages    Message[]    @relation("SentMessages")
   receivedMessages Message[]   @relation("ReceivedMessages")
@@ -426,4 +427,19 @@ model SavingsEntry {
 
   @@unique([userId, weekStart])
   @@map("savings_entries")
+}
+
+model EarnedReward {
+  id            String    @id @default(uuid())
+  userId        String
+  achievementId String
+  rewardLabel   String
+  rewardEmoji   String
+  rewardDesc    String
+  earnedAt      DateTime  @default(now())
+  redeemedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("earned_rewards")
 }
