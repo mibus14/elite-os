@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, MessageCircle, Circle } from 'lucide-react'
+import { io, Socket } from 'socket.io-client'
 import { messagesApi, usersApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 
@@ -105,11 +106,38 @@ function MessageBubble({ msg, isSelf }: { msg: Message; isSelf: boolean }) {
 /* ─── Page ───────────────────────────────────────────────────────── */
 export default function ChatPage() {
   const currentUser = useAuthStore((s) => s.user)
+  const token = useAuthStore((s) => s.token)
   const [selectedUserId, setSelectedUserId] = useState<string>('1')
   const [inputValue, setInputValue] = useState('')
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>(mockMessages)
+  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const socketRef = useRef<Socket | null>(null)
+
+  // Real Socket.io connection
+  useEffect(() => {
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://192.168.1.74:3001', {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+    })
+    socketRef.current = socket
+
+    socket.on('message:received', (msg: Message) => {
+      setLocalMessages((prev) => ({
+        ...prev,
+        [msg.senderId]: [...(prev[msg.senderId] ?? []), msg],
+      }))
+    })
+
+    socket.on('users:online', (userIds: string[]) => {
+      setOnlineUserIds(userIds)
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [token])
 
   const { data: usersData } = useQuery({
     queryKey: ['chat-users'],
@@ -134,9 +162,13 @@ export default function ChatPage() {
     mutationFn: (data: object) => messagesApi.send(data),
   })
 
-  const users = (usersData && usersData.length > 0 ? usersData : mockUsers).filter(
-    (u) => u.id !== currentUser?.id
-  )
+  const users = (usersData && usersData.length > 0 ? usersData : mockUsers)
+    .filter((u) => u.id !== currentUser?.id)
+    .map((u) => ({
+      ...u,
+      // Override online status with real socket data when available
+      online: onlineUserIds.length > 0 ? onlineUserIds.includes(u.id) : u.online,
+    }))
 
   const currentMessages = localMessages[selectedUserId] ?? messagesData ?? mockMessages[selectedUserId] ?? []
   const selectedUser = users.find((u) => u.id === selectedUserId)
@@ -148,7 +180,7 @@ export default function ChatPage() {
 
   const handleSend = () => {
     const content = inputValue.trim()
-    if (!content) return
+    if (!content || !selectedUserId) return
 
     const newMsg: Message = {
       id: String(Date.now()),
@@ -159,13 +191,23 @@ export default function ChatPage() {
       read: false,
     }
 
+    // Emit via socket for real-time delivery
+    socketRef.current?.emit('message:send', {
+      receiverId: selectedUserId,
+      content,
+      senderId: currentUser?.id ?? 'me',
+      createdAt: newMsg.createdAt,
+    })
+
+    // Persist via REST API
+    sendMutation.mutate({ receiverId: selectedUserId, content })
+
+    // Optimistic local update
     setLocalMessages((prev) => ({
       ...prev,
       [selectedUserId]: [...(prev[selectedUserId] ?? []), newMsg],
     }))
     setInputValue('')
-
-    sendMutation.mutate({ receiverId: selectedUserId, content })
     inputRef.current?.focus()
   }
 

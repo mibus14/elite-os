@@ -13,6 +13,7 @@ model User {
   email          String    @unique
   password       String
   avatar         String?
+  bio            String?
   level          Int       @default(1)
   xp             Int       @default(0)
   rank           String    @default("Bronze")

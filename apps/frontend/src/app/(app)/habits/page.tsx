@@ -4,10 +4,13 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckSquare, Plus, Flame, Star, Zap, Calendar, X, Check } from 'lucide-react'
-import { habitsApi } from '@/lib/api'
+import toast from 'react-hot-toast'
+import { habitsApi, rpgApi } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Card, StatCard } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import XPFloat from '@/components/rpg/XPFloat'
+import type { RPGCharacter } from '@/types'
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Habit {
@@ -261,6 +264,7 @@ function CreateHabitModal({ open, onClose, onCreate }: {
 export default function HabitsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [localHabits, setLocalHabits] = useState<Habit[]>(mockHabits)
+  const [xpFloat, setXpFloat] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 })
   const queryClient = useQueryClient()
 
   const { data: habits, isLoading } = useQuery({
@@ -272,9 +276,26 @@ export default function HabitsPage() {
     placeholderData: mockHabits,
   })
 
+  const { data: character } = useQuery<RPGCharacter>({
+    queryKey: ['rpg-character'],
+    queryFn: () => rpgApi.character().then((r) => r.data.character as RPGCharacter),
+    staleTime: 60_000,
+    retry: false,
+  })
+
   const logMutation = useMutation({
     mutationFn: (id: string) => habitsApi.log(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['habits'] }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['habits'] })
+      queryClient.invalidateQueries({ queryKey: ['rpg-character'] })
+      const xp = res.data?.xpAwarded ?? res.data?.xp ?? 10
+      setXpFloat({ show: true, amount: xp })
+    },
+    onError: () => {
+      if ((character?.failStreak ?? 0) > 0) {
+        toast.error('💀 Tu racha está en riesgo. ¡Completa tus hábitos hoy!')
+      }
+    },
   })
 
   const createMutation = useMutation({
@@ -313,7 +334,28 @@ export default function HabitsPage() {
   const completionRate = displayHabits.length > 0 ? Math.round((completedToday / displayHabits.length) * 100) : 0
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-8 pb-8 relative">
+      {/* XP Float animation */}
+      <XPFloat
+        amount={xpFloat.amount}
+        active={xpFloat.show}
+        onComplete={() => setXpFloat((f) => ({ ...f, show: false }))}
+        className="top-4 left-1/2"
+      />
+
+      {/* Shame banner — shown when user has a fail streak */}
+      {(character?.failStreak ?? 0) > 0 && (
+        <div className="bg-red-950/50 border border-red-700/30 rounded-xl p-4 flex items-center gap-3">
+          <span className="text-2xl">💀</span>
+          <div>
+            <p className="text-red-400 font-bold">El Demonio de la Pereza está ganando</p>
+            <p className="text-gray-500 text-sm">
+              {character?.failStreak ?? 0} día{(character?.failStreak ?? 0) > 1 ? 's' : ''} sin actividad. Completa hábitos para recuperar tu racha.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

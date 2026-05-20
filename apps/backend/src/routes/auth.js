@@ -42,7 +42,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { username, email, password, avatar } = req.body;
+      const { username, email, password, avatar, class: userClass } = req.body;
 
       const existing = await prisma.user.findFirst({
         where: { OR: [{ email }, { username }] },
@@ -60,6 +60,7 @@ router.post(
           email,
           password: hashedPassword,
           avatar: avatar || null,
+          class: userClass || 'Warrior',
           xp: 0,
           level: 1,
           rank: 'Bronze',
@@ -76,6 +77,16 @@ router.post(
           rank: true,
           streak: true,
           longestStreak: true,
+          class: true,
+          statStr: true,
+          statInt: true,
+          statVit: true,
+          statDis: true,
+          statWis: true,
+          statGol: true,
+          inPenitence: true,
+          failStreak: true,
+          deathCount: true,
           createdAt: true,
         },
       });
@@ -104,20 +115,44 @@ router.post(
 
       const { email, password } = req.body;
 
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
+      const userRaw = await prisma.user.findUnique({ where: { email } });
+      if (!userRaw) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      const valid = await bcrypt.compare(password, user.password);
+      const valid = await bcrypt.compare(password, userRaw.password);
       if (!valid) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      const token = signToken(user.id);
+      const token = signToken(userRaw.id);
 
-      const { password: _pw, ...safeUser } = user;
-      res.json({ token, user: safeUser });
+      const user = await prisma.user.findUnique({
+        where: { id: userRaw.id },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          avatar: true,
+          level: true,
+          xp: true,
+          rank: true,
+          streak: true,
+          longestStreak: true,
+          class: true,
+          statStr: true,
+          statInt: true,
+          statVit: true,
+          statDis: true,
+          statWis: true,
+          statGol: true,
+          inPenitence: true,
+          failStreak: true,
+          deathCount: true,
+          createdAt: true,
+        },
+      });
+      res.json({ token, user });
     } catch (err) {
       next(err);
     }
@@ -139,6 +174,16 @@ router.get('/me', authenticate, async (req, res, next) => {
         rank: true,
         streak: true,
         longestStreak: true,
+        class: true,
+        statStr: true,
+        statInt: true,
+        statVit: true,
+        statDis: true,
+        statWis: true,
+        statGol: true,
+        inPenitence: true,
+        failStreak: true,
+        deathCount: true,
         createdAt: true,
         _count: {
           select: {

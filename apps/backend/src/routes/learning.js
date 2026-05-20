@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/auth');
+const rpg = require('../lib/rpg');
 
 const prisma = new PrismaClient();
 
@@ -9,22 +10,6 @@ function startOfDay(d) {
   const dt = new Date(d);
   dt.setHours(0, 0, 0, 0);
   return dt;
-}
-
-async function addXPAndRecalc(userId, amount) {
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { xp: { increment: amount } },
-    select: { xp: true },
-  });
-  const xp = user.xp;
-  const level = Math.floor(xp / 500) + 1;
-  let rank = 'Bronze';
-  if (xp >= 10001) rank = 'Diamond';
-  else if (xp >= 5001) rank = 'Platinum';
-  else if (xp >= 2001) rank = 'Gold';
-  else if (xp >= 501) rank = 'Silver';
-  await prisma.user.update({ where: { id: userId }, data: { level, rank } });
 }
 
 // GET /api/learning/sessions
@@ -74,7 +59,9 @@ router.post(
         },
       });
 
-      await addXPAndRecalc(req.user.id, xpEarned);
+      await rpg.awardXP(req.user.id, 'learning', xpEarned, prisma);
+      await rpg.updateCombo(req.user.id, 'learning', prisma);
+      await rpg.checkAndUpdateStreak(req.user.id, prisma);
       res.status(201).json({ session, xpAwarded: xpEarned });
     } catch (err) {
       next(err);

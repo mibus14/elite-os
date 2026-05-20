@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Settings, User, Bell, Monitor, Shield, Check, Eye, EyeOff } from 'lucide-react'
-import { usersApi } from '@/lib/api'
+import toast from 'react-hot-toast'
+import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -58,6 +59,7 @@ function NotifRow({ label, description, value, onChange }: {
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const updateUser = useAuthStore((s) => s.updateUser)
+  const queryClient = useQueryClient()
 
   // Profile state
   const [avatar, setAvatar] = useState(user?.avatar ?? AVATAR_URLS[0])
@@ -80,17 +82,35 @@ export default function SettingsPage() {
   const [pwSaved, setPwSaved] = useState(false)
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data: object) => usersApi.updateProfile(data),
-    onSuccess: () => {
-      updateUser({ username, bio, avatar })
+    mutationFn: (data: { username?: string; avatar?: string; bio?: string }) =>
+      api.put('/users/profile', data),
+    onSuccess: (res) => {
+      updateUser(res.data.user ?? { username, bio, avatar })
+      queryClient.invalidateQueries({ queryKey: ['rpg-character'] })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      toast.success('¡Perfil actualizado!')
     },
-    onError: () => {
-      // Still update locally even if API fails
+    onError: (err: any) => {
+      // Optimistic local update even if API fails
       updateUser({ username, bio, avatar })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      toast.error(err?.response?.data?.error || 'Error al guardar')
+    },
+  })
+
+  const updatePasswordMutation = useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      api.put('/users/password', data),
+    onSuccess: () => {
+      setPwSaved(true)
+      setPwForm({ current: '', newPw: '', confirm: '' })
+      setTimeout(() => setPwSaved(false), 2000)
+      toast.success('¡Contraseña actualizada!')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || 'Contraseña actual incorrecta')
     },
   })
 
@@ -105,9 +125,7 @@ export default function SettingsPage() {
     if (!pwForm.current) { setPwError('La contraseña actual es obligatoria'); return }
     if (pwForm.newPw.length < 8) { setPwError('La nueva contraseña debe tener al menos 8 caracteres'); return }
     if (pwForm.newPw !== pwForm.confirm) { setPwError('Las contraseñas no coinciden'); return }
-    setPwSaved(true)
-    setPwForm({ current: '', newPw: '', confirm: '' })
-    setTimeout(() => setPwSaved(false), 2000)
+    updatePasswordMutation.mutate({ currentPassword: pwForm.current, newPassword: pwForm.newPw })
   }
 
   const pwStrength = Math.min(4,
@@ -459,6 +477,7 @@ export default function SettingsPage() {
                 <Button
                   type="submit"
                   variant="primary"
+                  loading={updatePasswordMutation.isPending}
                   icon={pwSaved ? <Check className="w-4 h-4" /> : undefined}
                 >
                   {pwSaved ? '¡Contraseña Actualizada!' : 'Actualizar Contraseña'}

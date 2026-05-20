@@ -27,26 +27,27 @@ router.get('/', authenticate, async (req, res, next) => {
   }
 });
 
-// PUT /api/users/profile
+// PUT /api/users/profile — update username, avatar, bio
 router.put(
   '/profile',
   authenticate,
   [
     body('username').optional().trim().isLength({ min: 3, max: 30 }),
-    body('avatar').optional().isURL().withMessage('Avatar must be a valid URL'),
+    body('avatar').optional().trim(),
+    body('bio').optional().trim().isLength({ max: 200 }),
   ],
   async (req, res, next) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { username, avatar } = req.body;
+      const { username, avatar, bio } = req.body;
 
       if (username && username !== req.user.username) {
         const taken = await prisma.user.findFirst({
           where: { username, id: { not: req.user.id } },
         });
-        if (taken) return res.status(409).json({ error: 'Username already taken' });
+        if (taken) return res.status(409).json({ error: 'Nombre de usuario ya en uso' });
       }
 
       const updated = await prisma.user.update({
@@ -54,22 +55,55 @@ router.put(
         data: {
           ...(username !== undefined && { username }),
           ...(avatar !== undefined && { avatar }),
+          ...(bio !== undefined && { bio }),
         },
         select: {
           id: true,
           username: true,
           email: true,
           avatar: true,
+          bio: true,
           level: true,
           xp: true,
           rank: true,
           streak: true,
           longestStreak: true,
+          class: true,
           createdAt: true,
         },
       });
 
       res.json({ user: updated });
+    } catch (err) {
+      if (err.code === 'P2002') return res.status(409).json({ error: 'Nombre de usuario ya en uso' });
+      next(err);
+    }
+  }
+);
+
+// PUT /api/users/password — change password
+router.put(
+  '/password',
+  authenticate,
+  [
+    body('currentPassword').notEmpty(),
+    body('newPassword').isLength({ min: 6 }),
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const { currentPassword, newPassword } = req.body;
+      const bcrypt = require('bcryptjs');
+
+      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) return res.status(400).json({ error: 'Contraseña actual incorrecta' });
+
+      const hashed = await bcrypt.hash(newPassword, 12);
+      await prisma.user.update({ where: { id: req.user.id }, data: { password: hashed } });
+      res.json({ message: 'Contraseña actualizada' });
     } catch (err) {
       next(err);
     }

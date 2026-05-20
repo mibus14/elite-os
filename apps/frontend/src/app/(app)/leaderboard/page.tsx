@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Trophy, Zap, Flame, Target, BookOpen, Dumbbell, Map } from 'lucide-react'
-import { leaderboardApi } from '@/lib/api'
+import { api } from '@/lib/api'
+import TitleBadge from '@/components/rpg/TitleBadge'
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface LeaderboardUser {
@@ -19,32 +20,55 @@ interface LeaderboardUser {
   habitsStreak: number
   goalsCompleted: number
   studyHours: number
+  class?: string
+  statStr?: number
+  statInt?: number
+  statVit?: number
+  statDis?: number
+  statWis?: number
+  statGol?: number
+  deathCount?: number
+  comboStreak?: number
 }
 
-/* ─── Mock Data ──────────────────────────────────────────────────── */
-const mockLeaderboard: LeaderboardUser[] = [
-  {
-    id: '1', username: 'Diego', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=diego',
-    level: 15, xp: 7340, rank: 'Platinum', streak: 21, gymSessions: 48, cardioKm: 124,
-    habitsStreak: 21, goalsCompleted: 8, studyHours: 42,
-  },
-  {
-    id: '2', username: 'Cristopher', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=cristopher',
-    level: 12, xp: 5890, rank: 'Gold', streak: 14, gymSessions: 38, cardioKm: 96,
-    habitsStreak: 14, goalsCompleted: 6, studyHours: 67,
-  },
-  {
-    id: '3', username: 'Pedro', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=pedro',
-    level: 10, xp: 4920, rank: 'Gold', streak: 8, gymSessions: 31, cardioKm: 78,
-    habitsStreak: 8, goalsCompleted: 5, studyHours: 38,
-  },
-]
+/* ─── RPG Maps ───────────────────────────────────────────────────── */
+const CLASS_EMOJI: Record<string, string> = {
+  Warrior: '⚔️',
+  Monk: '🧘',
+  Sage: '📚',
+  Assassin: '🗡️',
+  Merchant: '💰',
+}
 
-const RANK_COLORS = {
-  Platinum: 'from-cyan-400 to-blue-400',
-  Gold: 'from-yellow-400 to-orange-400',
-  Silver: 'from-gray-300 to-gray-400',
-  Bronze: 'from-orange-600 to-orange-800',
+const RANK_COLOR: Record<string, string> = {
+  Bronze:   'text-orange-400 border-orange-400/30 bg-orange-400/10',
+  Silver:   'text-gray-300 border-gray-300/30 bg-gray-300/10',
+  Gold:     'text-yellow-400 border-yellow-400/30 bg-yellow-400/10',
+  Platinum: 'text-blue-300 border-blue-300/30 bg-blue-300/10',
+  Diamond:  'text-cyan-300 border-cyan-300/30 bg-cyan-300/10',
+}
+
+const STAT_ICONS: Record<string, string> = {
+  statStr: '💪',
+  statInt: '🧠',
+  statVit: '❤️',
+  statDis: '🎯',
+  statWis: '📖',
+  statGol: '💰',
+}
+
+function getDominantStat(user: LeaderboardUser): { key: string; value: number; icon: string } | null {
+  const stats = [
+    { key: 'statStr', value: user.statStr ?? 0 },
+    { key: 'statInt', value: user.statInt ?? 0 },
+    { key: 'statVit', value: user.statVit ?? 0 },
+    { key: 'statDis', value: user.statDis ?? 0 },
+    { key: 'statWis', value: user.statWis ?? 0 },
+    { key: 'statGol', value: user.statGol ?? 0 },
+  ]
+  const dominant = stats.reduce((best, s) => (s.value > best.value ? s : best), stats[0])
+  if (dominant.value === 0) return null
+  return { key: dominant.key, value: dominant.value, icon: STAT_ICONS[dominant.key] }
 }
 
 /* ─── Skeleton ───────────────────────────────────────────────────── */
@@ -65,7 +89,6 @@ function Podium({ users }: { users: LeaderboardUser[] }) {
   const podiumOrder = [second, first, third]
   const heights = ['h-24', 'h-36', 'h-16']
   const scales = ['scale-95', 'scale-110', 'scale-90']
-  const labels = ['2nd', '1st', '3rd']
   const medals = ['🥈', '🥇', '🥉']
   const borderColors = [
     'border-gray-400/50 shadow-[0_0_20px_rgba(156,163,175,0.2)]',
@@ -77,6 +100,7 @@ function Podium({ users }: { users: LeaderboardUser[] }) {
     <div className="flex items-end justify-center gap-4 py-8">
       {podiumOrder.map((user, idx) => {
         const isFirst = idx === 1
+        const classEmoji = user.class ? CLASS_EMOJI[user.class] : null
         return (
           <motion.div
             key={user.id}
@@ -107,9 +131,21 @@ function Podium({ users }: { users: LeaderboardUser[] }) {
               <img src={user.avatar} alt={user.username} className="w-full h-full object-cover bg-[#1E1E1E]" />
             </div>
 
-            {/* Username */}
+            {/* Username + class + title */}
             <div className="text-center">
               <p className={`font-bold text-white ${isFirst ? 'text-lg' : 'text-sm'}`}>{user.username}</p>
+              {classEmoji && (
+                <p className="text-xs text-gray-400">{classEmoji} {user.class}</p>
+              )}
+              <TitleBadge user={{
+                streak: user.streak,
+                level: user.level,
+                deathCount: user.deathCount ?? 0,
+                statStr: user.statStr ?? 0,
+                statInt: user.statInt ?? 0,
+                comboStreak: user.comboStreak ?? 0,
+                rank: user.rank,
+              }} />
               <p className={`text-gray-400 ${isFirst ? 'text-sm' : 'text-xs'}`}>Lvl {user.level}</p>
               <p className={`font-bold mt-0.5 ${isFirst ? 'text-yellow-400' : 'text-gray-300'} text-sm`}>
                 {user.xp.toLocaleString()} XP
@@ -176,27 +212,45 @@ function MetricBars({ label, icon, users, getValue, suffix = '' }: MetricBarProp
 
 /* ─── Page ───────────────────────────────────────────────────────── */
 export default function LeaderboardPage() {
-  const { data: rankings, isLoading } = useQuery({
-    queryKey: ['leaderboard'],
+  const { data: players, isLoading } = useQuery({
+    queryKey: ['rpg-leaderboard'],
     queryFn: async () => {
-      const res = await leaderboardApi.rankings()
-      return res.data as LeaderboardUser[]
+      const res = await api.get('/rpg/leaderboard')
+      return (res.data.users ?? res.data.leaderboard ?? []) as LeaderboardUser[]
     },
-    placeholderData: mockLeaderboard,
   })
 
-  const users = rankings && rankings.length >= 3 ? rankings : mockLeaderboard
+  const users = players && players.length >= 3 ? players : []
 
   const metrics = [
     { label: 'XP Total', icon: <Zap className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.xp, suffix: '' },
-    { label: 'Sesiones de Gym', icon: <Dumbbell className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.gymSessions, suffix: '' },
-    { label: 'Cardio (km)', icon: <Map className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.cardioKm, suffix: 'km' },
-    { label: 'Racha de Hábitos', icon: <Flame className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.habitsStreak, suffix: 'd' },
-    { label: 'Metas Logradas', icon: <Target className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.goalsCompleted, suffix: '' },
-    { label: 'Horas de Estudio', icon: <BookOpen className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.studyHours, suffix: 'h' },
+    { label: 'Sesiones de Gym', icon: <Dumbbell className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.gymSessions ?? 0, suffix: '' },
+    { label: 'Cardio (km)', icon: <Map className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.cardioKm ?? 0, suffix: 'km' },
+    { label: 'Racha de Hábitos', icon: <Flame className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.habitsStreak ?? 0, suffix: 'd' },
+    { label: 'Metas Logradas', icon: <Target className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.goalsCompleted ?? 0, suffix: '' },
+    { label: 'Horas de Estudio', icon: <BookOpen className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.studyHours ?? 0, suffix: 'h' },
   ]
 
   if (isLoading) return <LeaderboardSkeleton />
+
+  if (users.length === 0) {
+    return (
+      <div className="space-y-8 pb-8">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
+          <Trophy className="w-8 h-8 text-yellow-400" />
+          <div>
+            <h1 className="text-3xl font-bold text-white">Tabla de Clasificación</h1>
+            <p className="text-gray-500 mt-1">¿Quién lidera el esfuerzo?</p>
+          </div>
+        </motion.div>
+        <div className="text-center py-20 text-gray-600">
+          <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-lg font-semibold">Sin datos de clasificación aún</p>
+          <p className="text-sm mt-1">Completa actividades para aparecer en la tabla</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8 pb-8">
@@ -222,39 +276,41 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Comparison Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Cara a Cara</h2>
-          <div className="flex items-center gap-4 text-xs">
-            {users.slice(0, 3).map((user, idx) => (
-              <div key={user.id} className="flex items-center gap-1.5">
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ background: ['#DC143C', '#3B82F6', '#22C55E'][idx] }}
-                />
-                <span className="text-gray-400">{user.username}</span>
-              </div>
+      {users.length >= 3 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Cara a Cara</h2>
+            <div className="flex items-center gap-4 text-xs">
+              {users.slice(0, 3).map((user, idx) => (
+                <div key={user.id} className="flex items-center gap-1.5">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ background: ['#DC143C', '#3B82F6', '#22C55E'][idx] }}
+                  />
+                  <span className="text-gray-400">{user.username}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {metrics.map((m) => (
+              <MetricBars
+                key={m.label}
+                label={m.label}
+                icon={m.icon}
+                users={users}
+                getValue={m.getValue}
+                suffix={m.suffix}
+              />
             ))}
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {metrics.map((m) => (
-            <MetricBars
-              key={m.label}
-              label={m.label}
-              icon={m.icon}
-              users={users}
-              getValue={m.getValue}
-              suffix={m.suffix}
-            />
-          ))}
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Detailed table */}
       <motion.div
@@ -270,20 +326,22 @@ export default function LeaderboardPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#1E1E1E]">
-                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Rango</th>
+                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Pos.</th>
                 <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Jugador</th>
+                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Clase</th>
                 <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Nivel</th>
                 <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">XP</th>
                 <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Racha</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Gym</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Metas</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Insignia</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Stat</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Rango</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user, idx) => {
-                const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'
-                const rankColor = RANK_COLORS[user.rank as keyof typeof RANK_COLORS] || RANK_COLORS.Gold
+                const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`
+                const rankCls = RANK_COLOR[user.rank] ?? RANK_COLOR.Bronze
+                const classEmoji = user.class ? CLASS_EMOJI[user.class] : null
+                const dominant = getDominantStat(user)
                 return (
                   <motion.tr
                     key={user.id}
@@ -300,8 +358,26 @@ export default function LeaderboardPage() {
                         <div className="w-9 h-9 rounded-full overflow-hidden border border-white/10 bg-[#1E1E1E]">
                           <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
                         </div>
-                        <span className="text-white font-semibold">{user.username}</span>
+                        <div>
+                          <span className="text-white font-semibold block">{user.username}</span>
+                          <TitleBadge user={{
+                            streak: user.streak,
+                            level: user.level,
+                            deathCount: user.deathCount ?? 0,
+                            statStr: user.statStr ?? 0,
+                            statInt: user.statInt ?? 0,
+                            comboStreak: user.comboStreak ?? 0,
+                            rank: user.rank,
+                          }} />
+                        </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {classEmoji ? (
+                        <span className="text-sm text-gray-300">{classEmoji} {user.class}</span>
+                      ) : (
+                        <span className="text-gray-600 text-sm">—</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className="text-gray-300 font-bold">{user.level}</span>
@@ -312,10 +388,15 @@ export default function LeaderboardPage() {
                     <td className="px-6 py-4 text-right">
                       <span className="text-orange-400">🔥 {user.streak}d</span>
                     </td>
-                    <td className="px-6 py-4 text-right text-gray-300">{user.gymSessions}</td>
-                    <td className="px-6 py-4 text-right text-gray-300">{user.goalsCompleted}</td>
                     <td className="px-6 py-4 text-right">
-                      <span className={`text-xs font-bold px-2 py-1 rounded-full bg-gradient-to-r ${rankColor} bg-clip-text text-transparent border border-white/10`}>
+                      {dominant ? (
+                        <span className="text-sm text-gray-300">{dominant.icon} {dominant.value}</span>
+                      ) : (
+                        <span className="text-gray-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full border ${rankCls}`}>
                         {user.rank}
                       </span>
                     </td>

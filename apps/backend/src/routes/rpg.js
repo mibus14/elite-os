@@ -241,6 +241,78 @@ router.post(
   }
 );
 
+// ─── GET /api/rpg/missions ────────────────────────────────────────────────────
+// Generates 3 daily missions based on user class and today's activity.
+router.get('/missions', authenticate, async (req, res, next) => {
+  try {
+    const today = startOfToday();
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        debuffs: { where: { active: true, expiresAt: { gt: new Date() } } },
+        dailyCombos: { where: { date: today } }
+      }
+    });
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const combo = user.dailyCombos[0];
+    const missions = [];
+
+    // Mission 1: Activate today's combo
+    const modulesDone = [
+      combo?.gymDone, combo?.nutritionDone, combo?.habitsDone,
+      combo?.cardioDone, combo?.learningDone, combo?.financeDone
+    ].filter(Boolean).length;
+    const modulesLeft = Math.max(0, 3 - modulesDone);
+
+    missions.push({
+      id: 'combo',
+      title: modulesLeft <= 0 ? '¡Combo activado!' : 'Activa el combo del día',
+      description: modulesLeft <= 0
+        ? 'Ya activaste el combo. Sigue así.'
+        : `Completa ${modulesLeft} módulo${modulesLeft > 1 ? 's' : ''} más para x1.5 XP`,
+      xpReward: 50,
+      completed: modulesDone >= 3,
+      icon: '🔥',
+      type: 'combo'
+    });
+
+    // Mission 2: Class-specific mission
+    const classMissions = {
+      Warrior:  { title: 'Entrena hoy',        description: 'Registra 1 sesión de gym',                   icon: '⚔️',  xpReward: 75,  module: 'gym',    done: combo?.gymDone },
+      Monk:     { title: 'Disciplina total',    description: 'Completa todos tus hábitos de hoy',           icon: '🧘',  xpReward: 75,  module: 'habits', done: combo?.habitsDone },
+      Sage:     { title: 'Sesión de estudio',   description: 'Estudia al menos 30 minutos hoy',             icon: '📚',  xpReward: 75,  module: 'learning', done: combo?.learningDone },
+      Assassin: { title: 'Dominio total',       description: 'Completa los 6 módulos hoy para x2 XP',      icon: '🗡️', xpReward: 200, module: 'all',    done: combo?.comboMultiplier >= 2 },
+      Merchant: { title: 'Control financiero',  description: 'Registra al menos 1 transacción hoy',         icon: '💰',  xpReward: 75,  module: 'finance', done: combo?.financeDone },
+    };
+
+    const cm = classMissions[user.class] || classMissions.Warrior;
+    missions.push({ id: 'class', ...cm, completed: !!cm.done, type: 'class' });
+
+    // Mission 3: Streak mission
+    const activeToday = user.lastActiveDate &&
+      new Date(user.lastActiveDate).toDateString() === new Date().toDateString();
+
+    missions.push({
+      id: 'streak',
+      title: user.streak >= 7 ? `Racha de ${user.streak} días` : 'Mantén tu racha',
+      description: user.streak >= 7
+        ? '¡Eres imparable! Sigue así.'
+        : 'Activa cualquier módulo para no romper tu racha',
+      xpReward: user.streak * 10,
+      completed: !!activeToday,
+      icon: '🔥',
+      type: 'streak'
+    });
+
+    res.json({ missions, date: new Date().toISOString().slice(0, 10) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── GET /api/rpg/leaderboard ─────────────────────────────────────────────────
 // All users sorted by XP, including class and stats.
 router.get('/leaderboard', authenticate, async (req, res, next) => {

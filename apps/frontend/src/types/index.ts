@@ -261,4 +261,16 @@ export interface RPGCharacter {
   comboModulesCompleted: number;
   comboModulesRequired: number;
   comboModules: RPGComboModule[];
+  failStreak?: number;
+  deathCount?: number;
+  comboStreak?: number;
+  level?: number;
+  streak?: number;
+  rank?: string;
+  statStr?: number;
+  statInt?: number;
+  statVit?: number;
+  statDis?: number;
+  statWis?: number;
+  statGol?: number;
 }

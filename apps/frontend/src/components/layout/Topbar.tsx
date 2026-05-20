@@ -1,22 +1,87 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, LogOut, User, Settings, ChevronDown } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
+import type { RPGCharacter } from '@/types'
+import { rpgApi } from '@/lib/api'
+
+interface DerivedNotif {
+  id: string
+  icon: string
+  text: string
+  time: string
+}
 
 export function Topbar({ title }: { title?: string }) {
   const { user, logout } = useAuthStore()
-  const { notifications } = useUIStore()
+  const { notifications: storeNotifs } = useUIStore()
   const router = useRouter()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  // Fetch RPG character for smart notifications
+  const { data: character } = useQuery<RPGCharacter>({
+    queryKey: ['rpg-character'],
+    queryFn: () => rpgApi.character().then((r) => r.data.character as RPGCharacter),
+    staleTime: 60_000,
+    retry: false,
+  })
+
+  // Build dynamic notifications from character state
+  const rpgNotifications = useMemo<DerivedNotif[]>(() => {
+    const n: DerivedNotif[] = []
+    if (character?.debuffs && character.debuffs.length > 0) {
+      n.push({
+        id: 'debuff',
+        icon: '💀',
+        text: `${character.debuffs[0].name} activo`,
+        time: 'Ahora',
+      })
+    }
+    if (character?.comboActive) {
+      n.push({
+        id: 'combo',
+        icon: '🔥',
+        text: 'Combo del día activo — x1.5 XP',
+        time: 'Hoy',
+      })
+    }
+    if (character?.inPenitence) {
+      n.push({
+        id: 'penitence',
+        icon: '💀',
+        text: '¡Estás en Penitencia! Completa la tarea para continuar',
+        time: 'Ahora',
+      })
+    }
+    return n
+  }, [character])
+
+  // Merge store notifications with RPG-derived ones
+  const allNotifications = useMemo<DerivedNotif[]>(() => {
+    const fromStore: DerivedNotif[] = storeNotifs.map((n) => ({
+      id: n.id,
+      icon: '🔔',
+      text: n.title + (n.message ? ` — ${n.message}` : ''),
+      time: 'Hoy',
+    }))
+    // Deduplicate by id
+    const seen = new Set<string>()
+    return [...rpgNotifications, ...fromStore].filter((n) => {
+      if (seen.has(n.id)) return false
+      seen.add(n.id)
+      return true
+    })
+  }, [rpgNotifications, storeNotifs])
+
+  const unreadCount = allNotifications.length
 
   const handleLogout = () => {
     logout()
@@ -54,16 +119,25 @@ export function Topbar({ title }: { title?: string }) {
                 exit={{ opacity: 0, y: 8, scale: 0.95 }}
                 className="absolute right-0 top-12 w-72 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
               >
-                <div className="px-4 py-3 border-b border-[#1E1E1E]">
+                <div className="px-4 py-3 border-b border-[#1E1E1E] flex items-center justify-between">
                   <p className="text-sm font-semibold text-white">Notificaciones</p>
+                  {unreadCount > 0 && (
+                    <span className="text-xs font-bold text-[#DC143C]">{unreadCount} nueva{unreadCount !== 1 ? 's' : ''}</span>
+                  )}
                 </div>
-                {notifications.length === 0 ? (
+                {allNotifications.length === 0 ? (
                   <p className="px-4 py-6 text-sm text-gray-500 text-center">Sin notificaciones</p>
                 ) : (
-                  notifications.slice(0, 5).map((n) => (
-                    <div key={n.id} className={cn('px-4 py-3 border-b border-[#1A1A1A] last:border-0', !n.read && 'bg-elite-600/5')}>
-                      <p className="text-sm text-white">{n.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                  allNotifications.slice(0, 5).map((n) => (
+                    <div
+                      key={n.id}
+                      className="flex items-start gap-3 px-4 py-3 border-b border-[#1A1A1A] last:border-0 hover:bg-white/5 transition-colors"
+                    >
+                      <span className="text-base flex-shrink-0 leading-none mt-0.5">{n.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white leading-snug">{n.text}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{n.time}</p>
+                      </div>
                     </div>
                   ))
                 )}

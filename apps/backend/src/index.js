@@ -65,6 +65,49 @@ app.use('/api/finance', require('./routes/finance'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rpg', require('./routes/rpg'));
 
+// ─── Daily Streak Cron ────────────────────────────────────────────────────────
+const { checkAndUpdateStreak } = require('./lib/rpg');
+const { PrismaClient: PrismaClientCron } = require('@prisma/client');
+
+// Run daily at 00:05 to penalize inactive users
+function scheduleMidnightCheck() {
+  const now = new Date();
+  const next = new Date();
+  next.setDate(now.getDate() + 1);
+  next.setHours(0, 5, 0, 0);
+  const msUntilNext = next - now;
+
+  setTimeout(async () => {
+    const prisma = new PrismaClientCron();
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Find users whose lastActiveDate is NOT today
+      const inactiveUsers = await prisma.user.findMany({
+        where: {
+          OR: [
+            { lastActiveDate: { lt: today } },
+            { lastActiveDate: null }
+          ]
+        },
+        select: { id: true }
+      });
+
+      for (const user of inactiveUsers) {
+        await checkAndUpdateStreak(user.id, prisma);
+      }
+      console.log(`[CRON] Checked ${inactiveUsers.length} inactive users`);
+    } catch(e) {
+      console.error('[CRON] Error:', e);
+    } finally {
+      await prisma.$disconnect();
+      scheduleMidnightCheck(); // reschedule for next day
+    }
+  }, msUntilNext);
+}
+scheduleMidnightCheck();
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });

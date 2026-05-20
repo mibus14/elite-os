@@ -22,9 +22,11 @@ interface ExerciseEntry {
 interface LogSessionModalProps {
   open: boolean;
   onClose: () => void;
+  /** Called with XP awarded after a session is successfully logged */
+  onXP?: (xp: number) => void;
 }
 
-export default function LogSessionModal({ open, onClose }: LogSessionModalProps) {
+export default function LogSessionModal({ open, onClose, onXP }: LogSessionModalProps) {
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -35,13 +37,17 @@ export default function LogSessionModal({ open, onClose }: LogSessionModalProps)
 
   const mutation = useMutation({
     mutationFn: (data: object) => gymApi.createSession(data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['gym-sessions'] });
-      toast.success('Session logged!');
+      qc.invalidateQueries({ queryKey: ['rpg-character'] });
+      qc.invalidateQueries({ queryKey: ['rpg-combo'] });
+      const xp = res.data?.xpAwarded ?? res.data?.xp ?? 50;
+      onXP?.(xp);
+      toast.success('¡Sesión registrada!');
       onClose();
       resetForm();
     },
-    onError: () => toast.error('Failed to log session'),
+    onError: () => toast.error('Error al registrar la sesión'),
   });
 
   function resetForm() {

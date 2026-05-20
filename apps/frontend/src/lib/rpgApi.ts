@@ -6,4 +6,5 @@ export const rpgApi = {
   combo:     () => api.get('/rpg/combo'),
   debuffs:   () => api.get('/rpg/debuffs'),
   penitence: () => api.post('/rpg/penitence', { task: 'completed' }),
+  missions:  () => api.get('/rpg/missions'),
 }

@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/auth');
+const rpg = require('../lib/rpg');
 
 const prisma = new PrismaClient();
 
@@ -147,10 +148,18 @@ router.post(
         },
       });
 
+      const justCompleted = updated.status === 'completed' && goal.status !== 'completed';
+
+      if (justCompleted) {
+        await rpg.awardXP(req.user.id, 'habits', 100, prisma);
+        await rpg.updateCombo(req.user.id, 'habits', prisma);
+        await rpg.checkAndUpdateStreak(req.user.id, prisma);
+      }
+
       res.json({
         goal: updated,
         progressPercent: Math.min(100, Math.round((updated.currentValue / updated.targetValue) * 100)),
-        justCompleted: updated.status === 'completed' && goal.status !== 'completed',
+        justCompleted,
       });
     } catch (err) {
       next(err);

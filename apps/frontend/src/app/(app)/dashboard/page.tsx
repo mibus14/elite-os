@@ -23,6 +23,7 @@ import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import MacroDonut from '@/components/dashboard/MacroDonut';
 import YouDiedScreen from '@/components/rpg/YouDiedScreen';
 import ComboCard from '@/components/rpg/ComboCard';
+import MissionsPanel from '@/components/rpg/MissionsPanel';
 
 /* ─── Mock data fallback ──────────────────────────────────────────────── */
 const mockStats: DashboardStats = {
@@ -284,26 +285,24 @@ export default function DashboardPage() {
     retry: false,
   });
 
-  // Merge API data with mock fallbacks so no field is ever undefined
+  // Use real API data; only fall back for complex objects that cannot be empty
   const stats: DashboardStats = {
-    ...mockStats,
-    ...(data ?? {}),
-    todayXP:         data?.todayXP         ?? mockStats.todayXP,
-    yesterdayXP:     data?.yesterdayXP     ?? mockStats.yesterdayXP,
-    currentStreak:   data?.currentStreak   ?? mockStats.currentStreak,
-    habitsCompleted: data?.habitsCompleted ?? mockStats.habitsCompleted,
-    habitsTotal:     data?.habitsTotal     ?? mockStats.habitsTotal,
-    caloriesConsumed:data?.caloriesConsumed?? mockStats.caloriesConsumed,
-    caloriesGoal:    data?.caloriesGoal    ?? mockStats.caloriesGoal,
-    activityHeatmap: data?.activityHeatmap ?? mockStats.activityHeatmap,
+    todayXP:         data?.todayXP         ?? 0,
+    yesterdayXP:     data?.yesterdayXP     ?? 0,
+    currentStreak:   data?.currentStreak   ?? 0,
+    habitsCompleted: data?.habitsCompleted ?? 0,
+    habitsTotal:     data?.habitsTotal     ?? 0,
+    caloriesConsumed:data?.caloriesConsumed ?? 0,
+    caloriesGoal:    data?.caloriesGoal    ?? 0,
+    activityHeatmap: data?.activityHeatmap ?? [],
     radarData:       data?.radarData       ?? mockStats.radarData,
-    weeklyXP:        data?.weeklyXP        ?? mockStats.weeklyXP,
-    topGoals:        data?.topGoals        ?? mockStats.topGoals,
-    recentActivity:  data?.recentActivity  ?? mockStats.recentActivity,
-    macros:          data?.macros          ?? mockStats.macros,
-    waterCups:       data?.waterCups       ?? mockStats.waterCups,
-    waterGoal:       data?.waterGoal       ?? mockStats.waterGoal,
-    sleepHours:      data?.sleepHours      ?? mockStats.sleepHours,
+    weeklyXP:        data?.weeklyXP        ?? [],
+    topGoals:        data?.topGoals        ?? [],
+    recentActivity:  data?.recentActivity  ?? [],
+    macros:          data?.macros          ?? { protein: 0, carbs: 0, fat: 0, totalCalories: 0 },
+    waterCups:       data?.waterCups       ?? 0,
+    waterGoal:       data?.waterGoal       ?? 8,
+    sleepHours:      data?.sleepHours      ?? 0,
   };
 
   if (isLoading) return <DashboardSkeleton />;
@@ -386,9 +385,10 @@ export default function DashboardPage() {
         <SleepDisplay hours={stats.sleepHours} />
       </div>
 
-      {/* Row 6: RPG Combo */}
+      {/* Row 6: RPG Combo + Missions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ComboCard />
+        <MissionsPanel />
       </div>
     </div>
     </>

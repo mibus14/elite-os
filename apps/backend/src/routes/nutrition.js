@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/auth');
+const rpg = require('../lib/rpg');
 
 const prisma = new PrismaClient();
 
@@ -75,6 +76,9 @@ router.post(
         },
       });
 
+      await rpg.awardXP(req.user.id, 'nutrition', 20, prisma);
+      await rpg.updateCombo(req.user.id, 'nutrition', prisma);
+      await rpg.checkAndUpdateStreak(req.user.id, prisma);
       res.status(201).json({ meal });
     } catch (err) {
       next(err);

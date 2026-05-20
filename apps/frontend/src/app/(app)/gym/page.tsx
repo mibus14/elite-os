@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import XPFloat from '@/components/rpg/XPFloat';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
@@ -157,6 +158,7 @@ function WeekCalendar({ sessions }: { sessions: GymSession[] }) {
 /* ─── Page ──────────────────────────────────────────────────────────── */
 export default function GymPage() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [xpFloat, setXpFloat] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 });
 
   const { data: sessionsData, isLoading: loadingSessions } = useQuery({
     queryKey: ['gym-sessions'],
@@ -200,7 +202,15 @@ export default function GymPage() {
   const recordList   = Array.isArray(recordsData)   ? recordsData   : mockRecords;
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8 relative">
+      {/* XP Float animation */}
+      <XPFloat
+        amount={xpFloat.amount}
+        active={xpFloat.show}
+        onComplete={() => setXpFloat((f) => ({ ...f, show: false }))}
+        className="top-4 left-1/2"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -415,7 +425,11 @@ export default function GymPage() {
         </Tabs.Content>
       </Tabs.Root>
 
-      <LogSessionModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <LogSessionModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onXP={(xp) => setXpFloat({ show: true, amount: xp })}
+      />
     </div>
   );
 }
