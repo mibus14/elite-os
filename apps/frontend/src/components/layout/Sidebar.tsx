@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Dumbbell, Apple, Activity, BookOpen,
   Target, CheckSquare, TrendingUp, Trophy, MessageCircle,
-  Settings, ChevronLeft, ChevronRight, Zap, Flame,
+  Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -15,17 +15,18 @@ import { Progress } from '@/components/ui/Progress'
 import { CharacterPanel } from '@/components/rpg/CharacterPanel'
 
 const navItems = [
-  { href: '/dashboard',   label: 'Panel',          icon: LayoutDashboard },
-  { href: '/gym',         label: 'Gimnasio',        icon: Dumbbell },
-  { href: '/nutrition',   label: 'Nutrición',       icon: Apple },
-  { href: '/cardio',      label: 'Cardio',          icon: Activity },
-  { href: '/learning',    label: 'Aprendizaje',     icon: BookOpen },
-  { href: '/goals',       label: 'Metas',           icon: Target },
-  { href: '/habits',      label: 'Hábitos',         icon: CheckSquare },
-  { href: '/finance',     label: 'Finanzas',        icon: TrendingUp },
-  { href: '/leaderboard', label: 'Clasificación',   icon: Trophy },
-  { href: '/chat',        label: 'Chat',            icon: MessageCircle },
-  { href: '/settings',    label: 'Ajustes',         icon: Settings },
+  { href: '/dashboard',   label: 'Cuartel',         icon: LayoutDashboard },
+  { href: '/gym',         label: 'Forja',           icon: Dumbbell },
+  { href: '/nutrition',   label: 'Taberna',         icon: Apple },
+  { href: '/cardio',      label: 'Campo',           icon: Activity },
+  { href: '/learning',    label: 'Grimorio',        icon: BookOpen },
+  { href: '/goals',       label: 'Misiones',        icon: Target },
+  { href: '/habits',      label: 'Juramentos',      icon: CheckSquare },
+  { href: '/finance',     label: 'Tesorería',       icon: TrendingUp },
+  { href: '/savings',     label: 'Coliseo',         icon: Sword },
+  { href: '/leaderboard', label: 'Héroes',          icon: Trophy },
+  { href: '/chat',        label: 'Mensajería',      icon: MessageCircle },
+  { href: '/settings',    label: 'Pergamino',       icon: Settings },
 ]
 
 const rankColors: Record<string, string> = {

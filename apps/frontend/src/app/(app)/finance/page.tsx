@@ -246,11 +246,11 @@ export default function FinancePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
             <DollarSign className="w-8 h-8 text-[#DC143C]" />
-            Finanzas
+            Tesorería
           </h1>
-          <p className="text-gray-500 mt-1">Registra ingresos y gastos</p>
+          <p className="text-gray-500 mt-1">Guarda tu oro, controla tu riqueza</p>
         </div>
         <Button
           variant="primary"

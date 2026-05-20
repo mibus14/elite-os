@@ -320,6 +320,12 @@ export default function DashboardPage() {
       </AnimatePresence>
 
     <div className="space-y-6 pb-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-black text-white uppercase tracking-wide">⚔ Cuartel General</h1>
+        <p className="text-gray-500 mt-1">El mapa de tu conquista diaria</p>
+      </div>
+
       {/* Row 1: Hero Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -343,19 +349,19 @@ export default function DashboardPage() {
           delay={0.1}
         />
         <StatCard
-          label="Hábitos"
+          label="Juramentos"
           value={`${stats.habitsCompleted}/${stats.habitsTotal}`}
-          sub="completados hoy"
+          sub="sellados hoy"
           icon={<CheckCircle className="w-5 h-5 text-green-400" />}
           trend={stats.habitsCompleted === stats.habitsTotal ? 'up' : 'neutral'}
-          trendValue={stats.habitsCompleted === stats.habitsTotal ? '¡Todo listo!' : `${stats.habitsTotal - stats.habitsCompleted} restantes`}
+          trendValue={stats.habitsCompleted === stats.habitsTotal ? '¡Todos sellados!' : `${stats.habitsTotal - stats.habitsCompleted} pendientes`}
           glowColor="#22C55E"
           delay={0.2}
         />
         <StatCard
-          label="Calorías"
+          label="Taberna"
           value={stats.caloriesConsumed.toString()}
-          sub={`de ${stats.caloriesGoal} meta`}
+          sub={`de ${stats.caloriesGoal} kcal`}
           icon={<Utensils className="w-5 h-5 text-[#DC143C]" />}
           trend={stats.caloriesConsumed <= stats.caloriesGoal ? 'up' : 'down'}
           trendValue={`${Math.abs(stats.caloriesConsumed - stats.caloriesGoal)} kcal ${stats.caloriesConsumed <= stats.caloriesGoal ? 'restantes' : 'excedidas'}`}

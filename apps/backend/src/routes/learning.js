@@ -1,128 +1,127 @@
 const router = require('express').Router();
-const { body, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/auth');
-const rpg = require('../lib/rpg');
+const axios = require('axios');
 
 const prisma = new PrismaClient();
 
-function startOfDay(d) {
-  const dt = new Date(d);
-  dt.setHours(0, 0, 0, 0);
-  return dt;
-}
-
-// GET /api/learning/sessions
-router.get('/sessions', authenticate, async (req, res, next) => {
+/* ─── GET /api/learning/interests ───────────────────────────────── */
+router.get('/interests', authenticate, async (req, res, next) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
-    const sessions = await prisma.learningSession.findMany({
+    const interests = await prisma.learningInterest.findMany({
       where: { userId: req.user.id },
-      orderBy: { date: 'desc' },
-      take: parseInt(limit),
-      skip: parseInt(offset),
+      orderBy: { createdAt: 'asc' },
     });
-    const total = await prisma.learningSession.count({ where: { userId: req.user.id } });
-    res.json({ sessions, total });
-  } catch (err) {
-    next(err);
-  }
+    res.json({ interests });
+  } catch (err) { next(err); }
 });
 
-// POST /api/learning/sessions
-router.post(
-  '/sessions',
-  authenticate,
-  [
-    body('subject').trim().notEmpty().withMessage('Subject required'),
-    body('duration').isInt({ min: 1 }).withMessage('Duration in minutes required'),
-  ],
-  async (req, res, next) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
-      const { subject, language, duration, notes, date } = req.body;
-
-      const durationMinutes = parseInt(duration);
-      const xpEarned = Math.round((durationMinutes / 60) * 40);
-
-      const session = await prisma.learningSession.create({
-        data: {
-          userId: req.user.id,
-          date: date ? startOfDay(new Date(date)) : startOfDay(new Date()),
-          subject,
-          language: language || null,
-          duration: durationMinutes,
-          xpEarned,
-          notes: notes || null,
-        },
-      });
-
-      await rpg.awardXP(req.user.id, 'learning', xpEarned, prisma);
-      await rpg.updateCombo(req.user.id, 'learning', prisma);
-      await rpg.checkAndUpdateStreak(req.user.id, prisma);
-      res.status(201).json({ session, xpAwarded: xpEarned });
-    } catch (err) {
-      next(err);
-    }
-  }
-);
-
-// GET /api/learning/stats
-router.get('/stats', authenticate, async (req, res, next) => {
+/* ─── POST /api/learning/interests ──────────────────────────────── */
+router.post('/interests', authenticate, async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+    const interest = await prisma.learningInterest.create({
+      data: { userId: req.user.id, name: name.trim() },
+    });
+    res.status(201).json({ interest });
+  } catch (err) { next(err); }
+});
 
-    const [totalAgg, weekAgg, subjects] = await Promise.all([
-      prisma.learningSession.aggregate({
-        where: { userId },
-        _sum: { duration: true, xpEarned: true },
-        _count: true,
-      }),
-      prisma.learningSession.aggregate({
-        where: {
-          userId,
-          date: {
-            gte: (() => {
-              const d = new Date();
-              d.setDate(d.getDate() - 6);
-              d.setHours(0, 0, 0, 0);
-              return d;
-            })(),
-          },
+/* ─── DELETE /api/learning/interests/:id ─────────────────────────── */
+router.delete('/interests/:id', authenticate, async (req, res, next) => {
+  try {
+    const interest = await prisma.learningInterest.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!interest) return res.status(404).json({ error: 'Not found' });
+    await prisma.learningInterest.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { next(err); }
+});
+
+/* ─── GET /api/learning/items ────────────────────────────────────── */
+router.get('/items', authenticate, async (req, res, next) => {
+  try {
+    const items = await prisma.learningItem.findMany({
+      where: { userId: req.user.id },
+      orderBy: [{ completed: 'asc' }, { createdAt: 'desc' }],
+    });
+    res.json({ items });
+  } catch (err) { next(err); }
+});
+
+/* ─── PATCH /api/learning/items/:id ─────────────────────────────── */
+router.patch('/items/:id', authenticate, async (req, res, next) => {
+  try {
+    const item = await prisma.learningItem.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    const nowDone = !item.completed;
+    const updated = await prisma.learningItem.update({
+      where: { id: req.params.id },
+      data: { completed: nowDone, completedAt: nowDone ? new Date() : null },
+    });
+    res.json({ item: updated });
+  } catch (err) { next(err); }
+});
+
+/* ─── POST /api/learning/generate ───────────────────────────────── */
+router.post('/generate', authenticate, async (req, res, next) => {
+  try {
+    const { interests } = req.body;
+    if (!Array.isArray(interests) || interests.length === 0)
+      return res.status(400).json({ error: 'interests required' });
+
+    const prompt = `Tengo estos intereses de aprendizaje: ${interests.join(', ')}.
+Genera exactamente 3 sugerencias concretas de cosas para aprender por cada interés.
+Cada sugerencia debe ser específica y accionable (no genérica).
+Responde SOLO JSON válido, sin markdown:
+[{"tag":"interés","title":"sugerencia"},...]
+Genera ${interests.length * 3} objetos en total.`;
+
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 600,
+        temperature: 0.6,
+        messages: [{ role: 'user', content: prompt }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
         },
-        _sum: { duration: true, xpEarned: true },
-        _count: true,
-      }),
-      prisma.learningSession.groupBy({
-        by: ['subject'],
-        where: { userId },
-        _sum: { duration: true },
-        _count: { subject: true },
-        orderBy: { _sum: { duration: 'desc' } },
-      }),
-    ]);
+        timeout: 12000,
+      }
+    );
 
-    res.json({
-      total: {
-        sessions: totalAgg._count,
-        totalMinutes: totalAgg._sum.duration || 0,
-        totalHours: parseFloat(((totalAgg._sum.duration || 0) / 60).toFixed(1)),
-        totalXP: totalAgg._sum.xpEarned || 0,
-      },
-      thisWeek: {
-        sessions: weekAgg._count,
-        totalMinutes: weekAgg._sum.duration || 0,
-        totalXP: weekAgg._sum.xpEarned || 0,
-      },
-      subjects: subjects.map((s) => ({
-        subject: s.subject,
-        sessions: s._count.subject,
-        totalMinutes: s._sum.duration || 0,
+    const raw = response.data.choices[0].message.content
+      .trim()
+      .replace(/^```[a-z]*\n?/i, '')
+      .replace(/```$/, '')
+      .trim();
+
+    const suggestions = JSON.parse(raw);
+
+    const created = await prisma.learningItem.createMany({
+      data: suggestions.map((s) => ({
+        userId: req.user.id,
+        tag: s.tag,
+        title: s.title,
       })),
     });
+
+    const items = await prisma.learningItem.findMany({
+      where: { userId: req.user.id },
+      orderBy: [{ completed: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    res.json({ items, generated: created.count });
   } catch (err) {
+    console.error('Generate error:', err.message);
     next(err);
   }
 });

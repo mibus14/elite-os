@@ -44,7 +44,13 @@ model User {
   meals           Meal[]
   cardioSessions  CardioSession[]
   learningSessions LearningSession[]
-  goals           Goal[]
+  learningInterests LearningInterest[]
+  learningItems     LearningItem[]
+  goals             Goal[]
+  savingsConfig     SavingsConfig?
+  savingsEntries    SavingsEntry[]
+  betsCreated       Bet[]           @relation("BetsCreated")
+  betsAccepted      BetAcceptance[]
   userBadges      UserBadge[]
   sentMessages    Message[]    @relation("SentMessages")
   receivedMessages Message[]   @relation("ReceivedMessages")
@@ -202,6 +208,7 @@ model Meal {
   date        DateTime @db.Date
   mealType    String
   name        String
+  category    String   @default("HEALTHY")
   calories    Int      @default(0)
   protein     Float    @default(0)
   carbs       Float    @default(0)
@@ -244,6 +251,31 @@ model LearningSession {
   @@map("learning_sessions")
 }
 
+model LearningInterest {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learning_interests")
+}
+
+model LearningItem {
+  id          String    @id @default(uuid())
+  userId      String
+  tag         String
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learning_items")
+}
+
 model Goal {
   id           String    @id @default(uuid())
   userId       String
@@ -258,9 +290,24 @@ model Goal {
   priority     String    @default("medium")
   createdAt    DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones Milestone[]
 
   @@map("goals")
+}
+
+model Milestone {
+  id          String    @id @default(uuid())
+  goalId      String
+  title       String
+  weight      Int       @default(20)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  order       Int       @default(0)
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
 }
 
 model Badge {
@@ -315,4 +362,68 @@ model FinanceEntry {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("finance_entries")
+}
+
+// status: open | active | won | lost | cancelled
+model Bet {
+  id              String    @id @default(uuid())
+  creatorId       String
+  title           String
+  conditionType   String    // gym_sessions | streak_days | cardio_sessions | habit_days
+  conditionValue  Int
+  stake           Float
+  currency        String    @default("USD")
+  deadline        DateTime
+  status          String    @default("open")
+  result          Boolean?
+  xpReward        Int       @default(0)
+  settledAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  creator     User            @relation("BetsCreated", fields: [creatorId], references: [id], onDelete: Cascade)
+  acceptances BetAcceptance[]
+
+  @@map("bets")
+}
+
+model BetAcceptance {
+  id        String   @id @default(uuid())
+  betId     String
+  userId    String
+  amount    Float
+  status    String   @default("active") // active | won | lost
+  createdAt DateTime @default(now())
+
+  bet  Bet  @relation(fields: [betId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([betId, userId])
+  @@map("bet_acceptances")
+}
+
+model SavingsConfig {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  weeklyAmount Float    @default(0)
+  currency     String   @default("USD")
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("savings_configs")
+}
+
+model SavingsEntry {
+  id           String   @id @default(uuid())
+  userId       String
+  weekStart    DateTime @db.Date
+  weeklyAmount Float
+  earned       Boolean  @default(false)
+  activeDays   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@map("savings_entries")
 }

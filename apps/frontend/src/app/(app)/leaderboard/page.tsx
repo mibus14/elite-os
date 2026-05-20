@@ -224,11 +224,11 @@ export default function LeaderboardPage() {
 
   const metrics = [
     { label: 'XP Total', icon: <Zap className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.xp, suffix: '' },
-    { label: 'Sesiones de Gym', icon: <Dumbbell className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.gymSessions ?? 0, suffix: '' },
-    { label: 'Cardio (km)', icon: <Map className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.cardioKm ?? 0, suffix: 'km' },
-    { label: 'Racha de Hábitos', icon: <Flame className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.habitsStreak ?? 0, suffix: 'd' },
-    { label: 'Metas Logradas', icon: <Target className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.goalsCompleted ?? 0, suffix: '' },
-    { label: 'Horas de Estudio', icon: <BookOpen className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.studyHours ?? 0, suffix: 'h' },
+    { label: 'Hazañas en la Forja', icon: <Dumbbell className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.gymSessions ?? 0, suffix: '' },
+    { label: 'Campo de Batalla (km)', icon: <Map className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.cardioKm ?? 0, suffix: 'km' },
+    { label: 'Racha de Juramentos', icon: <Flame className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.habitsStreak ?? 0, suffix: 'd' },
+    { label: 'Misiones Cumplidas', icon: <Target className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.goalsCompleted ?? 0, suffix: '' },
+    { label: 'Horas en el Grimorio', icon: <BookOpen className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.studyHours ?? 0, suffix: 'h' },
   ]
 
   if (isLoading) return <LeaderboardSkeleton />
@@ -239,14 +239,14 @@ export default function LeaderboardPage() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
           <Trophy className="w-8 h-8 text-yellow-400" />
           <div>
-            <h1 className="text-3xl font-bold text-white">Tabla de Clasificación</h1>
-            <p className="text-gray-500 mt-1">¿Quién lidera el esfuerzo?</p>
+            <h1 className="text-3xl font-bold text-white">Salón de Héroes</h1>
+            <p className="text-gray-500 mt-1">Los guerreros más poderosos del reino</p>
           </div>
         </motion.div>
         <div className="text-center py-20 text-gray-600">
           <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-semibold">Sin datos de clasificación aún</p>
-          <p className="text-sm mt-1">Completa actividades para aparecer en la tabla</p>
+          <p className="text-lg font-semibold">El salón aún está vacío</p>
+          <p className="text-sm mt-1">Completa hazañas para ganarte un lugar aquí</p>
         </div>
       </div>
     )
@@ -262,8 +262,8 @@ export default function LeaderboardPage() {
       >
         <Trophy className="w-8 h-8 text-yellow-400" />
         <div>
-          <h1 className="text-3xl font-bold text-white">Tabla de Clasificación</h1>
-          <p className="text-gray-500 mt-1">¿Quién lidera el esfuerzo?</p>
+          <h1 className="text-3xl font-bold text-white">Salón de Héroes</h1>
+          <p className="text-gray-500 mt-1">Los guerreros más poderosos del reino</p>
         </div>
       </motion.div>
 
@@ -320,7 +320,7 @@ export default function LeaderboardPage() {
         className="bg-[#111111] border border-[#1E1E1E] rounded-2xl overflow-hidden"
       >
         <div className="p-5 border-b border-[#1E1E1E]">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Clasificación Completa</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Todos los Guerreros</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">

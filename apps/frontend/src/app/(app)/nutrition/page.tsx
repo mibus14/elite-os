@@ -1,238 +1,334 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Plus, Droplets, X, Flame, Beef, Wheat, Droplet } from 'lucide-react'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts'
-import { nutritionApi } from '@/lib/api'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { CircleProgress, Progress } from '@/components/ui/Progress'
-import { cn } from '@/lib/utils'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import {
+  Utensils, Plus, Flame, Trash2,
+  ShieldAlert, Home, Leaf,
+  Sun, Sunset, Moon, Cookie,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { nutritionApi } from '@/lib/api';
+import toast from 'react-hot-toast';
+import QuickNutritionModal from '@/components/nutrition/QuickNutritionModal';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid,
+} from 'recharts';
 
-const DAILY_GOALS = { calories: 2200, protein: 160, carbs: 280, fat: 75 }
+/* ─── Constantes ─────────────────────────────────────────────────── */
+const DAILY_GOAL = 2200;
 
-const MOCK_MEALS = [
-  { id:'1', mealType:'breakfast', name:'Avocado Toast + Eggs', calories:480, protein:24, carbs:38, fat:22 },
-  { id:'2', mealType:'breakfast', name:'Greek Yogurt', calories:150, protein:17, carbs:12, fat:3 },
-  { id:'3', mealType:'lunch', name:'Grilled Chicken + Rice', calories:620, protein:52, carbs:68, fat:14 },
-  { id:'4', mealType:'lunch', name:'Mixed Salad', calories:180, protein:8, carbs:15, fat:9 },
-  { id:'5', mealType:'dinner', name:'Salmon + Sweet Potato', calories:580, protein:45, carbs:42, fat:18 },
-]
+type Category = 'BAD' | 'HOMEMADE_CAL' | 'HEALTHY';
+type MealTime = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-const WEEK_DATA = [
-  { day: 'Mon', calories: 2180, protein: 155, carbs: 270, fat: 72 },
-  { day: 'Tue', calories: 1950, protein: 140, carbs: 245, fat: 68 },
-  { day: 'Wed', calories: 2310, protein: 168, carbs: 295, fat: 78 },
-  { day: 'Thu', calories: 2050, protein: 152, carbs: 260, fat: 70 },
-  { day: 'Fri', calories: 2200, protein: 160, carbs: 280, fat: 75 },
-  { day: 'Sat', calories: 1800, protein: 130, carbs: 228, fat: 62 },
-  { day: 'Sun', calories: 2400, protein: 175, carbs: 310, fat: 80 },
-]
+const CATEGORIES: {
+  id: Category;
+  label: string;
+  sub: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  bg: string;
+  text: string;
+  ring: string;
+}[] = [
+  {
+    id: 'BAD',
+    label: 'Comida Mala',
+    sub: 'Rápida · Procesada',
+    icon: ShieldAlert,
+    color: '#EF4444',
+    bg: 'bg-red-500/10',
+    text: 'text-red-400',
+    ring: 'border-red-500/30',
+  },
+  {
+    id: 'HOMEMADE_CAL',
+    label: 'Casera Calórica',
+    sub: 'Hecha en casa · Densa',
+    icon: Home,
+    color: '#F59E0B',
+    bg: 'bg-yellow-500/10',
+    text: 'text-yellow-400',
+    ring: 'border-yellow-500/30',
+  },
+  {
+    id: 'HEALTHY',
+    label: 'Comer Bien',
+    sub: 'Balanceada · Limpia',
+    icon: Leaf,
+    color: '#22C55E',
+    bg: 'bg-green-500/10',
+    text: 'text-green-400',
+    ring: 'border-green-500/30',
+  },
+];
 
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks']
-const MEAL_ICONS: Record<string, string> = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snacks: '🍎' }
-const MEAL_LABELS: Record<string, string> = { breakfast: 'Desayuno', lunch: 'Almuerzo', dinner: 'Cena', snacks: 'Merienda' }
+const MEAL_TIMES: {
+  id: MealTime;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: 'breakfast', label: 'Desayuno', icon: Sun },
+  { id: 'lunch',     label: 'Comida',   icon: Sunset },
+  { id: 'dinner',    label: 'Cena',     icon: Moon },
+  { id: 'snack',     label: 'Snack',    icon: Cookie },
+];
 
-interface Meal { id: string; mealType: string; name: string; calories: number; protein: number; carbs: number; fat: number }
+/* ─── Mock data ──────────────────────────────────────────────────── */
+const MOCK_TODAY = {
+  meals: [
+    { id: '1', mealType: 'breakfast', name: 'Avena con plátano', category: 'HEALTHY',      calories: 340 },
+    { id: '2', mealType: 'lunch',     name: 'Sopa de fideo + pollo', category: 'HOMEMADE_CAL', calories: 620 },
+    { id: '3', mealType: 'snack',     name: 'Refresco + papas fritas', category: 'BAD',     calories: 420 },
+  ],
+  byCategory: { BAD: 420, HOMEMADE_CAL: 620, HEALTHY: 340 },
+};
 
-interface AddMealForm { mealType: string; name: string; calories: string; protein: string; carbs: string; fat: string }
+const MOCK_WEEKLY = {
+  stats: [
+    { date: '2026-05-14', calories: 2050, bad: 400, home: 800, good: 850 },
+    { date: '2026-05-15', calories: 1900, bad: 200, home: 900, good: 800 },
+    { date: '2026-05-16', calories: 2300, bad: 700, home: 900, good: 700 },
+    { date: '2026-05-17', calories: 1800, bad: 0,   home: 800, good: 1000 },
+    { date: '2026-05-18', calories: 2200, bad: 300, home: 700, good: 1200 },
+    { date: '2026-05-19', calories: 2100, bad: 500, home: 800, good: 800 },
+    { date: '2026-05-20', calories: 1380, bad: 420, home: 620, good: 340 },
+  ],
+};
 
-const TOOLTIP_STYLE = { backgroundColor: '#111111', border: '1px solid #1E1E1E', borderRadius: 8, color: '#fff', fontSize: 12 }
-
-export default function NutritionPage() {
-  const qc = useQueryClient()
-  const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState<AddMealForm>({ mealType: 'breakfast', name: '', calories: '', protein: '', carbs: '', fat: '' })
-  const [water, setWater] = useState(6)
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['nutrition', 'today'],
-    queryFn: async () => { const r = await nutritionApi.today(); return r.data },
-  })
-
-  const addMutation = useMutation({
-    mutationFn: (d: object) => nutritionApi.addMeal(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['nutrition'] }); setShowModal(false) },
-  })
-
-  const meals: Meal[] = data?.meals ?? MOCK_MEALS
-  const rawTotals = meals.reduce((acc, m) => ({
-    calories: acc.calories + m.calories,
-    protein:  acc.protein  + m.protein,
-    carbs:    acc.carbs    + m.carbs,
-    fat:      acc.fat      + m.fat,
-  }), { calories: 0, protein: 0, carbs: 0, fat: 0 })
-  const totals = {
-    calories: Math.round(rawTotals.calories),
-    protein:  Math.round(rawTotals.protein),
-    carbs:    Math.round(rawTotals.carbs),
-    fat:      Math.round(rawTotals.fat),
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    addMutation.mutate({ ...form, calories: +form.calories, protein: +form.protein, carbs: +form.carbs, fat: +form.fat })
-  }
+/* ─── Calorie ring ───────────────────────────────────────────────── */
+function CalorieRing({ current, goal }: { current: number; goal: number }) {
+  const pct = Math.min(current / goal, 1);
+  const r = 44;
+  const circ = 2 * Math.PI * r;
+  const dash = circ * pct;
+  const over = current > goal;
 
   return (
-    <div className="space-y-6">
+    <div className="relative w-28 h-28 flex items-center justify-center">
+      <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#1A1A1A" strokeWidth="8" />
+        <circle
+          cx="50" cy="50" r={r} fill="none"
+          stroke={over ? '#EF4444' : '#DC143C'}
+          strokeWidth="8"
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 0.5s ease' }}
+        />
+      </svg>
+      <div className="text-center z-10">
+        <div className={`text-xl font-bold ${over ? 'text-red-400' : 'text-white'}`}>{current}</div>
+        <div className="text-[10px] text-gray-500">/ {goal} kcal</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Page ───────────────────────────────────────────────────────── */
+export default function NutritionPage() {
+  const qc = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const { data: todayData } = useQuery({
+    queryKey: ['nutrition', 'today'],
+    queryFn: async () => {
+      const res = await nutritionApi.today();
+      return res.data;
+    },
+    placeholderData: MOCK_TODAY,
+  });
+
+  const { data: weeklyData } = useQuery({
+    queryKey: ['nutrition', 'weekly'],
+    queryFn: async () => {
+      const res = await nutritionApi.weeklyStats();
+      return res.data;
+    },
+    placeholderData: MOCK_WEEKLY,
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => nutritionApi.removeMeal(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['nutrition', 'today'] });
+      toast.success('Eliminado');
+    },
+  });
+
+  const meals: any[]  = todayData?.meals      ?? MOCK_TODAY.meals;
+  const byCategory    = todayData?.byCategory  ?? MOCK_TODAY.byCategory;
+  const totalCalories = meals.reduce((s: number, m: any) => s + (m.calories || 0), 0);
+
+  const weekStats = (weeklyData?.stats ?? MOCK_WEEKLY.stats).map((d: any) => ({
+    ...d,
+    day: format(new Date(d.date + 'T12:00:00'), 'EEE'),
+  }));
+
+  return (
+    <div className="space-y-6 pb-8">
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-white">Nutrición</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Registra tus macros y combustiona tus ganancias</p>
+          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+            <Utensils className="w-8 h-8 text-[#DC143C]" />
+            Taberna
+          </h1>
+          <p className="text-gray-500 mt-1">El combustible de tu aventura</p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={() => setShowModal(true)}>Registrar Alimento</Button>
+        <motion.button
+          whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(220,20,60,0.4)' }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Registrar
+        </motion.button>
       </div>
 
-      {/* Daily Summary */}
-      <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-5">Resumen de Hoy</h2>
-        <div className="flex flex-col md:flex-row gap-6 items-center">
-          <div className="flex-shrink-0">
-            <CircleProgress
-              value={totals.calories}
-              max={DAILY_GOALS.calories}
-              size={120}
-              strokeWidth={8}
-              color="#DC143C"
-              label={
-                <div className="text-center">
-                  <p className="text-lg font-bold text-white">{totals.calories}</p>
-                  <p className="text-xs text-gray-500">kcal</p>
-                </div>
-              }
-            />
-          </div>
-          <div className="flex-1 space-y-3 w-full">
-            {[
-              { label:'Proteína', value:totals.protein, goal:DAILY_GOALS.protein, color:'blue' as const, icon:<Beef size={14}/> },
-              { label:'Carbohidratos',   value:totals.carbs,   goal:DAILY_GOALS.carbs,   color:'gold' as const, icon:<Wheat size={14}/> },
-              { label:'Grasas',     value:totals.fat,     goal:DAILY_GOALS.fat,     color:'red' as const,  icon:<Droplet size={14}/> },
-            ].map(m => (
-              <div key={m.label}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-400 flex items-center gap-1">{m.icon}{m.label}</span>
-                  <span className="text-gray-300">{m.value}g / {m.goal}g</span>
-                </div>
-                <Progress value={m.value} max={m.goal} color={m.color} size="sm" animated />
-              </div>
-            ))}
-          </div>
-          {/* Water tracker */}
-          <div className="flex flex-col items-center gap-2">
-            <Droplets size={20} className="text-blue-400" />
-            <p className="text-sm font-bold text-white">{water}/10</p>
-            <div className="grid grid-cols-5 gap-1">
-              {Array.from({length:10}).map((_,i) => (
-                <button key={i} onClick={() => setWater(i+1)}
-                  className={cn('w-6 h-8 rounded-sm transition-all', i < water ? 'bg-blue-500' : 'bg-white/5 hover:bg-blue-900/40')}
-                />
-              ))}
-            </div>
-            <p className="text-[10px] text-gray-500">vasos</p>
-          </div>
-        </div>
-      </motion.div>
+      {/* Resumen del día: anillo + 3 categorías */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Anillo total */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col items-center justify-center gap-2"
+        >
+          <CalorieRing current={totalCalories} goal={DAILY_GOAL} />
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total hoy</p>
+        </motion.div>
 
-      {/* Meal Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {MEAL_TYPES.map((type, ti) => {
-          const typeMeals = meals.filter(m => m.mealType === type)
-          const typeCalories = typeMeals.reduce((s,m) => s+m.calories, 0)
+        {/* 3 tarjetas de categoría */}
+        {CATEGORIES.map((cat, i) => {
+          const kcal = (byCategory as any)?.[cat.id] ?? 0;
+          const Icon = cat.icon;
           return (
-            <motion.div key={type} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:ti*0.08}}
-              className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{MEAL_ICONS[type]}</span>
-                  <span className="text-sm font-semibold text-white">{MEAL_LABELS[type] ?? type}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{typeCalories} kcal</span>
-                  <button onClick={() => { setForm(f => ({...f, mealType:type})); setShowModal(true) }}
-                    className="p-1 rounded-lg bg-elite-600/10 text-elite-600 hover:bg-elite-600/20 transition-all">
-                    <Plus size={12}/>
-                  </button>
-                </div>
+            <motion.div
+              key={cat.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: (i + 1) * 0.08 }}
+              className={`rounded-2xl bg-white/5 border ${cat.ring} p-5 flex flex-col gap-3`}
+            >
+              <div className={`w-10 h-10 rounded-xl ${cat.bg} flex items-center justify-center`}>
+                <Icon className={`w-5 h-5 ${cat.text}`} />
               </div>
-              {typeMeals.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-4">Sin comidas registradas</p>
-              ) : (
-                <div className="space-y-2">
-                  {typeMeals.map(m => (
-                    <div key={m.id} className="flex items-center justify-between py-2 border-b border-[#1A1A1A] last:border-0">
-                      <div>
-                        <p className="text-sm text-white">{m.name}</p>
-                        <p className="text-[11px] text-gray-500">P:{Math.round(m.protein)}g · C:{Math.round(m.carbs)}g · F:{Math.round(m.fat)}g</p>
-                      </div>
-                      <span className="text-sm font-bold text-elite-600 flex items-center gap-1">
-                        <Flame size={11}/>{m.calories}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div>
+                <p className="text-white font-bold text-xl">{kcal} <span className="text-sm font-normal text-gray-500">kcal</span></p>
+                <p className={`text-sm font-semibold ${cat.text}`}>{cat.label}</p>
+                <p className="text-xs text-gray-600">{cat.sub}</p>
+              </div>
             </motion.div>
-          )
+          );
         })}
       </div>
 
-      {/* Weekly Chart */}
-      <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.4}}
-        className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-5">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Macros Semanales</h2>
+      {/* Lista de comidas de hoy por momento */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {MEAL_TIMES.map((mt, ti) => {
+          const Icon = mt.icon;
+          const items = meals.filter((m: any) => m.mealType === mt.id);
+          const total = items.reduce((s: number, m: any) => s + (m.calories || 0), 0);
+          return (
+            <motion.div
+              key={mt.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: ti * 0.07 }}
+              className="rounded-2xl bg-white/5 border border-white/10 p-5"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Icon className="w-4 h-4 text-gray-400" />
+                  <span className="text-white font-semibold text-sm">{mt.label}</span>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <Flame className="w-3 h-3" />
+                  {total} kcal
+                </div>
+              </div>
+
+              {items.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-3">Sin registros</p>
+              ) : (
+                <div className="space-y-2">
+                  {items.map((meal: any) => {
+                    const cat = CATEGORIES.find((c) => c.id === meal.category);
+                    return (
+                      <div
+                        key={meal.id}
+                        className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {cat && (
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ backgroundColor: cat.color }} />
+                          )}
+                          <span className="text-sm text-gray-300 truncate">{meal.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                          <span className="text-sm font-bold text-white">{meal.calories}</span>
+                          <button
+                            onClick={() => removeMutation.mutate(meal.id)}
+                            className="text-gray-700 hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Gráfica semanal por categoría */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="rounded-2xl bg-white/5 border border-white/10 p-6"
+      >
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
+          Calorías esta semana
+        </h3>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={WEEK_DATA} barSize={8} barGap={2}>
-            <XAxis dataKey="day" tick={{fill:'#666',fontSize:11}} axisLine={false} tickLine={false}/>
-            <YAxis hide/>
-            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{fill:'rgba(255,255,255,0.03)'}}/>
-            <Legend wrapperStyle={{fontSize:11,color:'#888'}}/>
-            <Bar dataKey="protein" name="Proteína" fill="#3B82F6" radius={[3,3,0,0]}/>
-            <Bar dataKey="carbs"   name="Carbohidratos"   fill="#F59E0B" radius={[3,3,0,0]}/>
-            <Bar dataKey="fat"     name="Grasas"     fill="#EF4444" radius={[3,3,0,0]}/>
+          <BarChart data={weekStats} barSize={14} barGap={2} margin={{ left: -20 }}>
+            <CartesianGrid stroke="#1A1A1A" vertical={false} />
+            <XAxis dataKey="day" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip
+              contentStyle={{ background: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, color: '#fff', fontSize: 12 }}
+              cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+            />
+            <Bar dataKey="bad"  name="Comida Mala"      stackId="a" fill="#EF4444" radius={[0,0,0,0]} />
+            <Bar dataKey="home" name="Casera Calórica"   stackId="a" fill="#F59E0B" radius={[0,0,0,0]} />
+            <Bar dataKey="good" name="Comer Bien"        stackId="a" fill="#22C55E" radius={[6,6,0,0]} />
           </BarChart>
         </ResponsiveContainer>
+        {/* Leyenda */}
+        <div className="flex items-center gap-4 mt-3 justify-center">
+          {[
+            { color: '#EF4444', label: 'Comida Mala' },
+            { color: '#F59E0B', label: 'Casera Calórica' },
+            { color: '#22C55E', label: 'Comer Bien' },
+          ].map((l) => (
+            <div key={l.label} className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: l.color }} />
+              <span className="text-xs text-gray-500">{l.label}</span>
+            </div>
+          ))}
+        </div>
       </motion.div>
 
-      {/* Add Meal Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <motion.div initial={{scale:0.95,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:0.95,opacity:0}}
-              className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 w-full max-w-md shadow-[0_8px_64px_rgba(0,0,0,0.6)]">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-bold text-white font-heading">Registrar Alimento</h3>
-                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white"><X size={18}/></button>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1.5">Tipo de Comida</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {MEAL_TYPES.map(t => (
-                      <button type="button" key={t} onClick={() => setForm(f=>({...f,mealType:t}))}
-                        className={cn('py-2 rounded-xl text-xs font-medium transition-all',
-                          form.mealType===t ? 'bg-elite-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10')}>
-                        {MEAL_LABELS[t] ?? t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <Input label="Nombre del Alimento" placeholder="ej. Pollo a la Plancha" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required/>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input label="Calorías" type="number" placeholder="420" value={form.calories} onChange={e=>setForm(f=>({...f,calories:e.target.value}))}/>
-                  <Input label="Proteína (g)" type="number" placeholder="35" value={form.protein} onChange={e=>setForm(f=>({...f,protein:e.target.value}))}/>
-                  <Input label="Carbohidratos (g)" type="number" placeholder="45" value={form.carbs} onChange={e=>setForm(f=>({...f,carbs:e.target.value}))}/>
-                  <Input label="Grasas (g)" type="number" placeholder="12" value={form.fat} onChange={e=>setForm(f=>({...f,fat:e.target.value}))}/>
-                </div>
-                <Button type="submit" fullWidth loading={addMutation.isPending}>Registrar Alimento</Button>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Modal */}
+      <QuickNutritionModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
-  )
+  );
 }

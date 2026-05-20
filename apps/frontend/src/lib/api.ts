@@ -65,6 +65,7 @@ export const gymApi = {
 // ─── Nutrition ───────────────────────────────────────────────────
 export const nutritionApi = {
   today:         () => api.get('/nutrition/today'),
+  estimate:      (description: string) => api.post('/nutrition/estimate', { description }),
   addMeal:       (data: object) => api.post('/nutrition/meals', data),
   removeMeal:    (id: string) => api.delete(`/nutrition/meals/${id}`),
   weeklyStats:   () => api.get('/nutrition/stats/weekly'),
@@ -81,18 +82,24 @@ export const cardioApi = {
 
 // ─── Goals ───────────────────────────────────────────────────────
 export const goalsApi = {
-  list:          () => api.get('/goals'),
-  create:        (data: object) => api.post('/goals', data),
-  update:        (id: string, data: object) => api.put(`/goals/${id}`, data),
-  remove:        (id: string) => api.delete(`/goals/${id}`),
-  progress:      (id: string, value: number) => api.post(`/goals/${id}/progress`, { value }),
+  list:              () => api.get('/goals'),
+  create:            (data: object) => api.post('/goals', data),
+  update:            (id: string, data: object) => api.put(`/goals/${id}`, data),
+  remove:            (id: string) => api.delete(`/goals/${id}`),
+  progress:          (id: string, value: number) => api.post(`/goals/${id}/progress`, { value }),
+  suggestMilestones: (id: string, data: object) => api.post(`/goals/${id}/milestones/suggest`, data),
+  toggleMilestone:   (goalId: string, mid: string) => api.patch(`/goals/${goalId}/milestones/${mid}`, {}),
+  addMilestone:      (goalId: string, data: object) => api.post(`/goals/${goalId}/milestones`, data),
 }
 
 // ─── Learning ─────────────────────────────────────────────────────
 export const learningApi = {
-  sessions:      () => api.get('/learning/sessions'),
-  create:        (data: object) => api.post('/learning/sessions', data),
-  stats:         () => api.get('/learning/stats'),
+  interests:       () => api.get('/learning/interests'),
+  addInterest:     (name: string) => api.post('/learning/interests', { name }),
+  removeInterest:  (id: string) => api.delete(`/learning/interests/${id}`),
+  items:           () => api.get('/learning/items'),
+  toggleItem:      (id: string) => api.patch(`/learning/items/${id}`, {}),
+  generate:        (interests: string[]) => api.post('/learning/generate', { interests }),
 }
 
 // ─── Finance ─────────────────────────────────────────────────────
@@ -101,6 +108,23 @@ export const financeApi = {
   create:        (data: object) => api.post('/finance/entries', data),
   remove:        (id: string) => api.delete(`/finance/entries/${id}`),
   summary:       () => api.get('/finance/summary'),
+}
+
+// ─── Bets ─────────────────────────────────────────────────────────
+export const betsApi = {
+  list:    () => api.get('/bets'),
+  my:      () => api.get('/bets/my'),
+  create:  (data: object) => api.post('/bets', data),
+  accept:  (id: string, amount: number) => api.post(`/bets/${id}/accept`, { amount }),
+  settle:  (id: string) => api.post(`/bets/${id}/settle`),
+}
+
+// ─── Savings ─────────────────────────────────────────────────────
+export const savingsApi = {
+  config:      () => api.get('/savings/config'),
+  setConfig:   (data: object) => api.post('/savings/config', data),
+  summary:     () => api.get('/savings/summary'),
+  processWeek: () => api.post('/savings/process-week'),
 }
 
 // ─── Leaderboard ─────────────────────────────────────────────────

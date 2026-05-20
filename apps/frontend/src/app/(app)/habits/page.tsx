@@ -359,12 +359,12 @@ export default function HabitsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
             <CheckSquare className="w-8 h-8 text-[#DC143C]" />
-            Hábitos de Hoy
+            Juramentos
           </h1>
           <p className="text-gray-500 mt-1">
-            {completedToday}/{displayHabits.length} completados hoy
+            {completedToday}/{displayHabits.length} sellados hoy
           </p>
         </div>
         <Button

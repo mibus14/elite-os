@@ -33,7 +33,7 @@ import {
 } from 'recharts';
 import { gymApi } from '@/lib/api';
 import type { GymSession, Exercise, PersonalRecord } from '@/types';
-import LogSessionModal from '@/components/gym/LogSessionModal';
+import QuickLogModal from '@/components/gym/QuickLogModal';
 import ExerciseCard from '@/components/gym/ExerciseCard';
 
 /* ─── Mock data ─────────────────────────────────────────────────────── */
@@ -214,11 +214,11 @@ export default function GymPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
             <Dumbbell className="w-8 h-8 text-[#DC143C]" />
-            Gym
+            Forja del Guerrero
           </h1>
-          <p className="text-gray-500 mt-1">Registra tu entrenamiento de fuerza</p>
+          <p className="text-gray-500 mt-1">Forja tu cuerpo en el fuego del esfuerzo</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(220,20,60,0.4)' }}
@@ -234,9 +234,9 @@ export default function GymPage() {
       <Tabs.Root defaultValue="sessions">
         <Tabs.List className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 mb-6 w-fit">
           {[
-            { value: 'sessions', label: 'Sesiones', icon: CalendarDays },
-            { value: 'exercises', label: 'Ejercicios', icon: Dumbbell },
-            { value: 'records', label: 'Récords', icon: Trophy },
+            { value: 'sessions', label: 'Hazañas', icon: CalendarDays },
+            { value: 'exercises', label: 'Arsenal', icon: Dumbbell },
+            { value: 'records', label: 'Leyendas', icon: Trophy },
             { value: 'stats', label: 'Estadísticas', icon: BarChart2 },
           ].map(({ value, label, icon: Icon }) => (
             <Tabs.Trigger
@@ -425,7 +425,7 @@ export default function GymPage() {
         </Tabs.Content>
       </Tabs.Root>
 
-      <LogSessionModal
+      <QuickLogModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onXP={(xp) => setXpFloat({ show: true, amount: xp })}
