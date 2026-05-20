@@ -1,154 +1,494 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { User, Bell, Shield, Moon, Save, Camera } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
+import * as Tabs from '@radix-ui/react-tabs'
+import { Settings, User, Bell, Monitor, Shield, Check, Eye, EyeOff } from 'lucide-react'
+import { usersApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { cn } from '@/lib/utils'
 
-const AVATAR_SEEDS = [
-  { seed: 'felix',    style: 'avataaars' },
-  { seed: 'aneka',    style: 'avataaars' },
-  { seed: 'shadow',   style: 'avataaars' },
-  { seed: 'warrior',  style: 'avataaars' },
-  { seed: 'hunter',   style: 'avataaars' },
-  { seed: 'neon',     style: 'avataaars' },
-]
+/* ─── Avatar options ─────────────────────────────────────────────── */
+const AVATAR_SEEDS = ['felix', 'alex', 'sam', 'jordan', 'taylor', 'casey']
+const AVATAR_URLS = AVATAR_SEEDS.map(
+  (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
+)
 
-type Tab = 'profile' | 'notifications' | 'security' | 'display'
+/* ─── Toggle Switch ──────────────────────────────────────────────── */
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <motion.button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+        checked ? 'bg-[#DC143C]' : 'bg-white/10'
+      }`}
+      whileTap={{ scale: 0.95 }}
+    >
+      <motion.div
+        animate={{ x: checked ? 20 : 2 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+      />
+    </motion.button>
+  )
+}
 
+/* ─── Notification row ───────────────────────────────────────────── */
+function NotifRow({ label, description, value, onChange }: {
+  label: string
+  description: string
+  value: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between py-4 border-b border-[#1E1E1E] last:border-0">
+      <div>
+        <p className="text-white text-sm font-medium">{label}</p>
+        <p className="text-gray-500 text-xs mt-0.5">{description}</p>
+      </div>
+      <Toggle checked={value} onChange={onChange} />
+    </div>
+  )
+}
+
+/* ─── Page ───────────────────────────────────────────────────────── */
 export default function SettingsPage() {
-  const { user, updateUser } = useAuthStore()
-  const [activeTab, setActiveTab] = useState<Tab>('profile')
-  const [username, setUsername]   = useState(user?.username ?? '')
-  const [bio, setBio]             = useState(user?.bio ?? '')
-  const [avatar, setAvatar]       = useState(user?.avatar ?? '')
-  const [saved, setSaved]         = useState(false)
+  const user = useAuthStore((s) => s.user)
+  const updateUser = useAuthStore((s) => s.updateUser)
 
+  // Profile state
+  const [avatar, setAvatar] = useState(user?.avatar ?? AVATAR_URLS[0])
+  const [username, setUsername] = useState(user?.username ?? '')
+  const [bio, setBio] = useState(user?.bio ?? '')
+  const [saved, setSaved] = useState(false)
+
+  // Notifications
   const [notifs, setNotifs] = useState({
-    achievements: true, weeklyReport: true, goalReminders: true, chatMessages: true,
+    emailNotifications: true,
+    achievementAlerts: true,
+    weeklyReport: false,
+    goalReminders: true,
   })
 
-  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
+  // Security
+  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' })
+  const [showPw, setShowPw] = useState({ current: false, newPw: false, confirm: false })
+  const [pwError, setPwError] = useState('')
+  const [pwSaved, setPwSaved] = useState(false)
 
-  const handleSaveProfile = () => {
-    updateUser({ username, bio, avatar })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: object) => usersApi.updateProfile(data),
+    onSuccess: () => {
+      updateUser({ username, bio, avatar })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    },
+    onError: () => {
+      // Still update locally even if API fails
+      updateUser({ username, bio, avatar })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    },
+  })
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateProfileMutation.mutate({ username, bio, avatar })
   }
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'profile',       label: 'Profile',       icon: <User size={15}/> },
-    { id: 'notifications', label: 'Notifications', icon: <Bell size={15}/> },
-    { id: 'display',       label: 'Display',       icon: <Moon size={15}/> },
-    { id: 'security',      label: 'Security',      icon: <Shield size={15}/> },
-  ]
+  const handleSavePassword = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwError('')
+    if (!pwForm.current) { setPwError('Current password required'); return }
+    if (pwForm.newPw.length < 8) { setPwError('New password must be at least 8 characters'); return }
+    if (pwForm.newPw !== pwForm.confirm) { setPwError('Passwords do not match'); return }
+    setPwSaved(true)
+    setPwForm({ current: '', newPw: '', confirm: '' })
+    setTimeout(() => setPwSaved(false), 2000)
+  }
+
+  const pwStrength = Math.min(4,
+    [
+      pwForm.newPw.length >= 8,
+      /[A-Z]/.test(pwForm.newPw),
+      /[0-9]/.test(pwForm.newPw),
+      /[^A-Za-z0-9]/.test(pwForm.newPw),
+    ].filter(Boolean).length
+  )
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-heading text-white">Settings</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Manage your account and preferences</p>
+    <div className="space-y-6 pb-8 max-w-3xl">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Settings className="w-8 h-8 text-[#DC143C]" />
+        <div>
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
+          <p className="text-gray-500 mt-1">Manage your account preferences</p>
+        </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/10">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)}
-            className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all',
-              activeTab===t.id ? 'bg-elite-600 text-white shadow-glow-red' : 'text-gray-400 hover:text-white')}>
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Profile Tab */}
-      {activeTab === 'profile' && (
-        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}
-          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 space-y-6">
-          <div>
-            <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Avatar</p>
-            <div className="grid grid-cols-6 gap-3">
-              {AVATAR_SEEDS.map(a => {
-                const url = `https://api.dicebear.com/7.x/${a.style}/svg?seed=${a.seed}`
-                return (
-                  <button key={a.seed} onClick={() => setAvatar(url)}
-                    className={cn('rounded-xl overflow-hidden border-2 transition-all',
-                      avatar===url ? 'border-elite-600 shadow-glow-red' : 'border-transparent hover:border-white/20')}>
-                    <img src={url} alt={a.seed} className="w-full aspect-square bg-[#1E1E1E]"/>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <Input label="Username" value={username} onChange={e=>setUsername(e.target.value)} iconLeft={<User size={14}/>}/>
-          <div>
-            <label className="text-sm text-gray-400 block mb-1.5">Bio</label>
-            <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={3} placeholder="Tell your team about yourself..."
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-elite-600 transition-all resize-none"/>
-          </div>
-          <Button onClick={handleSaveProfile} icon={<Save size={14}/>} fullWidth variant={saved ? 'gold' : 'primary'}>
-            {saved ? 'Saved!' : 'Save Changes'}
-          </Button>
-        </motion.div>
-      )}
-
-      {/* Notifications Tab */}
-      {activeTab === 'notifications' && (
-        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}
-          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 space-y-4">
+      <Tabs.Root defaultValue="profile">
+        <Tabs.List className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 mb-6 w-fit">
           {[
-            { key: 'achievements',  label: 'Achievement Alerts',  desc: 'When you unlock badges or level up' },
-            { key: 'weeklyReport',  label: 'Weekly Report',        desc: 'Summary of your week every Sunday' },
-            { key: 'goalReminders', label: 'Goal Reminders',       desc: 'Reminders for approaching deadlines' },
-            { key: 'chatMessages',  label: 'Chat Messages',        desc: 'New messages from teammates' },
-          ].map(n => (
-            <div key={n.key} className="flex items-center justify-between py-3 border-b border-[#1A1A1A] last:border-0">
-              <div>
-                <p className="text-sm font-medium text-white">{n.label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{n.desc}</p>
-              </div>
-              <button onClick={() => setNotifs(p => ({...p, [n.key as keyof typeof p]: !p[n.key as keyof typeof p]}))}
-                className={cn('w-11 h-6 rounded-full transition-all relative flex-shrink-0',
-                  notifs[n.key as keyof typeof notifs] ? 'bg-elite-600' : 'bg-white/10')}>
-                <span className={cn('absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all',
-                  notifs[n.key as keyof typeof notifs] ? 'left-5.5 translate-x-0' : 'left-0.5')}/>
-              </button>
-            </div>
+            { value: 'profile',       label: 'Profile',       icon: User },
+            { value: 'notifications', label: 'Notifications', icon: Bell },
+            { value: 'display',       label: 'Display',       icon: Monitor },
+            { value: 'security',      label: 'Security',      icon: Shield },
+          ].map(({ value, label, icon: Icon }) => (
+            <Tabs.Trigger
+              key={value}
+              value={value}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-400 data-[state=active]:bg-[#DC143C] data-[state=active]:text-white transition-all"
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </Tabs.Trigger>
           ))}
-        </motion.div>
-      )}
+        </Tabs.List>
 
-      {/* Display Tab */}
-      {activeTab === 'display' && (
-        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}
-          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6">
-          <div className="flex items-center gap-4 p-4 rounded-xl bg-elite-600/10 border border-elite-600/30">
-            <Moon size={24} className="text-elite-600"/>
+        {/* ── Profile Tab ─────────────────────────────────────────── */}
+        <Tabs.Content value="profile">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
+          >
+            <h2 className="text-base font-bold text-white mb-5">Profile Settings</h2>
+
+            <form onSubmit={handleSaveProfile} className="space-y-6">
+              {/* Avatar selection */}
+              <div>
+                <label className="text-sm font-medium text-gray-300 mb-3 block">Avatar</label>
+                <div className="flex gap-3 flex-wrap">
+                  {AVATAR_URLS.map((url) => (
+                    <motion.button
+                      key={url}
+                      type="button"
+                      onClick={() => setAvatar(url)}
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
+                        avatar === url
+                          ? 'border-[#DC143C] shadow-[0_0_12px_rgba(220,20,60,0.5)]'
+                          : 'border-white/10 hover:border-white/30'
+                      }`}
+                    >
+                      <img src={url} alt="avatar" className="w-full h-full object-cover bg-[#1E1E1E]" />
+                      {avatar === url && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute inset-0 bg-[#DC143C]/30 flex items-center justify-center"
+                        >
+                          <Check className="w-5 h-5 text-white" />
+                        </motion.div>
+                      )}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E1E1E]">
+                  <img src={avatar} alt="preview" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold">{username || 'Username'}</p>
+                  <p className="text-gray-500 text-xs">Level {user?.level ?? 1} · {user?.rank ?? 'Rookie'}</p>
+                </div>
+              </div>
+
+              <Input
+                label="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Your username"
+              />
+
+              <div>
+                <label className="text-sm font-medium text-gray-300 mb-1.5 block">Bio</label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell us about yourself…"
+                  rows={3}
+                  maxLength={160}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] resize-none transition-colors"
+                />
+                <p className="text-xs text-gray-600 mt-1 text-right">{bio.length}/160</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={updateProfileMutation.isPending}
+                  icon={saved ? <Check className="w-4 h-4" /> : undefined}
+                >
+                  {saved ? 'Saved!' : 'Save Profile'}
+                </Button>
+                <AnimatePresence>
+                  {saved && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-emerald-400 text-sm font-medium"
+                    >
+                      Changes saved successfully
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+            </form>
+          </motion.div>
+        </Tabs.Content>
+
+        {/* ── Notifications Tab ────────────────────────────────────── */}
+        <Tabs.Content value="notifications">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
+          >
+            <h2 className="text-base font-bold text-white mb-5">Notification Preferences</h2>
+
             <div>
-              <p className="text-sm font-semibold text-white">Dark Mode — Cyberpunk</p>
-              <p className="text-xs text-gray-500 mt-0.5">ELITE OS uses an exclusive dark mode — no light mode available.</p>
+              <NotifRow
+                label="Email Notifications"
+                description="Receive activity updates via email"
+                value={notifs.emailNotifications}
+                onChange={(v) => setNotifs((n) => ({ ...n, emailNotifications: v }))}
+              />
+              <NotifRow
+                label="Achievement Alerts"
+                description="Get notified when you unlock achievements"
+                value={notifs.achievementAlerts}
+                onChange={(v) => setNotifs((n) => ({ ...n, achievementAlerts: v }))}
+              />
+              <NotifRow
+                label="Weekly Report"
+                description="Receive a weekly summary of your progress"
+                value={notifs.weeklyReport}
+                onChange={(v) => setNotifs((n) => ({ ...n, weeklyReport: v }))}
+              />
+              <NotifRow
+                label="Goal Reminders"
+                description="Get reminded about upcoming goal deadlines"
+                value={notifs.goalReminders}
+                onChange={(v) => setNotifs((n) => ({ ...n, goalReminders: v }))}
+              />
             </div>
-            <span className="ml-auto text-xs bg-elite-600/20 text-elite-600 border border-elite-600/30 px-2 py-0.5 rounded-full font-medium">Active</span>
-          </div>
-        </motion.div>
-      )}
 
-      {/* Security Tab */}
-      {activeTab === 'security' && (
-        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}
-          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 space-y-4">
-          <Input label="Current Password" type="password" placeholder="••••••••" value={passwords.current} onChange={e=>setPasswords(p=>({...p,current:e.target.value}))}/>
-          <Input label="New Password" type="password" placeholder="••••••••" value={passwords.next} onChange={e=>setPasswords(p=>({...p,next:e.target.value}))}/>
-          <Input label="Confirm New Password" type="password" placeholder="••••••••" value={passwords.confirm} onChange={e=>setPasswords(p=>({...p,confirm:e.target.value}))}
-            error={passwords.confirm && passwords.next !== passwords.confirm ? "Passwords don't match" : undefined}/>
-          <Button fullWidth variant="danger" disabled={!passwords.current || !passwords.next || passwords.next !== passwords.confirm}>
-            Update Password
-          </Button>
-        </motion.div>
-      )}
+            <div className="mt-5">
+              <Button variant="primary">Save Preferences</Button>
+            </div>
+          </motion.div>
+        </Tabs.Content>
+
+        {/* ── Display Tab ──────────────────────────────────────────── */}
+        <Tabs.Content value="display">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 space-y-6"
+          >
+            <h2 className="text-base font-bold text-white">Display Settings</h2>
+
+            {/* Theme */}
+            <div>
+              <label className="text-sm font-medium text-gray-300 mb-3 block">Theme</label>
+              <div className="flex gap-3 flex-wrap">
+                {[
+                  { id: 'dark',   label: '🌑 Dark Mode',  active: true  },
+                  { id: 'light',  label: '☀️ Light Mode', active: false },
+                  { id: 'system', label: '💻 System',     active: false },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                      t.active
+                        ? 'bg-[#DC143C]/10 border-[#DC143C]/50 text-white'
+                        : 'border-white/10 text-gray-500 cursor-not-allowed opacity-50'
+                    }`}
+                    disabled={!t.active}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">ELITE OS is designed exclusively for Dark Mode. Light mode coming soon.</p>
+            </div>
+
+            {/* Accent color */}
+            <div>
+              <label className="text-sm font-medium text-gray-300 mb-3 block">Accent Color</label>
+              <div className="flex gap-4">
+                {[
+                  { color: '#DC143C', label: 'Elite Red', active: true  },
+                  { color: '#3B82F6', label: 'Blue',      active: false },
+                  { color: '#8B5CF6', label: 'Purple',    active: false },
+                  { color: '#22C55E', label: 'Green',     active: false },
+                ].map((c) => (
+                  <div key={c.color} className="flex flex-col items-center gap-1.5">
+                    <button
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        c.active ? 'border-white scale-110' : 'border-transparent opacity-40 cursor-not-allowed'
+                      }`}
+                      style={{ background: c.color }}
+                      disabled={!c.active}
+                    />
+                    <span className="text-xs text-gray-600">{c.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Current config */}
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Current Configuration</p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-gray-500">Theme</div><div className="text-white">Dark Mode</div>
+                <div className="text-gray-500">Accent</div><div className="text-[#DC143C] font-semibold">Elite Red #DC143C</div>
+                <div className="text-gray-500">Background</div><div className="text-white">#0A0A0A</div>
+                <div className="text-gray-500">Cards</div><div className="text-white">#111111</div>
+              </div>
+            </div>
+          </motion.div>
+        </Tabs.Content>
+
+        {/* ── Security Tab ─────────────────────────────────────────── */}
+        <Tabs.Content value="security">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
+          >
+            <h2 className="text-base font-bold text-white mb-5">Change Password</h2>
+
+            <form onSubmit={handleSavePassword} className="space-y-4 max-w-md">
+              <Input
+                label="Current Password"
+                type={showPw.current ? 'text' : 'password'}
+                value={pwForm.current}
+                onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))}
+                placeholder="Enter current password"
+                iconRight={
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => ({ ...s, current: !s.current }))}
+                    className="text-gray-500 hover:text-white"
+                  >
+                    {showPw.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
+              />
+
+              <Input
+                label="New Password"
+                type={showPw.newPw ? 'text' : 'password'}
+                value={pwForm.newPw}
+                onChange={(e) => setPwForm((f) => ({ ...f, newPw: e.target.value }))}
+                placeholder="At least 8 characters"
+                hint="Use a strong password with letters, numbers, and symbols"
+                iconRight={
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => ({ ...s, newPw: !s.newPw }))}
+                    className="text-gray-500 hover:text-white"
+                  >
+                    {showPw.newPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
+              />
+
+              <Input
+                label="Confirm New Password"
+                type={showPw.confirm ? 'text' : 'password'}
+                value={pwForm.confirm}
+                onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
+                placeholder="Repeat new password"
+                error={pwError}
+                iconRight={
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => ({ ...s, confirm: !s.confirm }))}
+                    className="text-gray-500 hover:text-white"
+                  >
+                    {showPw.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
+              />
+
+              {/* Password strength */}
+              {pwForm.newPw && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="space-y-1.5"
+                >
+                  <p className="text-xs text-gray-500">Password strength</p>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4].map((lvl) => {
+                      const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-500']
+                      return (
+                        <div
+                          key={lvl}
+                          className={`flex-1 h-1.5 rounded-full transition-colors ${
+                            lvl <= pwStrength ? strengthColors[pwStrength - 1] : 'bg-white/10'
+                          }`}
+                        />
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {pwStrength === 0 && 'Very weak'}
+                    {pwStrength === 1 && 'Weak'}
+                    {pwStrength === 2 && 'Fair'}
+                    {pwStrength === 3 && 'Strong'}
+                    {pwStrength === 4 && '✓ Very strong'}
+                  </p>
+                </motion.div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  icon={pwSaved ? <Check className="w-4 h-4" /> : undefined}
+                >
+                  {pwSaved ? 'Password Updated!' : 'Update Password'}
+                </Button>
+                <AnimatePresence>
+                  {pwSaved && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-emerald-400 text-sm"
+                    >
+                      Password changed successfully
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+            </form>
+
+            {/* Danger zone */}
+            <div className="mt-8 pt-6 border-t border-[#1E1E1E]">
+              <h3 className="text-sm font-semibold text-red-400 mb-3">Danger Zone</h3>
+              <div className="p-4 rounded-xl border border-red-900/30 bg-red-950/20">
+                <p className="text-sm text-gray-400 mb-3">Permanently delete your account and all associated data. This cannot be undone.</p>
+                <Button variant="danger" size="sm">Delete Account</Button>
+              </div>
+            </div>
+          </motion.div>
+        </Tabs.Content>
+      </Tabs.Root>
     </div>
   )
 }

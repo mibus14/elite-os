@@ -40,6 +40,7 @@ const config: Config = {
       fontFamily: {
         inter: ['Inter', 'system-ui', 'sans-serif'],
         'space-grotesk': ['Space Grotesk', 'system-ui', 'sans-serif'],
+        heading: ['Space Grotesk', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'glow-red':  '0 0 20px rgba(220, 20, 60, 0.4), 0 0 40px rgba(220, 20, 60, 0.2)',
