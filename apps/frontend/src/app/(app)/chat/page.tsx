@@ -184,7 +184,7 @@ export default function ChatPage() {
         <div className="p-4 border-b border-[#1E1E1E]">
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-[#DC143C]" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">Messages</h2>
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">Mensajes</h2>
           </div>
         </div>
 
@@ -253,7 +253,7 @@ export default function ChatPage() {
                 <div className="flex items-center gap-1.5">
                   <Circle className={`w-2 h-2 fill-current ${selectedUser.online ? 'text-emerald-400' : 'text-gray-600'}`} />
                   <span className={`text-xs ${selectedUser.online ? 'text-emerald-400' : 'text-gray-600'}`}>
-                    {selectedUser.online ? 'Online' : 'Offline'}
+                    {selectedUser.online ? 'En línea' : 'Desconectado'}
                   </span>
                 </div>
               </div>
@@ -279,7 +279,7 @@ export default function ChatPage() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Message ${selectedUser.username}…`}
+                  placeholder={`Escribe un mensaje a ${selectedUser.username}…`}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] transition-colors"
                 />
                 <motion.button
@@ -292,14 +292,14 @@ export default function ChatPage() {
                   <Send className="w-4 h-4 text-white" />
                 </motion.button>
               </div>
-              <p className="text-[10px] text-gray-700 mt-1.5 ml-1">Press Enter to send</p>
+              <p className="text-[10px] text-gray-700 mt-1.5 ml-1">Presiona Enter para enviar</p>
             </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-600">
             <div className="text-center">
               <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>Select a conversation</p>
+              <p>Selecciona una conversación</p>
             </div>
           </div>
         )}

@@ -34,9 +34,9 @@ const mockSessions: CardioSession[] = [
 ]
 
 const TYPE_META = {
-  running:  { emoji: '🏃', label: 'Running',  color: '#DC143C' },
-  cycling:  { emoji: '🚴', label: 'Cycling',  color: '#3B82F6' },
-  swimming: { emoji: '🏊', label: 'Swimming', color: '#06B6D4' },
+  running:  { emoji: '🏃', label: 'Correr',   color: '#DC143C' },
+  cycling:  { emoji: '🚴', label: 'Ciclismo', color: '#3B82F6' },
+  swimming: { emoji: '🏊', label: 'Natación', color: '#06B6D4' },
 }
 
 /* ─── Weekly chart data ──────────────────────────────────────────── */
@@ -115,7 +115,7 @@ function LogCardioModal({ open, onClose, onLog }: {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Log Cardio</h2>
+            <h2 className="text-xl font-bold text-white">Registrar Entrenamiento</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -124,7 +124,7 @@ function LogCardioModal({ open, onClose, onLog }: {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Type selector */}
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Activity Type</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Tipo de Actividad</label>
               <div className="flex gap-2">
                 {(['running', 'cycling', 'swimming'] as const).map((t) => {
                   const meta = TYPE_META[t]
@@ -147,32 +147,32 @@ function LogCardioModal({ open, onClose, onLog }: {
               </div>
             </div>
 
-            <Input label="Date" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
+            <Input label="Fecha" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
 
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Duration (min)" type="number" value={form.duration} onChange={(e) => set('duration', e.target.value)} placeholder="35" />
-              <Input label="Distance (km)" type="number" step="0.1" value={form.distance} onChange={(e) => set('distance', e.target.value)} placeholder="5.0" />
+              <Input label="Duración (min)" type="number" value={form.duration} onChange={(e) => set('duration', e.target.value)} placeholder="35" />
+              <Input label="Distancia (km)" type="number" step="0.1" value={form.distance} onChange={(e) => set('distance', e.target.value)} placeholder="5.0" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Calories" type="number" value={form.calories} onChange={(e) => set('calories', e.target.value)} placeholder="400" />
-              <Input label="Avg Heart Rate" type="number" value={form.avgHeartRate} onChange={(e) => set('avgHeartRate', e.target.value)} placeholder="155" />
+              <Input label="Calorías" type="number" value={form.calories} onChange={(e) => set('calories', e.target.value)} placeholder="400" />
+              <Input label="FC Media (bpm)" type="number" value={form.avgHeartRate} onChange={(e) => set('avgHeartRate', e.target.value)} placeholder="155" />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Notes (optional)</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Notas (opcional)</label>
               <textarea
                 value={form.notes}
                 onChange={(e) => set('notes', e.target.value)}
-                placeholder="How did it feel?"
+                placeholder="¿Cómo te fue?"
                 rows={2}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] resize-none"
               />
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancel</Button>
-              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Log Session</Button>
+              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancelar</Button>
+              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Registrar Entrenamiento</Button>
             </div>
           </form>
         </motion.div>
@@ -243,21 +243,21 @@ export default function CardioPage() {
             <Activity className="w-8 h-8 text-[#DC143C]" />
             Cardio
           </h1>
-          <p className="text-gray-500 mt-1">Track your endurance sessions</p>
+          <p className="text-gray-500 mt-1">Registra tus sesiones de resistencia</p>
         </div>
         <Button
           variant="primary"
           icon={<Plus className="w-4 h-4" />}
           onClick={() => setModalOpen(true)}
         >
-          Log Cardio
+          Registrar Entrenamiento
         </Button>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="This Week"
+          label="Esta Semana"
           value={weekDistance.toFixed(1)}
           suffix="km"
           icon={<MapPin className="w-5 h-5 text-[#DC143C]" />}
@@ -265,14 +265,14 @@ export default function CardioPage() {
           delay={0}
         />
         <StatCard
-          label="Total Time"
+          label="Tiempo Total"
           value={`${Math.floor(totalTime / 60)}h ${totalTime % 60}m`}
           icon={<Timer className="w-5 h-5 text-blue-400" />}
           iconColor="bg-blue-400/10"
           delay={0.05}
         />
         <StatCard
-          label="Calories Burned"
+          label="Calorías Quemadas"
           value={totalCalories.toLocaleString()}
           suffix="kcal"
           icon={<Zap className="w-5 h-5 text-yellow-400" />}
@@ -280,7 +280,7 @@ export default function CardioPage() {
           delay={0.1}
         />
         <StatCard
-          label="Avg Pace"
+          label="Ritmo Medio"
           value={avgPace}
           suffix={avgPace !== '—' ? 'min/km' : ''}
           icon={<TrendingUp className="w-5 h-5 text-emerald-400" />}
@@ -298,7 +298,7 @@ export default function CardioPage() {
       >
         <div className="flex items-center gap-2 mb-5">
           <TrendingUp className="w-4 h-4 text-[#DC143C]" />
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Weekly Distance</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Distancia Semanal</h2>
         </div>
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={weeklyData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
@@ -341,7 +341,7 @@ export default function CardioPage() {
         className="bg-[#111111] border border-[#1E1E1E] rounded-2xl overflow-hidden"
       >
         <div className="p-5 border-b border-[#1E1E1E]">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Sessions</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Sesiones</h2>
         </div>
 
         {isLoading ? (
@@ -351,7 +351,7 @@ export default function CardioPage() {
         ) : sessions.length === 0 ? (
           <div className="text-center py-12 text-gray-600">
             <Activity className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p>No sessions yet</p>
+            <p>Sin sesiones aún</p>
           </div>
         ) : (
           <div className="divide-y divide-[#1E1E1E]">

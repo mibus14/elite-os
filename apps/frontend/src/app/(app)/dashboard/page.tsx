@@ -194,7 +194,7 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
     <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
       <div className="flex items-center gap-2 mb-4">
         <Droplets className="w-4 h-4 text-blue-400" />
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Water</h3>
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Agua</h3>
       </div>
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: goal }).map((_, i) => (
@@ -214,7 +214,7 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
         ))}
       </div>
       <p className="text-xs text-gray-500 mt-3">
-        {current}/{goal} glasses · {(current * 250) / 1000}L
+        {current}/{goal} vasos · {(current * 250) / 1000}L
       </p>
     </div>
   );
@@ -222,14 +222,14 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
 
 /* ─── Sleep Display ─────────────────────────────────────────────────── */
 function SleepDisplay({ hours }: { hours: number }) {
-  const quality = hours >= 8 ? 'Excellent' : hours >= 7 ? 'Good' : hours >= 6 ? 'Fair' : 'Poor';
+  const quality = hours >= 8 ? 'Excelente' : hours >= 7 ? 'Bueno' : hours >= 6 ? 'Regular' : 'Malo';
   const qualityColor = hours >= 8 ? 'text-green-400' : hours >= 7 ? 'text-blue-400' : hours >= 6 ? 'text-yellow-400' : 'text-red-400';
 
   return (
     <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
       <div className="flex items-center gap-2 mb-4">
         <Moon className="w-4 h-4 text-indigo-400" />
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Sleep</h3>
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Sueño</h3>
       </div>
       <div className="text-4xl font-bold text-white">{hours}h</div>
       <div className={`text-sm font-semibold mt-1 ${qualityColor}`}>{quality}</div>
@@ -241,7 +241,7 @@ function SleepDisplay({ hours }: { hours: number }) {
           className="h-full rounded-full bg-gradient-to-r from-indigo-800 to-indigo-500"
         />
       </div>
-      <p className="text-xs text-gray-500 mt-1">Goal: 8h</p>
+      <p className="text-xs text-gray-500 mt-1">Meta: 8h</p>
     </div>
   );
 }
@@ -275,7 +275,27 @@ export default function DashboardPage() {
     staleTime: 60_000,
   });
 
-  const stats = data ?? mockStats;
+  // Merge API data with mock fallbacks so no field is ever undefined
+  const stats: DashboardStats = {
+    ...mockStats,
+    ...(data ?? {}),
+    todayXP:         data?.todayXP         ?? mockStats.todayXP,
+    yesterdayXP:     data?.yesterdayXP     ?? mockStats.yesterdayXP,
+    currentStreak:   data?.currentStreak   ?? mockStats.currentStreak,
+    habitsCompleted: data?.habitsCompleted ?? mockStats.habitsCompleted,
+    habitsTotal:     data?.habitsTotal     ?? mockStats.habitsTotal,
+    caloriesConsumed:data?.caloriesConsumed?? mockStats.caloriesConsumed,
+    caloriesGoal:    data?.caloriesGoal    ?? mockStats.caloriesGoal,
+    activityHeatmap: data?.activityHeatmap ?? mockStats.activityHeatmap,
+    radarData:       data?.radarData       ?? mockStats.radarData,
+    weeklyXP:        data?.weeklyXP        ?? mockStats.weeklyXP,
+    topGoals:        data?.topGoals        ?? mockStats.topGoals,
+    recentActivity:  data?.recentActivity  ?? mockStats.recentActivity,
+    macros:          data?.macros          ?? mockStats.macros,
+    waterCups:       data?.waterCups       ?? mockStats.waterCups,
+    waterGoal:       data?.waterGoal       ?? mockStats.waterGoal,
+    sleepHours:      data?.sleepHours      ?? mockStats.sleepHours,
+  };
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -287,9 +307,9 @@ export default function DashboardPage() {
       {/* Row 1: Hero Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Today's XP"
+          label="XP de Hoy"
           value={stats.todayXP.toString()}
-          sub="vs yesterday"
+          sub="vs ayer"
           icon={<Zap className="w-5 h-5 text-yellow-400" />}
           trend={xpTrend}
           trendValue={`${xpDiff} XP`}
@@ -297,32 +317,32 @@ export default function DashboardPage() {
           delay={0}
         />
         <StatCard
-          label="Streak"
+          label="Racha Activa"
           value={`${stats.currentStreak}d`}
-          sub="days in a row"
+          sub="días seguidos"
           icon={<Flame className="w-5 h-5 text-orange-400" />}
           trend="up"
-          trendValue="on fire!"
+          trendValue="¡en racha!"
           glowColor="#FB923C"
           delay={0.1}
         />
         <StatCard
-          label="Habits"
+          label="Hábitos"
           value={`${stats.habitsCompleted}/${stats.habitsTotal}`}
-          sub="completed today"
+          sub="completados hoy"
           icon={<CheckCircle className="w-5 h-5 text-green-400" />}
           trend={stats.habitsCompleted === stats.habitsTotal ? 'up' : 'neutral'}
-          trendValue={stats.habitsCompleted === stats.habitsTotal ? 'All done!' : `${stats.habitsTotal - stats.habitsCompleted} left`}
+          trendValue={stats.habitsCompleted === stats.habitsTotal ? '¡Todo listo!' : `${stats.habitsTotal - stats.habitsCompleted} restantes`}
           glowColor="#22C55E"
           delay={0.2}
         />
         <StatCard
-          label="Calories"
+          label="Calorías"
           value={stats.caloriesConsumed.toString()}
-          sub={`of ${stats.caloriesGoal} goal`}
+          sub={`de ${stats.caloriesGoal} meta`}
           icon={<Utensils className="w-5 h-5 text-[#DC143C]" />}
           trend={stats.caloriesConsumed <= stats.caloriesGoal ? 'up' : 'down'}
-          trendValue={`${Math.abs(stats.caloriesConsumed - stats.caloriesGoal)} kcal ${stats.caloriesConsumed <= stats.caloriesGoal ? 'remaining' : 'over'}`}
+          trendValue={`${Math.abs(stats.caloriesConsumed - stats.caloriesGoal)} kcal ${stats.caloriesConsumed <= stats.caloriesGoal ? 'restantes' : 'excedidas'}`}
           glowColor="#DC143C"
           delay={0.3}
         />

@@ -96,7 +96,7 @@ function LogStudyModal({ open, onClose, onLog, subjects }: {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Log Study Session</h2>
+            <h2 className="text-xl font-bold text-white">Registrar Sesión de Estudio</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -104,7 +104,7 @@ function LogStudyModal({ open, onClose, onLog, subjects }: {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Subject</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Materia</label>
               <select
                 value={form.subject}
                 onChange={(e) => set('subject', e.target.value)}
@@ -113,12 +113,12 @@ function LogStudyModal({ open, onClose, onLog, subjects }: {
                 {subjects.map((s) => (
                   <option key={s.subject} value={s.subject}>{s.emoji} {s.subject}</option>
                 ))}
-                <option value="Other">📘 Other</option>
+                <option value="Other">📘 Otra</option>
               </select>
             </div>
 
-            <Input label="Date" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
-            <Input label="Duration (minutes)" type="number" value={form.duration} onChange={(e) => set('duration', e.target.value)} placeholder="45" />
+            <Input label="Fecha" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
+            <Input label="Duración (minutos)" type="number" value={form.duration} onChange={(e) => set('duration', e.target.value)} placeholder="45" />
 
             {form.duration && (
               <motion.div
@@ -127,24 +127,24 @@ function LogStudyModal({ open, onClose, onLog, subjects }: {
                 className="flex items-center gap-2 text-sm text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 rounded-xl px-3 py-2"
               >
                 <Zap className="w-4 h-4" />
-                <span>+{Math.round(Number(form.duration) * 4)} XP earned</span>
+                <span>+{Math.round(Number(form.duration) * 4)} XP ganados</span>
               </motion.div>
             )}
 
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Notes (optional)</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Notas (opcional)</label>
               <textarea
                 value={form.notes}
                 onChange={(e) => set('notes', e.target.value)}
-                placeholder="What did you learn?"
+                placeholder="¿Qué aprendiste?"
                 rows={2}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] resize-none"
               />
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancel</Button>
-              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Log Session</Button>
+              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancelar</Button>
+              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Registrar Sesión</Button>
             </div>
           </form>
         </motion.div>
@@ -169,19 +169,19 @@ function SubjectCard({ sub, idx }: { sub: LearningSubject; idx: number }) {
           <span className="text-3xl">{sub.emoji}</span>
           <div>
             <p className="text-white font-semibold">{sub.subject}</p>
-            <p className="text-xs text-gray-500">Level {sub.level}</p>
+            <p className="text-xs text-gray-500">Nivel {sub.level}</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-yellow-400 text-sm font-bold">{sub.xp.toLocaleString()} XP</p>
-          <p className="text-xs text-gray-500">{sub.hours}h total</p>
+          <p className="text-xs text-gray-500">{sub.hours}h totales</p>
         </div>
       </div>
 
       {/* Progress to next level */}
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-gray-500">
-          <span>Level {sub.level} → {sub.level + 1}</span>
+          <span>Nivel {sub.level} → {sub.level + 1}</span>
           <span>{sub.progress}%</span>
         </div>
         <Progress value={sub.progress} color="blue" size="sm" animated />
@@ -225,16 +225,16 @@ export default function LearningPage() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <BookOpen className="w-8 h-8 text-[#DC143C]" />
-            Learning
+            Aprendizaje
           </h1>
-          <p className="text-gray-500 mt-1">Track your knowledge growth</p>
+          <p className="text-gray-500 mt-1">Registra tu crecimiento de conocimiento</p>
         </div>
         <Button
           variant="primary"
           icon={<Plus className="w-4 h-4" />}
           onClick={() => setModalOpen(true)}
         >
-          Log Session
+          Registrar Sesión
         </Button>
       </div>
 
@@ -254,10 +254,10 @@ export default function LearningPage() {
         </motion.div>
         <h2 className="text-5xl font-black text-white mb-1">
           {CURRENT_STREAK}
-          <span className="text-[#DC143C]"> day</span>
+          <span className="text-[#DC143C]"> día</span>
         </h2>
-        <p className="text-gray-400 text-lg">learning streak</p>
-        <p className="text-xs text-gray-600 mt-2">Don't break the chain!</p>
+        <p className="text-gray-400 text-lg">racha de aprendizaje</p>
+        <p className="text-xs text-gray-600 mt-2">¡No rompas la cadena!</p>
       </motion.div>
 
       {/* Daily XP goal bar */}
@@ -270,7 +270,7 @@ export default function LearningPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-yellow-400" />
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Daily XP Goal</h2>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Meta Diaria de XP</h2>
           </div>
           <span className="text-yellow-400 font-bold text-sm">{CURRENT_XP_TODAY} / {DAILY_XP_GOAL} XP</span>
         </div>
@@ -292,10 +292,10 @@ export default function LearningPage() {
 
         {xpPct >= 100 ? (
           <p className="text-emerald-400 text-xs mt-2 font-semibold flex items-center gap-1">
-            <Star className="w-3 h-3" /> Daily goal complete! Bonus XP earned.
+            <Star className="w-3 h-3" /> ¡Meta diaria completada! XP bonus ganados.
           </p>
         ) : (
-          <p className="text-gray-500 text-xs mt-2">{DAILY_XP_GOAL - CURRENT_XP_TODAY} XP to reach your daily goal</p>
+          <p className="text-gray-500 text-xs mt-2">{DAILY_XP_GOAL - CURRENT_XP_TODAY} XP para alcanzar tu meta diaria</p>
         )}
       </motion.div>
 
@@ -303,7 +303,7 @@ export default function LearningPage() {
       <div>
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-[#DC143C]" />
-          Subjects
+          Materias
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {mockSubjects.map((sub, idx) => (
@@ -320,7 +320,7 @@ export default function LearningPage() {
         className="bg-[#111111] border border-[#1E1E1E] rounded-2xl overflow-hidden"
       >
         <div className="p-5 border-b border-[#1E1E1E]">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Recent Sessions</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Sesiones Recientes</h2>
         </div>
 
         {isLoading ? (
@@ -330,7 +330,7 @@ export default function LearningPage() {
         ) : sessions.length === 0 ? (
           <div className="text-center py-12 text-gray-600">
             <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p>No sessions yet</p>
+            <p>Sin sesiones aún</p>
           </div>
         ) : (
           <div className="divide-y divide-[#1E1E1E]">

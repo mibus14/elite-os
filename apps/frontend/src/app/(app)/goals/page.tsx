@@ -35,8 +35,8 @@ const mockGoals: Goal[] = [
 
 const CATEGORY_META = {
   fitness:  { icon: Dumbbell, color: '#DC143C', bg: 'bg-[#DC143C]/10', border: 'border-[#DC143C]/20', label: 'Fitness' },
-  learning: { icon: BookOpen, color: '#3B82F6', bg: 'bg-blue-500/10', border: 'border-blue-500/20', label: 'Learning' },
-  finance:  { icon: DollarSign, color: '#22C55E', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Finance' },
+  learning: { icon: BookOpen, color: '#3B82F6', bg: 'bg-blue-500/10', border: 'border-blue-500/20', label: 'Aprendizaje' },
+  finance:  { icon: DollarSign, color: '#22C55E', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Finanzas' },
   personal: { icon: Star, color: '#8B5CF6', bg: 'bg-purple-500/10', border: 'border-purple-500/20', label: 'Personal' },
 }
 
@@ -89,7 +89,7 @@ function GoalCard({ goal, idx, onUpdate }: { goal: Goal; idx: number; onUpdate: 
           <span className="text-xs font-semibold" style={{ color: cat.color }}>{cat.label}</span>
         </div>
         <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${PRIORITY_COLORS[goal.priority]}`}>
-          {goal.priority}
+          {{ low: 'Baja', medium: 'Media', high: 'Alta' }[goal.priority]}
         </span>
       </div>
 
@@ -117,7 +117,7 @@ function GoalCard({ goal, idx, onUpdate }: { goal: Goal; idx: number; onUpdate: 
           </div>
           <div className={`flex items-center gap-1 mt-1 text-xs ${deadlineColor(goal.deadline, goal.status)}`}>
             <Calendar className="w-3 h-3" />
-            {isCompleted ? 'Completed!' : new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {isCompleted ? '¡Completada!' : new Date(goal.deadline).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@ function GoalCard({ goal, idx, onUpdate }: { goal: Goal; idx: number; onUpdate: 
       {isCompleted ? (
         <div className="flex items-center gap-2 text-emerald-400 text-sm font-semibold">
           <Check className="w-4 h-4" />
-          Goal Achieved!
+          ¡Meta Lograda!
         </div>
       ) : updating ? (
         <div className="flex gap-2">
@@ -138,12 +138,12 @@ function GoalCard({ goal, idx, onUpdate }: { goal: Goal; idx: number; onUpdate: 
             autoFocus
             onKeyDown={(e) => { if (e.key === 'Enter') handleUpdate(); if (e.key === 'Escape') setUpdating(false) }}
           />
-          <Button size="sm" variant="primary" onClick={handleUpdate}>Save</Button>
+          <Button size="sm" variant="primary" onClick={handleUpdate}>Guardar</Button>
           <Button size="sm" variant="ghost" onClick={() => setUpdating(false)}>✕</Button>
         </div>
       ) : (
         <Button size="sm" variant="secondary" onClick={() => setUpdating(true)} fullWidth>
-          Update Progress
+          Actualizar Progreso
         </Button>
       )}
     </motion.div>
@@ -197,39 +197,39 @@ function CreateGoalModal({ open, onClose, onCreate }: {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">New Goal</h2>
+            <h2 className="text-xl font-bold text-white">Nueva Meta</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input label="Goal Title" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Bench Press 100kg" />
+            <Input label="Título de la Meta" value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="ej. Press de Banca 100kg" />
 
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Category</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Categoría</label>
               <select
                 value={form.category}
                 onChange={(e) => set('category', e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#DC143C]"
               >
                 <option value="fitness">Fitness</option>
-                <option value="learning">Learning</option>
-                <option value="finance">Finance</option>
+                <option value="learning">Aprendizaje</option>
+                <option value="finance">Finanzas</option>
                 <option value="personal">Personal</option>
               </select>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <Input label="Target" type="number" value={form.targetValue} onChange={(e) => set('targetValue', e.target.value)} placeholder="100" />
-              <Input label="Current" type="number" value={form.currentValue} onChange={(e) => set('currentValue', e.target.value)} placeholder="0" />
-              <Input label="Unit" value={form.unit} onChange={(e) => set('unit', e.target.value)} placeholder="kg, %, $…" />
+              <Input label="Objetivo" type="number" value={form.targetValue} onChange={(e) => set('targetValue', e.target.value)} placeholder="100" />
+              <Input label="Actual" type="number" value={form.currentValue} onChange={(e) => set('currentValue', e.target.value)} placeholder="0" />
+              <Input label="Unidad" value={form.unit} onChange={(e) => set('unit', e.target.value)} placeholder="kg, %, $…" />
             </div>
 
-            <Input label="Deadline" type="date" value={form.deadline} onChange={(e) => set('deadline', e.target.value)} />
+            <Input label="Fecha Límite" type="date" value={form.deadline} onChange={(e) => set('deadline', e.target.value)} />
 
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Priority</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Prioridad</label>
               <div className="flex gap-2">
                 {(['low', 'medium', 'high'] as const).map((p) => (
                   <button
@@ -240,15 +240,15 @@ function CreateGoalModal({ open, onClose, onCreate }: {
                       form.priority === p ? PRIORITY_COLORS[p] : 'border-white/10 text-gray-500 hover:border-white/20'
                     }`}
                   >
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                    {{ low: 'Baja', medium: 'Media', high: 'Alta' }[p]}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancel</Button>
-              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Create Goal</Button>
+              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancelar</Button>
+              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Crear Meta</Button>
             </div>
           </form>
         </motion.div>
@@ -258,12 +258,12 @@ function CreateGoalModal({ open, onClose, onCreate }: {
 }
 
 /* ─── Page ───────────────────────────────────────────────────────── */
-const FILTER_TABS = ['All', 'Fitness', 'Learning', 'Finance', 'Personal', 'Completed'] as const
+const FILTER_TABS = ['Todas', 'Fitness', 'Aprendizaje', 'Finanzas', 'Personal', 'Completadas'] as const
 type FilterTab = typeof FILTER_TABS[number]
 
 export default function GoalsPage() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [filter, setFilter] = useState<FilterTab>('All')
+  const [filter, setFilter] = useState<FilterTab>('Todas')
   const [localGoals, setLocalGoals] = useState<Goal[]>(mockGoals)
   const queryClient = useQueryClient()
 
@@ -288,10 +288,17 @@ export default function GoalsPage() {
 
   const goals = localGoals.length > 0 ? localGoals : (goalsData ?? mockGoals)
 
+  const TAB_TO_CATEGORY: Record<string, string> = {
+    'Fitness': 'fitness',
+    'Aprendizaje': 'learning',
+    'Finanzas': 'finance',
+    'Personal': 'personal',
+  }
+
   const filteredGoals = goals.filter((g) => {
-    if (filter === 'All') return true
-    if (filter === 'Completed') return g.status === 'completed'
-    return g.category === filter.toLowerCase()
+    if (filter === 'Todas') return true
+    if (filter === 'Completadas') return g.status === 'completed'
+    return g.category === TAB_TO_CATEGORY[filter]
   })
 
   const handleCreate = (data: object) => {
@@ -317,16 +324,16 @@ export default function GoalsPage() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Target className="w-8 h-8 text-[#DC143C]" />
-            Goals
+            Metas
           </h1>
-          <p className="text-gray-500 mt-1">{activeCount} active · {completedCount} completed</p>
+          <p className="text-gray-500 mt-1">{activeCount} activas · {completedCount} completadas</p>
         </div>
         <Button
           variant="primary"
           icon={<Plus className="w-4 h-4" />}
           onClick={() => setModalOpen(true)}
         >
-          New Goal
+          Nueva Meta
         </Button>
       </div>
 
@@ -355,8 +362,8 @@ export default function GoalsPage() {
       ) : filteredGoals.length === 0 ? (
         <div className="text-center py-16 text-gray-600">
           <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-semibold">No goals found</p>
-          <p className="text-sm mt-1">Create your first goal to get started</p>
+          <p className="text-lg font-semibold">Sin metas aún</p>
+          <p className="text-sm mt-1">Crea tu primera meta para comenzar</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

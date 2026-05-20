@@ -188,12 +188,12 @@ export default function LeaderboardPage() {
   const users = rankings && rankings.length >= 3 ? rankings : mockLeaderboard
 
   const metrics = [
-    { label: 'Total XP', icon: <Zap className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.xp, suffix: '' },
-    { label: 'Gym Sessions', icon: <Dumbbell className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.gymSessions, suffix: '' },
+    { label: 'XP Total', icon: <Zap className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.xp, suffix: '' },
+    { label: 'Sesiones de Gym', icon: <Dumbbell className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.gymSessions, suffix: '' },
     { label: 'Cardio (km)', icon: <Map className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.cardioKm, suffix: 'km' },
-    { label: 'Habits Streak', icon: <Flame className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.habitsStreak, suffix: 'd' },
-    { label: 'Goals Done', icon: <Target className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.goalsCompleted, suffix: '' },
-    { label: 'Study Hours', icon: <BookOpen className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.studyHours, suffix: 'h' },
+    { label: 'Racha de Hábitos', icon: <Flame className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.habitsStreak, suffix: 'd' },
+    { label: 'Metas Logradas', icon: <Target className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.goalsCompleted, suffix: '' },
+    { label: 'Horas de Estudio', icon: <BookOpen className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.studyHours, suffix: 'h' },
   ]
 
   if (isLoading) return <LeaderboardSkeleton />
@@ -208,8 +208,8 @@ export default function LeaderboardPage() {
       >
         <Trophy className="w-8 h-8 text-yellow-400" />
         <div>
-          <h1 className="text-3xl font-bold text-white">Leaderboard</h1>
-          <p className="text-gray-500 mt-1">Who's winning the grind?</p>
+          <h1 className="text-3xl font-bold text-white">Tabla de Clasificación</h1>
+          <p className="text-gray-500 mt-1">¿Quién lidera el esfuerzo?</p>
         </div>
       </motion.div>
 
@@ -229,7 +229,7 @@ export default function LeaderboardPage() {
         className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Head to Head</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Cara a Cara</h2>
           <div className="flex items-center gap-4 text-xs">
             {users.slice(0, 3).map((user, idx) => (
               <div key={user.id} className="flex items-center gap-1.5">
@@ -264,20 +264,20 @@ export default function LeaderboardPage() {
         className="bg-[#111111] border border-[#1E1E1E] rounded-2xl overflow-hidden"
       >
         <div className="p-5 border-b border-[#1E1E1E]">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Full Rankings</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Clasificación Completa</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#1E1E1E]">
-                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Rank</th>
-                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Player</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Level</th>
+                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Rango</th>
+                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Jugador</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Nivel</th>
                 <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">XP</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Streak</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Racha</th>
                 <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Gym</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Goals</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Badge</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Metas</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Insignia</th>
               </tr>
             </thead>
             <tbody>

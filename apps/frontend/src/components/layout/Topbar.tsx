@@ -55,10 +55,10 @@ export function Topbar({ title }: { title?: string }) {
                 className="absolute right-0 top-12 w-72 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
               >
                 <div className="px-4 py-3 border-b border-[#1E1E1E]">
-                  <p className="text-sm font-semibold text-white">Notifications</p>
+                  <p className="text-sm font-semibold text-white">Notificaciones</p>
                 </div>
                 {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-sm text-gray-500 text-center">No notifications</p>
+                  <p className="px-4 py-6 text-sm text-gray-500 text-center">Sin notificaciones</p>
                 ) : (
                   notifications.slice(0, 5).map((n) => (
                     <div key={n.id} className={cn('px-4 py-3 border-b border-[#1A1A1A] last:border-0', !n.read && 'bg-elite-600/5')}>
@@ -102,20 +102,20 @@ export function Topbar({ title }: { title?: string }) {
                   onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
                   className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <User size={15} /> Profile
+                  <User size={15} /> Perfil
                 </button>
                 <button
                   onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
                   className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <Settings size={15} /> Settings
+                  <Settings size={15} /> Configuración
                 </button>
                 <div className="border-t border-[#1E1E1E] mx-3" />
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/10 transition-all"
                 >
-                  <LogOut size={15} /> Logout
+                  <LogOut size={15} /> Cerrar Sesión
                 </button>
               </motion.div>
             )}

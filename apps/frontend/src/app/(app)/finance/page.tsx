@@ -104,7 +104,7 @@ function AddTransactionModal({ open, onClose, onAdd }: {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Add Transaction</h2>
+            <h2 className="text-xl font-bold text-white">Agregar Transacción</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -130,13 +130,13 @@ function AddTransactionModal({ open, onClose, onAdd }: {
                   }`}
                 >
                   {t === 'income' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === 'income' ? 'Ingresos' : 'Gastos'}
                 </button>
               ))}
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Category</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">Categoría</label>
               <div className="grid grid-cols-4 gap-2">
                 {categories.map((cat) => {
                   const meta = CATEGORY_META[cat] ?? CATEGORY_META.other
@@ -159,11 +159,11 @@ function AddTransactionModal({ open, onClose, onAdd }: {
               </div>
             </div>
 
-            <Input label="Date" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
+            <Input label="Fecha" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
 
             <div className="relative">
               <Input
-                label="Amount ($)"
+                label="Monto ($)"
                 type="number"
                 step="0.01"
                 value={form.amount}
@@ -172,11 +172,11 @@ function AddTransactionModal({ open, onClose, onAdd }: {
               />
             </div>
 
-            <Input label="Description" value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="e.g. Groceries" />
+            <Input label="Descripción" value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="ej. Supermercado" />
 
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancel</Button>
-              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Add</Button>
+              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancelar</Button>
+              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Agregar</Button>
             </div>
           </form>
         </motion.div>
@@ -248,25 +248,25 @@ export default function FinancePage() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <DollarSign className="w-8 h-8 text-[#DC143C]" />
-            Finance
+            Finanzas
           </h1>
-          <p className="text-gray-500 mt-1">Track income & expenses</p>
+          <p className="text-gray-500 mt-1">Registra ingresos y gastos</p>
         </div>
         <Button
           variant="primary"
           icon={<Plus className="w-4 h-4" />}
           onClick={() => setModalOpen(true)}
         >
-          Add Transaction
+          Agregar Transacción
         </Button>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'This Month Income', value: income, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: <TrendingUp className="w-5 h-5 text-emerald-400" />, prefix: '+$' },
-          { label: 'Expenses', value: expenses, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: <TrendingDown className="w-5 h-5 text-red-400" />, prefix: '-$' },
-          { label: 'Net', value: net, color: net >= 0 ? 'text-emerald-400' : 'text-red-400', bg: net >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10', border: net >= 0 ? 'border-emerald-500/20' : 'border-red-500/20', icon: <DollarSign className={`w-5 h-5 ${net >= 0 ? 'text-emerald-400' : 'text-red-400'}`} />, prefix: net >= 0 ? '+$' : '-$' },
+          { label: 'Ingresos del Mes', value: income, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: <TrendingUp className="w-5 h-5 text-emerald-400" />, prefix: '+$' },
+          { label: 'Gastos', value: expenses, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: <TrendingDown className="w-5 h-5 text-red-400" />, prefix: '-$' },
+          { label: 'Saldo Neto', value: net, color: net >= 0 ? 'text-emerald-400' : 'text-red-400', bg: net >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10', border: net >= 0 ? 'border-emerald-500/20' : 'border-red-500/20', icon: <DollarSign className={`w-5 h-5 ${net >= 0 ? 'text-emerald-400' : 'text-red-400'}`} />, prefix: net >= 0 ? '+$' : '-$' },
         ].map((card, idx) => (
           <motion.div
             key={card.label}
@@ -295,7 +295,7 @@ export default function FinancePage() {
           transition={{ delay: 0.25 }}
           className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
         >
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-5">Expenses by Category</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-5">Gastos por Categoría</h2>
           {expenseByCategory.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
@@ -321,7 +321,7 @@ export default function FinancePage() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-600">No expenses recorded</div>
+            <div className="h-64 flex items-center justify-center text-gray-600">Sin gastos registrados</div>
           )}
         </motion.div>
 
@@ -333,7 +333,7 @@ export default function FinancePage() {
           className="bg-[#111111] border border-[#1E1E1E] rounded-2xl overflow-hidden"
         >
           <div className="p-5 border-b border-[#1E1E1E]">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Transactions</h2>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Transacciones</h2>
           </div>
 
           {isLoading ? (
@@ -343,7 +343,7 @@ export default function FinancePage() {
           ) : entries.length === 0 ? (
             <div className="text-center py-12 text-gray-600">
               <DollarSign className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p>No transactions yet</p>
+              <p>Sin transacciones aún</p>
             </div>
           ) : (
             <div className="overflow-y-auto max-h-[320px] divide-y divide-[#1E1E1E]">

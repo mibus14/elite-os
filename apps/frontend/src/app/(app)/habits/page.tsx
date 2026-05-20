@@ -101,7 +101,7 @@ function HabitCard({ habit, onComplete }: { habit: Habit; onComplete: (id: strin
       <div className="flex items-center gap-1.5">
         <span className="text-orange-400 text-sm">🔥</span>
         <span className="text-xs font-bold text-orange-400">{habit.streak}</span>
-        <span className="text-xs text-gray-500">day streak</span>
+        <span className="text-xs text-gray-500">días de racha</span>
       </div>
 
       {/* XP */}
@@ -169,7 +169,7 @@ function CreateHabitModal({ open, onClose, onCreate }: {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">New Habit</h2>
+            <h2 className="text-xl font-bold text-white">Nuevo Hábito</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -180,10 +180,10 @@ function CreateHabitModal({ open, onClose, onCreate }: {
             <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
               <div className="text-4xl">{icon}</div>
               <div>
-                <p className="text-white font-semibold">{name || 'Habit Name'}</p>
+                <p className="text-white font-semibold">{name || 'Nombre del Hábito'}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-orange-400 text-sm">🔥</span>
-                  <span className="text-xs text-gray-500">0 day streak</span>
+                  <span className="text-xs text-gray-500">0 días de racha</span>
                 </div>
               </div>
               <div
@@ -194,11 +194,11 @@ function CreateHabitModal({ open, onClose, onCreate }: {
               </div>
             </div>
 
-            <Input label="Habit Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Morning Workout" />
+            <Input label="Nombre del Hábito" value={name} onChange={(e) => setName(e.target.value)} placeholder="ej. Entrenamiento Matutino" />
 
             {/* Emoji picker */}
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-2 block">Icon</label>
+              <label className="text-sm font-medium text-gray-300 mb-2 block">Icono</label>
               <div className="grid grid-cols-10 gap-1">
                 {EMOJI_OPTIONS.map((e) => (
                   <button
@@ -231,7 +231,7 @@ function CreateHabitModal({ open, onClose, onCreate }: {
 
             {/* XP Reward */}
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-2 block">XP Reward: <span className="text-[#DC143C]">{xpReward}</span></label>
+              <label className="text-sm font-medium text-gray-300 mb-2 block">Recompensa XP: <span className="text-[#DC143C]">{xpReward}</span></label>
               <input
                 type="range"
                 min={5}
@@ -247,8 +247,8 @@ function CreateHabitModal({ open, onClose, onCreate }: {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancel</Button>
-              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Create Habit</Button>
+              <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancelar</Button>
+              <Button variant="primary" fullWidth type="submit" icon={<Plus className="w-4 h-4" />}>Agregar Hábito</Button>
             </div>
           </form>
         </motion.div>
@@ -319,10 +319,10 @@ export default function HabitsPage() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <CheckSquare className="w-8 h-8 text-[#DC143C]" />
-            Today's Habits
+            Hábitos de Hoy
           </h1>
           <p className="text-gray-500 mt-1">
-            {completedToday}/{displayHabits.length} completed today
+            {completedToday}/{displayHabits.length} completados hoy
           </p>
         </div>
         <Button
@@ -330,7 +330,7 @@ export default function HabitsPage() {
           icon={<Plus className="w-4 h-4" />}
           onClick={() => setModalOpen(true)}
         >
-          Add Habit
+          Agregar Hábito
         </Button>
       </div>
 
@@ -340,8 +340,8 @@ export default function HabitsPage() {
       ) : displayHabits.length === 0 ? (
         <div className="text-center py-16 text-gray-600">
           <CheckSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-semibold">No habits yet</p>
-          <p className="text-sm mt-1">Add your first habit to get started</p>
+          <p className="text-lg font-semibold">Sin hábitos aún</p>
+          <p className="text-sm mt-1">Crea tu primer hábito para comenzar</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -361,7 +361,7 @@ export default function HabitsPage() {
       {/* Stats row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          label="Today's XP"
+          label="XP de Hoy"
           value={totalXpToday}
           suffix="XP"
           icon={<Zap className="w-5 h-5 text-yellow-400" />}
@@ -369,15 +369,15 @@ export default function HabitsPage() {
           delay={0.1}
         />
         <StatCard
-          label="Best Streak"
+          label="Mejor Racha"
           value={bestStreak}
-          suffix="days"
+          suffix="días"
           icon={<Flame className="w-5 h-5 text-orange-400" />}
           iconColor="bg-orange-400/10"
           delay={0.15}
         />
         <StatCard
-          label="Completion Rate"
+          label="Tasa de Completado"
           value={completionRate}
           suffix="%"
           icon={<Star className="w-5 h-5 text-[#DC143C]" />}
@@ -391,18 +391,18 @@ export default function HabitsPage() {
         <div className="p-5 border-b border-[#1E1E1E]">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-2">
             <Calendar className="w-4 h-4 text-[#DC143C]" />
-            All Habits
+            Todos los Hábitos
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#1E1E1E]">
-                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Habit</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Streak</th>
+                <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Hábito</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Racha</th>
                 <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Total</th>
                 <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">XP</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Last Done</th>
+                <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-3">Última Vez</th>
               </tr>
             </thead>
             <tbody>
@@ -419,7 +419,7 @@ export default function HabitsPage() {
                       <span className="text-xl">{habit.icon}</span>
                       <span className="text-white font-medium">{habit.name}</span>
                       {habit.completedToday && (
-                        <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-2 py-0.5">Done</span>
+                        <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-2 py-0.5">Completado</span>
                       )}
                     </div>
                   </td>

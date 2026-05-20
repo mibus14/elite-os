@@ -14,17 +14,17 @@ import { cn } from '@/lib/utils'
 import { Progress } from '@/components/ui/Progress'
 
 const navItems = [
-  { href: '/dashboard',   label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/gym',         label: 'Gym',           icon: Dumbbell },
-  { href: '/nutrition',   label: 'Nutrition',     icon: Apple },
-  { href: '/cardio',      label: 'Cardio',        icon: Activity },
-  { href: '/learning',    label: 'Learning',      icon: BookOpen },
-  { href: '/goals',       label: 'Goals',         icon: Target },
-  { href: '/habits',      label: 'Habits',        icon: CheckSquare },
-  { href: '/finance',     label: 'Finance',       icon: TrendingUp },
-  { href: '/leaderboard', label: 'Leaderboard',   icon: Trophy },
-  { href: '/chat',        label: 'Chat',          icon: MessageCircle },
-  { href: '/settings',    label: 'Settings',      icon: Settings },
+  { href: '/dashboard',   label: 'Panel',          icon: LayoutDashboard },
+  { href: '/gym',         label: 'Gimnasio',        icon: Dumbbell },
+  { href: '/nutrition',   label: 'Nutrición',       icon: Apple },
+  { href: '/cardio',      label: 'Cardio',          icon: Activity },
+  { href: '/learning',    label: 'Aprendizaje',     icon: BookOpen },
+  { href: '/goals',       label: 'Metas',           icon: Target },
+  { href: '/habits',      label: 'Hábitos',         icon: CheckSquare },
+  { href: '/finance',     label: 'Finanzas',        icon: TrendingUp },
+  { href: '/leaderboard', label: 'Clasificación',   icon: Trophy },
+  { href: '/chat',        label: 'Chat',            icon: MessageCircle },
+  { href: '/settings',    label: 'Ajustes',         icon: Settings },
 ]
 
 const rankColors: Record<string, string> = {
@@ -172,7 +172,7 @@ export function Sidebar() {
           {sidebarCollapsed ? <ChevronRight size={16} /> : (
             <>
               <ChevronLeft size={16} />
-              <span className="text-xs">Collapse</span>
+              <span className="text-xs">Contraer</span>
             </>
           )}
         </button>

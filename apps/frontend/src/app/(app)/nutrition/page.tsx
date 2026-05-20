@@ -33,6 +33,7 @@ const WEEK_DATA = [
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks']
 const MEAL_ICONS: Record<string, string> = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snacks: '🍎' }
+const MEAL_LABELS: Record<string, string> = { breakfast: 'Desayuno', lunch: 'Almuerzo', dinner: 'Cena', snacks: 'Merienda' }
 
 interface Meal { id: string; mealType: string; name: string; calories: number; protein: number; carbs: number; fat: number }
 
@@ -73,15 +74,15 @@ export default function NutritionPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-white">Nutrition</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Track your macros and fuel your gains</p>
+          <h1 className="text-2xl font-bold font-heading text-white">Nutrición</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Registra tus macros y combustiona tus ganancias</p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={() => setShowModal(true)}>Log Meal</Button>
+        <Button icon={<Plus size={16} />} onClick={() => setShowModal(true)}>Registrar Alimento</Button>
       </div>
 
       {/* Daily Summary */}
       <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-5">Today's Summary</h2>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-5">Resumen de Hoy</h2>
         <div className="flex flex-col md:flex-row gap-6 items-center">
           <div className="flex-shrink-0">
             <CircleProgress
@@ -100,9 +101,9 @@ export default function NutritionPage() {
           </div>
           <div className="flex-1 space-y-3 w-full">
             {[
-              { label:'Protein', value:totals.protein, goal:DAILY_GOALS.protein, color:'blue' as const, icon:<Beef size={14}/> },
-              { label:'Carbs',   value:totals.carbs,   goal:DAILY_GOALS.carbs,   color:'gold' as const, icon:<Wheat size={14}/> },
-              { label:'Fat',     value:totals.fat,     goal:DAILY_GOALS.fat,     color:'red' as const,  icon:<Droplet size={14}/> },
+              { label:'Proteína', value:totals.protein, goal:DAILY_GOALS.protein, color:'blue' as const, icon:<Beef size={14}/> },
+              { label:'Carbohidratos',   value:totals.carbs,   goal:DAILY_GOALS.carbs,   color:'gold' as const, icon:<Wheat size={14}/> },
+              { label:'Grasas',     value:totals.fat,     goal:DAILY_GOALS.fat,     color:'red' as const,  icon:<Droplet size={14}/> },
             ].map(m => (
               <div key={m.label}>
                 <div className="flex justify-between text-xs mb-1">
@@ -124,7 +125,7 @@ export default function NutritionPage() {
                 />
               ))}
             </div>
-            <p className="text-[10px] text-gray-500">glasses</p>
+            <p className="text-[10px] text-gray-500">vasos</p>
           </div>
         </div>
       </motion.div>
@@ -140,7 +141,7 @@ export default function NutritionPage() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{MEAL_ICONS[type]}</span>
-                  <span className="text-sm font-semibold text-white capitalize">{type}</span>
+                  <span className="text-sm font-semibold text-white">{MEAL_LABELS[type] ?? type}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">{typeCalories} kcal</span>
@@ -151,7 +152,7 @@ export default function NutritionPage() {
                 </div>
               </div>
               {typeMeals.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-4">No meals logged</p>
+                <p className="text-xs text-gray-600 text-center py-4">Sin comidas registradas</p>
               ) : (
                 <div className="space-y-2">
                   {typeMeals.map(m => (
@@ -175,16 +176,16 @@ export default function NutritionPage() {
       {/* Weekly Chart */}
       <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.4}}
         className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-5">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Weekly Macros</h2>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Macros Semanales</h2>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={WEEK_DATA} barSize={8} barGap={2}>
             <XAxis dataKey="day" tick={{fill:'#666',fontSize:11}} axisLine={false} tickLine={false}/>
             <YAxis hide/>
             <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{fill:'rgba(255,255,255,0.03)'}}/>
             <Legend wrapperStyle={{fontSize:11,color:'#888'}}/>
-            <Bar dataKey="protein" name="Protein" fill="#3B82F6" radius={[3,3,0,0]}/>
-            <Bar dataKey="carbs"   name="Carbs"   fill="#F59E0B" radius={[3,3,0,0]}/>
-            <Bar dataKey="fat"     name="Fat"     fill="#EF4444" radius={[3,3,0,0]}/>
+            <Bar dataKey="protein" name="Proteína" fill="#3B82F6" radius={[3,3,0,0]}/>
+            <Bar dataKey="carbs"   name="Carbohidratos"   fill="#F59E0B" radius={[3,3,0,0]}/>
+            <Bar dataKey="fat"     name="Grasas"     fill="#EF4444" radius={[3,3,0,0]}/>
           </BarChart>
         </ResponsiveContainer>
       </motion.div>
@@ -197,30 +198,30 @@ export default function NutritionPage() {
             <motion.div initial={{scale:0.95,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:0.95,opacity:0}}
               className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 w-full max-w-md shadow-[0_8px_64px_rgba(0,0,0,0.6)]">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-bold text-white font-heading">Log Meal</h3>
+                <h3 className="text-lg font-bold text-white font-heading">Registrar Alimento</h3>
                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white"><X size={18}/></button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm text-gray-400 block mb-1.5">Meal Type</label>
+                  <label className="text-sm text-gray-400 block mb-1.5">Tipo de Comida</label>
                   <div className="grid grid-cols-4 gap-2">
                     {MEAL_TYPES.map(t => (
                       <button type="button" key={t} onClick={() => setForm(f=>({...f,mealType:t}))}
-                        className={cn('py-2 rounded-xl text-xs font-medium transition-all capitalize',
+                        className={cn('py-2 rounded-xl text-xs font-medium transition-all',
                           form.mealType===t ? 'bg-elite-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10')}>
-                        {t}
+                        {MEAL_LABELS[t] ?? t}
                       </button>
                     ))}
                   </div>
                 </div>
-                <Input label="Food Name" placeholder="e.g. Grilled Chicken" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required/>
+                <Input label="Nombre del Alimento" placeholder="ej. Pollo a la Plancha" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required/>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="Calories" type="number" placeholder="420" value={form.calories} onChange={e=>setForm(f=>({...f,calories:e.target.value}))}/>
-                  <Input label="Protein (g)" type="number" placeholder="35" value={form.protein} onChange={e=>setForm(f=>({...f,protein:e.target.value}))}/>
-                  <Input label="Carbs (g)" type="number" placeholder="45" value={form.carbs} onChange={e=>setForm(f=>({...f,carbs:e.target.value}))}/>
-                  <Input label="Fat (g)" type="number" placeholder="12" value={form.fat} onChange={e=>setForm(f=>({...f,fat:e.target.value}))}/>
+                  <Input label="Calorías" type="number" placeholder="420" value={form.calories} onChange={e=>setForm(f=>({...f,calories:e.target.value}))}/>
+                  <Input label="Proteína (g)" type="number" placeholder="35" value={form.protein} onChange={e=>setForm(f=>({...f,protein:e.target.value}))}/>
+                  <Input label="Carbohidratos (g)" type="number" placeholder="45" value={form.carbs} onChange={e=>setForm(f=>({...f,carbs:e.target.value}))}/>
+                  <Input label="Grasas (g)" type="number" placeholder="12" value={form.fat} onChange={e=>setForm(f=>({...f,fat:e.target.value}))}/>
                 </div>
-                <Button type="submit" fullWidth loading={addMutation.isPending}>Add Meal</Button>
+                <Button type="submit" fullWidth loading={addMutation.isPending}>Registrar Alimento</Button>
               </form>
             </motion.div>
           </motion.div>

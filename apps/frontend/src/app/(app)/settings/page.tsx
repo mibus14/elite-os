@@ -102,9 +102,9 @@ export default function SettingsPage() {
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault()
     setPwError('')
-    if (!pwForm.current) { setPwError('Current password required'); return }
-    if (pwForm.newPw.length < 8) { setPwError('New password must be at least 8 characters'); return }
-    if (pwForm.newPw !== pwForm.confirm) { setPwError('Passwords do not match'); return }
+    if (!pwForm.current) { setPwError('La contraseña actual es obligatoria'); return }
+    if (pwForm.newPw.length < 8) { setPwError('La nueva contraseña debe tener al menos 8 caracteres'); return }
+    if (pwForm.newPw !== pwForm.confirm) { setPwError('Las contraseñas no coinciden'); return }
     setPwSaved(true)
     setPwForm({ current: '', newPw: '', confirm: '' })
     setTimeout(() => setPwSaved(false), 2000)
@@ -125,18 +125,18 @@ export default function SettingsPage() {
       <div className="flex items-center gap-3">
         <Settings className="w-8 h-8 text-[#DC143C]" />
         <div>
-          <h1 className="text-3xl font-bold text-white">Settings</h1>
-          <p className="text-gray-500 mt-1">Manage your account preferences</p>
+          <h1 className="text-3xl font-bold text-white">Configuración</h1>
+          <p className="text-gray-500 mt-1">Gestiona las preferencias de tu cuenta</p>
         </div>
       </div>
 
       <Tabs.Root defaultValue="profile">
         <Tabs.List className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 mb-6 w-fit">
           {[
-            { value: 'profile',       label: 'Profile',       icon: User },
-            { value: 'notifications', label: 'Notifications', icon: Bell },
-            { value: 'display',       label: 'Display',       icon: Monitor },
-            { value: 'security',      label: 'Security',      icon: Shield },
+            { value: 'profile',       label: 'Perfil',          icon: User },
+            { value: 'notifications', label: 'Notificaciones',  icon: Bell },
+            { value: 'display',       label: 'Apariencia',      icon: Monitor },
+            { value: 'security',      label: 'Seguridad',       icon: Shield },
           ].map(({ value, label, icon: Icon }) => (
             <Tabs.Trigger
               key={value}
@@ -156,7 +156,7 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
           >
-            <h2 className="text-base font-bold text-white mb-5">Profile Settings</h2>
+            <h2 className="text-base font-bold text-white mb-5">Ajustes de Perfil</h2>
 
             <form onSubmit={handleSaveProfile} className="space-y-6">
               {/* Avatar selection */}
@@ -197,16 +197,16 @@ export default function SettingsPage() {
                   <img src={avatar} alt="preview" className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <p className="text-white font-semibold">{username || 'Username'}</p>
+                  <p className="text-white font-semibold">{username || 'Nombre de usuario'}</p>
                   <p className="text-gray-500 text-xs">Level {user?.level ?? 1} · {user?.rank ?? 'Rookie'}</p>
                 </div>
               </div>
 
               <Input
-                label="Username"
+                label="Nombre de Usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Your username"
+                placeholder="Tu nombre de usuario"
               />
 
               <div>
@@ -214,7 +214,7 @@ export default function SettingsPage() {
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  placeholder="Tell us about yourself…"
+                  placeholder="Cuéntanos sobre ti…"
                   rows={3}
                   maxLength={160}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] resize-none transition-colors"
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                   loading={updateProfileMutation.isPending}
                   icon={saved ? <Check className="w-4 h-4" /> : undefined}
                 >
-                  {saved ? 'Saved!' : 'Save Profile'}
+                  {saved ? '¡Guardado!' : 'Guardar Perfil'}
                 </Button>
                 <AnimatePresence>
                   {saved && (
@@ -239,7 +239,7 @@ export default function SettingsPage() {
                       exit={{ opacity: 0 }}
                       className="text-emerald-400 text-sm font-medium"
                     >
-                      Changes saved successfully
+                      Cambios guardados correctamente
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -255,37 +255,37 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
           >
-            <h2 className="text-base font-bold text-white mb-5">Notification Preferences</h2>
+            <h2 className="text-base font-bold text-white mb-5">Preferencias de Notificaciones</h2>
 
             <div>
               <NotifRow
-                label="Email Notifications"
-                description="Receive activity updates via email"
+                label="Notificaciones por Correo"
+                description="Recibe actualizaciones de actividad por correo electrónico"
                 value={notifs.emailNotifications}
                 onChange={(v) => setNotifs((n) => ({ ...n, emailNotifications: v }))}
               />
               <NotifRow
-                label="Achievement Alerts"
-                description="Get notified when you unlock achievements"
+                label="Alertas de Logros"
+                description="Recibe notificaciones al desbloquear logros"
                 value={notifs.achievementAlerts}
                 onChange={(v) => setNotifs((n) => ({ ...n, achievementAlerts: v }))}
               />
               <NotifRow
-                label="Weekly Report"
-                description="Receive a weekly summary of your progress"
+                label="Informe Semanal"
+                description="Recibe un resumen semanal de tu progreso"
                 value={notifs.weeklyReport}
                 onChange={(v) => setNotifs((n) => ({ ...n, weeklyReport: v }))}
               />
               <NotifRow
-                label="Goal Reminders"
-                description="Get reminded about upcoming goal deadlines"
+                label="Recordatorios de Metas"
+                description="Recibe recordatorios sobre los plazos de tus metas"
                 value={notifs.goalReminders}
                 onChange={(v) => setNotifs((n) => ({ ...n, goalReminders: v }))}
               />
             </div>
 
             <div className="mt-5">
-              <Button variant="primary">Save Preferences</Button>
+              <Button variant="primary">Guardar Preferencias</Button>
             </div>
           </motion.div>
         </Tabs.Content>
@@ -297,16 +297,16 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 space-y-6"
           >
-            <h2 className="text-base font-bold text-white">Display Settings</h2>
+            <h2 className="text-base font-bold text-white">Ajustes de Apariencia</h2>
 
             {/* Theme */}
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-3 block">Theme</label>
+              <label className="text-sm font-medium text-gray-300 mb-3 block">Tema</label>
               <div className="flex gap-3 flex-wrap">
                 {[
-                  { id: 'dark',   label: '🌑 Dark Mode',  active: true  },
-                  { id: 'light',  label: '☀️ Light Mode', active: false },
-                  { id: 'system', label: '💻 System',     active: false },
+                  { id: 'dark',   label: '🌑 Modo Oscuro',  active: true  },
+                  { id: 'light',  label: '☀️ Modo Claro',   active: false },
+                  { id: 'system', label: '💻 Sistema',      active: false },
                 ].map((t) => (
                   <button
                     key={t.id}
@@ -321,18 +321,18 @@ export default function SettingsPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-600 mt-2">ELITE OS is designed exclusively for Dark Mode. Light mode coming soon.</p>
+              <p className="text-xs text-gray-600 mt-2">ELITE OS está diseñado exclusivamente para Modo Oscuro. El modo claro estará disponible pronto.</p>
             </div>
 
             {/* Accent color */}
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-3 block">Accent Color</label>
+              <label className="text-sm font-medium text-gray-300 mb-3 block">Color de Acento</label>
               <div className="flex gap-4">
                 {[
-                  { color: '#DC143C', label: 'Elite Red', active: true  },
-                  { color: '#3B82F6', label: 'Blue',      active: false },
-                  { color: '#8B5CF6', label: 'Purple',    active: false },
-                  { color: '#22C55E', label: 'Green',     active: false },
+                  { color: '#DC143C', label: 'Rojo Elite', active: true  },
+                  { color: '#3B82F6', label: 'Azul',       active: false },
+                  { color: '#8B5CF6', label: 'Morado',     active: false },
+                  { color: '#22C55E', label: 'Verde',      active: false },
                 ].map((c) => (
                   <div key={c.color} className="flex flex-col items-center gap-1.5">
                     <button
@@ -350,12 +350,12 @@ export default function SettingsPage() {
 
             {/* Current config */}
             <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Current Configuration</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Configuración Actual</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-gray-500">Theme</div><div className="text-white">Dark Mode</div>
-                <div className="text-gray-500">Accent</div><div className="text-[#DC143C] font-semibold">Elite Red #DC143C</div>
-                <div className="text-gray-500">Background</div><div className="text-white">#0A0A0A</div>
-                <div className="text-gray-500">Cards</div><div className="text-white">#111111</div>
+                <div className="text-gray-500">Tema</div><div className="text-white">Modo Oscuro</div>
+                <div className="text-gray-500">Acento</div><div className="text-[#DC143C] font-semibold">Rojo Elite #DC143C</div>
+                <div className="text-gray-500">Fondo</div><div className="text-white">#0A0A0A</div>
+                <div className="text-gray-500">Tarjetas</div><div className="text-white">#111111</div>
               </div>
             </div>
           </motion.div>
@@ -368,15 +368,15 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6"
           >
-            <h2 className="text-base font-bold text-white mb-5">Change Password</h2>
+            <h2 className="text-base font-bold text-white mb-5">Cambiar Contraseña</h2>
 
             <form onSubmit={handleSavePassword} className="space-y-4 max-w-md">
               <Input
-                label="Current Password"
+                label="Contraseña Actual"
                 type={showPw.current ? 'text' : 'password'}
                 value={pwForm.current}
                 onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))}
-                placeholder="Enter current password"
+                placeholder="Ingresa tu contraseña actual"
                 iconRight={
                   <button
                     type="button"
@@ -389,12 +389,12 @@ export default function SettingsPage() {
               />
 
               <Input
-                label="New Password"
+                label="Nueva Contraseña"
                 type={showPw.newPw ? 'text' : 'password'}
                 value={pwForm.newPw}
                 onChange={(e) => setPwForm((f) => ({ ...f, newPw: e.target.value }))}
-                placeholder="At least 8 characters"
-                hint="Use a strong password with letters, numbers, and symbols"
+                placeholder="Mínimo 8 caracteres"
+                hint="Usa una contraseña segura con letras, números y símbolos"
                 iconRight={
                   <button
                     type="button"
@@ -407,11 +407,11 @@ export default function SettingsPage() {
               />
 
               <Input
-                label="Confirm New Password"
+                label="Confirmar Nueva Contraseña"
                 type={showPw.confirm ? 'text' : 'password'}
                 value={pwForm.confirm}
                 onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
-                placeholder="Repeat new password"
+                placeholder="Repite la nueva contraseña"
                 error={pwError}
                 iconRight={
                   <button
@@ -431,7 +431,7 @@ export default function SettingsPage() {
                   animate={{ opacity: 1, height: 'auto' }}
                   className="space-y-1.5"
                 >
-                  <p className="text-xs text-gray-500">Password strength</p>
+                  <p className="text-xs text-gray-500">Seguridad de la contraseña</p>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4].map((lvl) => {
                       const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-500']
@@ -446,11 +446,11 @@ export default function SettingsPage() {
                     })}
                   </div>
                   <p className="text-xs text-gray-600">
-                    {pwStrength === 0 && 'Very weak'}
-                    {pwStrength === 1 && 'Weak'}
-                    {pwStrength === 2 && 'Fair'}
-                    {pwStrength === 3 && 'Strong'}
-                    {pwStrength === 4 && '✓ Very strong'}
+                    {pwStrength === 0 && 'Muy débil'}
+                    {pwStrength === 1 && 'Débil'}
+                    {pwStrength === 2 && 'Regular'}
+                    {pwStrength === 3 && 'Fuerte'}
+                    {pwStrength === 4 && '✓ Muy fuerte'}
                   </p>
                 </motion.div>
               )}
@@ -461,7 +461,7 @@ export default function SettingsPage() {
                   variant="primary"
                   icon={pwSaved ? <Check className="w-4 h-4" /> : undefined}
                 >
-                  {pwSaved ? 'Password Updated!' : 'Update Password'}
+                  {pwSaved ? '¡Contraseña Actualizada!' : 'Actualizar Contraseña'}
                 </Button>
                 <AnimatePresence>
                   {pwSaved && (
@@ -471,7 +471,7 @@ export default function SettingsPage() {
                       exit={{ opacity: 0 }}
                       className="text-emerald-400 text-sm"
                     >
-                      Password changed successfully
+                      Contraseña cambiada correctamente
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -480,10 +480,10 @@ export default function SettingsPage() {
 
             {/* Danger zone */}
             <div className="mt-8 pt-6 border-t border-[#1E1E1E]">
-              <h3 className="text-sm font-semibold text-red-400 mb-3">Danger Zone</h3>
+              <h3 className="text-sm font-semibold text-red-400 mb-3">Zona de Peligro</h3>
               <div className="p-4 rounded-xl border border-red-900/30 bg-red-950/20">
-                <p className="text-sm text-gray-400 mb-3">Permanently delete your account and all associated data. This cannot be undone.</p>
-                <Button variant="danger" size="sm">Delete Account</Button>
+                <p className="text-sm text-gray-400 mb-3">Elimina permanentemente tu cuenta y todos los datos asociados. Esta acción no se puede deshacer.</p>
+                <Button variant="danger" size="sm">Eliminar Cuenta</Button>
               </div>
             </div>
           </motion.div>

@@ -158,36 +158,37 @@ function WeekCalendar({ sessions }: { sessions: GymSession[] }) {
 export default function GymPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data: sessions, isLoading: loadingSessions } = useQuery({
+  const { data: sessionsData, isLoading: loadingSessions } = useQuery({
     queryKey: ['gym-sessions'],
     queryFn: async () => {
       const res = await gymApi.sessions();
-      return res.data as GymSession[];
+      // backend returns { sessions: [...], total: n }
+      return (res.data?.sessions ?? res.data) as GymSession[];
     },
     placeholderData: mockSessions,
   });
 
-  const { data: exercises } = useQuery({
+  const { data: exercisesData } = useQuery({
     queryKey: ['gym-exercises'],
     queryFn: async () => {
       const res = await gymApi.exercises();
-      return res.data as Exercise[];
+      return (res.data?.exercises ?? res.data) as Exercise[];
     },
     placeholderData: mockExercises,
   });
 
-  const { data: records } = useQuery({
+  const { data: recordsData } = useQuery({
     queryKey: ['gym-records'],
     queryFn: async () => {
       const res = await gymApi.records();
-      return res.data as PersonalRecord[];
+      return (res.data?.records ?? res.data) as PersonalRecord[];
     },
     placeholderData: mockRecords,
   });
 
-  const sessionList = sessions ?? mockSessions;
-  const exerciseList = exercises ?? mockExercises;
-  const recordList = records ?? mockRecords;
+  const sessionList  = Array.isArray(sessionsData)  ? sessionsData  : mockSessions;
+  const exerciseList = Array.isArray(exercisesData) ? exercisesData : mockExercises;
+  const recordList   = Array.isArray(recordsData)   ? recordsData   : mockRecords;
 
   return (
     <div className="space-y-6 pb-8">
@@ -198,7 +199,7 @@ export default function GymPage() {
             <Dumbbell className="w-8 h-8 text-[#DC143C]" />
             Gym
           </h1>
-          <p className="text-gray-500 mt-1">Track your strength training</p>
+          <p className="text-gray-500 mt-1">Registra tu entrenamiento de fuerza</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(220,20,60,0.4)' }}
@@ -207,17 +208,17 @@ export default function GymPage() {
           className="flex items-center gap-2 px-5 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm"
         >
           <Plus className="w-4 h-4" />
-          Log Session
+          Registrar Sesión
         </motion.button>
       </div>
 
       <Tabs.Root defaultValue="sessions">
         <Tabs.List className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 mb-6 w-fit">
           {[
-            { value: 'sessions', label: 'Sessions', icon: CalendarDays },
-            { value: 'exercises', label: 'Exercises', icon: Dumbbell },
-            { value: 'records', label: 'Records', icon: Trophy },
-            { value: 'stats', label: 'Stats', icon: BarChart2 },
+            { value: 'sessions', label: 'Sesiones', icon: CalendarDays },
+            { value: 'exercises', label: 'Ejercicios', icon: Dumbbell },
+            { value: 'records', label: 'Récords', icon: Trophy },
+            { value: 'stats', label: 'Estadísticas', icon: BarChart2 },
           ].map(({ value, label, icon: Icon }) => (
             <Tabs.Trigger
               key={value}
@@ -258,7 +259,7 @@ export default function GymPage() {
                       </div>
                       <div className="flex items-center gap-1 text-gray-400 text-sm">
                         <Weight className="w-3.5 h-3.5" />
-                        {(session.totalVolume / 1000).toFixed(1)}t vol
+                        {(session.totalVolume / 1000).toFixed(1)}t vol.
                       </div>
                     </div>
                   </div>
@@ -275,8 +276,8 @@ export default function GymPage() {
               {sessionList.length === 0 && (
                 <div className="text-center py-16 text-gray-600">
                   <Dumbbell className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-lg font-semibold">No sessions yet</p>
-                  <p className="text-sm mt-1">Log your first gym session above</p>
+                  <p className="text-lg font-semibold">Sin sesiones aún</p>
+                  <p className="text-sm mt-1">Registra tu primera sesión arriba</p>
                 </div>
               )}
             </div>
@@ -298,10 +299,10 @@ export default function GymPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-4">Exercise</th>
-                  <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-4">Weight</th>
+                  <th className="text-left text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-4">Ejercicio</th>
+                  <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-4">Peso</th>
                   <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-4">Reps</th>
-                  <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-4">Date</th>
+                  <th className="text-right text-xs text-gray-500 font-semibold uppercase tracking-wider px-6 py-4">Fecha</th>
                 </tr>
               </thead>
               <tbody>
@@ -318,7 +319,7 @@ export default function GymPage() {
                         <span className="text-white font-medium">{rec.exerciseName}</span>
                         {rec.isNew && (
                           <span className="text-xs bg-yellow-400/20 text-yellow-400 border border-yellow-400/30 rounded-full px-2 py-0.5 font-bold">
-                            NEW
+                            NUEVO
                           </span>
                         )}
                       </div>
@@ -349,7 +350,7 @@ export default function GymPage() {
             >
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-[#DC143C]" />
-                Volume Over Time
+                Volumen en el Tiempo
               </h3>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={volumeData}>
@@ -370,7 +371,7 @@ export default function GymPage() {
               className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6"
             >
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
-                Muscle Frequency
+                Frecuencia Muscular
               </h3>
               <ResponsiveContainer width="100%" height={220}>
                 <RadarChart data={muscleRadarData}>
@@ -389,7 +390,7 @@ export default function GymPage() {
               className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6 lg:col-span-2"
             >
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
-                Top Exercises
+                Ejercicios Principales
               </h3>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={topExercisesData} barSize={40} margin={{ left: -20 }}>
