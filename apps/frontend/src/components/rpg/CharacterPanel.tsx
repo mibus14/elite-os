@@ -231,7 +231,7 @@ function StatsModal({
                 const expiresAt = new Date(d.expiresAt)
                 const hoursLeft = Math.max(
                   0,
-                  Math.round((expiresAt.getTime() - Date.now()) / 3_600_000)
+                  Math.round((expiresAt.getTime() - new Date().getTime()) / 3_600_000)
                 )
                 return (
                   <div

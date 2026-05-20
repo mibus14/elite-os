@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, LogOut, User, Settings, ChevronDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -25,6 +25,8 @@ export function Topbar({ title }: { title?: string }) {
   const router = useRouter()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [dateStr, setDateStr] = useState('')
+  useEffect(() => { setDateStr(format(new Date(), 'EEEE, MMMM d, yyyy')) }, [])
 
   // Fetch RPG character for smart notifications
   const { data: character } = useQuery<RPGCharacter>({
@@ -93,7 +95,7 @@ export function Topbar({ title }: { title?: string }) {
       {/* Title */}
       <div>
         <h1 className="text-lg font-bold font-heading text-white">{title}</h1>
-        <p className="text-xs text-gray-500">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
+        <p className="text-xs text-gray-500">{dateStr}</p>
       </div>
 
       {/* Right side */}

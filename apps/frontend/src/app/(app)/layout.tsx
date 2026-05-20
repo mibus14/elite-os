@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { io, Socket } from 'socket.io-client'
@@ -12,10 +12,12 @@ import { Topbar } from '@/components/layout/Topbar'
 import DebuffBar from '@/components/rpg/DebuffBar'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const router        = useRouter()
-  const socketRef     = useRef<Socket | null>(null)
-  const user          = useAuthStore(s => s.user)
+  const router          = useRouter()
+  const socketRef       = useRef<Socket | null>(null)
+  const user            = useAuthStore(s => s.user)
   const addNotification = useUIStore(s => s.addNotification)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   // Auth guard
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, addNotification])
 
-  if (!isAuthenticated()) {
+  if (!mounted || !isAuthenticated()) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0A0A0A]">
         <div className="w-8 h-8 border-2 border-elite-600 border-t-transparent rounded-full animate-spin" />
