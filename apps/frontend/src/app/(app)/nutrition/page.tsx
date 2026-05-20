@@ -58,12 +58,18 @@ export default function NutritionPage() {
   })
 
   const meals: Meal[] = data?.meals ?? MOCK_MEALS
-  const totals = meals.reduce((acc, m) => ({
+  const rawTotals = meals.reduce((acc, m) => ({
     calories: acc.calories + m.calories,
     protein:  acc.protein  + m.protein,
     carbs:    acc.carbs    + m.carbs,
     fat:      acc.fat      + m.fat,
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 })
+  const totals = {
+    calories: Math.round(rawTotals.calories),
+    protein:  Math.round(rawTotals.protein),
+    carbs:    Math.round(rawTotals.carbs),
+    fat:      Math.round(rawTotals.fat),
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -159,7 +165,7 @@ export default function NutritionPage() {
                     <div key={m.id} className="flex items-center justify-between py-2 border-b border-[#1A1A1A] last:border-0">
                       <div>
                         <p className="text-sm text-white">{m.name}</p>
-                        <p className="text-[11px] text-gray-500">P:{m.protein}g · C:{m.carbs}g · F:{m.fat}g</p>
+                        <p className="text-[11px] text-gray-500">P:{Math.round(m.protein)}g · C:{Math.round(m.carbs)}g · F:{Math.round(m.fat)}g</p>
                       </div>
                       <span className="text-sm font-bold text-elite-600 flex items-center gap-1">
                         <Flame size={11}/>{m.calories}
