@@ -24,6 +24,7 @@ import MacroDonut from '@/components/dashboard/MacroDonut';
 import YouDiedScreen from '@/components/rpg/YouDiedScreen';
 import ComboCard from '@/components/rpg/ComboCard';
 import MissionsPanel from '@/components/rpg/MissionsPanel';
+import RewardsPanel from '@/components/rpg/RewardsPanel';
 
 /* ─── Mock data fallback ──────────────────────────────────────────────── */
 const mockStats: DashboardStats = {
@@ -390,6 +391,9 @@ export default function DashboardPage() {
         <ComboCard />
         <MissionsPanel />
       </div>
+
+      {/* Row 7: Rewards / Achievements */}
+      <RewardsPanel />
     </div>
     </>
   );

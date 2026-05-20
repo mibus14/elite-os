@@ -22,7 +22,8 @@ ELITE OS is a full-stack web application that serves as a personal growth comman
 - **Finance** — Income/expense tracking, monthly summaries
 - **Leaderboard** — Real-time competition between Diego, Pedro & Cristopher
 - **Chat** — Real-time messaging via Socket.io
-- **Gamification** — XP, levels, ranks (Bronze → Diamond), badges, missions
+- **Gamification** — XP, levels, ranks (Bronze → Diamond), badges, daily missions
+- **RPG System** — 5 character classes, 6 attributes (STR/INT/VIT/DIS/WIS/GOL), debuffs, YOU DIED screen, combo streaks, shame system, rewards panel
 
 ## Tech Stack
 
@@ -185,6 +186,44 @@ POST   /api/messages
 | Gold      | 2,001       |
 | Platinum  | 5,001       |
 | Diamond   | 10,001      |
+
+## RPG System
+
+### Classes
+| Class       | Bonus           | Emoji |
+|-------------|-----------------|-------|
+| Warrior     | +50% Gym XP     | ⚔️    |
+| Assassin    | +2x XP on 6-module combo | 🗡️ |
+| Mage        | +50% Learning XP| 🔮    |
+| Ranger      | +50% Cardio XP  | 🏹    |
+| Paladin     | +50% Habit XP   | 🛡️    |
+
+### Attributes (STR/INT/VIT/DIS/WIS/GOL)
+Gained automatically per activity. Shown on character panel and leaderboard.
+
+### Debuff System
+| Streak | Debuff    | Penalty           | Duration |
+|--------|-----------|-------------------|----------|
+| 1 miss | Fatigue   | 50% XP reduction  | 24h      |
+| 2 miss | Weakness  | 25% XP reduction  | 48h      |
+| 3+ miss| Despair   | 25% XP reduction  | 72h      |
+
+### YOU DIED
+3+ consecutive failures → full-screen "CAÍSTE" overlay. Must complete penitence mission to resume.
+
+### Combo System
+Complete 3+ different modules in one day → x1.5 XP. All 6 → x2.0 XP (x2 extra for Assassin).
+
+### API Routes (RPG)
+```
+GET    /api/rpg/character
+POST   /api/rpg/class
+GET    /api/rpg/combo
+GET    /api/rpg/debuffs
+POST   /api/rpg/penitence
+GET    /api/rpg/leaderboard
+GET    /api/rpg/missions
+```
 
 ## Git Workflow
 
