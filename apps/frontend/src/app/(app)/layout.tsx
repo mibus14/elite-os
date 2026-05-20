@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { io, Socket } from 'socket.io-client'
@@ -16,9 +16,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const socketRef       = useRef<Socket | null>(null)
   const user            = useAuthStore(s => s.user)
   const addNotification = useUIStore(s => s.addNotification)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
-
   // Auth guard
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -68,16 +65,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, addNotification])
 
-  if (!mounted || !isAuthenticated()) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0A0A0A]">
-        <div className="w-8 h-8 border-2 border-elite-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-
   return (
-    <div className="flex h-screen bg-[#0A0A0A] overflow-hidden">
+    <div className="flex h-screen bg-[#0A0A0A] overflow-hidden" suppressHydrationWarning>
       {/* Sidebar */}
       <Sidebar />
 
