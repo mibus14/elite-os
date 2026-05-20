@@ -123,3 +123,9 @@ export const usersApi = {
   profile:       (id: string) => api.get(`/users/${id}/profile`),
   updateProfile: (data: object) => api.put('/users/profile', data),
 }
+
+// ─── RPG ─────────────────────────────────────────────────────────
+export const rpgApi = {
+  character:  () => api.get('/rpg/character'),
+  penitence:  () => api.post('/rpg/penitence/accept'),
+}

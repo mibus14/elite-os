@@ -11,22 +11,20 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const httpServer = createServer(app);
 
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',').map(o => o.trim());
+const corsOptions = {
+  origin: (origin, cb) => cb(null, true),
+  credentials: true,
+};
+
 const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
+  cors: { origin: (origin, cb) => cb(null, true), methods: ['GET', 'POST'], credentials: true },
 });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
-  })
-);
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(cors(corsOptions));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -65,6 +63,7 @@ app.use('/api/messages', require('./routes/messages'));
 app.use('/api/learning', require('./routes/learning'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/rpg', require('./routes/rpg'));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {

@@ -162,8 +162,17 @@ export default function GymPage() {
     queryKey: ['gym-sessions'],
     queryFn: async () => {
       const res = await gymApi.sessions();
-      // backend returns { sessions: [...], total: n }
-      return (res.data?.sessions ?? res.data) as GymSession[];
+      const raw: any[] = res.data?.sessions ?? res.data ?? [];
+      // normalize backend shape: sessionExercises[].exercise → exercises[]
+      return raw.map((s: any) => ({
+        ...s,
+        exercises: (s.exercises ?? s.sessionExercises ?? []).map((se: any) => ({
+          exerciseId:   se.exercise?.id   ?? se.exerciseId   ?? '',
+          exerciseName: se.exercise?.name ?? se.exerciseName ?? '',
+          muscleGroups: se.exercise?.muscleGroups ?? se.muscleGroups ?? [],
+          sets:         se.sets ?? [],
+        })),
+      })) as GymSession[];
     },
     placeholderData: mockSessions,
   });

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap,
   Flame,
@@ -13,14 +13,16 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
-import { dashboardApi } from '@/lib/api';
-import type { DashboardStats } from '@/types';
+import { dashboardApi, rpgApi } from '@/lib/api';
+import type { DashboardStats, RPGCharacter } from '@/types';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
 import RadarChart from '@/components/dashboard/RadarChart';
 import WeeklyXPChart from '@/components/dashboard/WeeklyXPChart';
 import GoalProgressCard from '@/components/dashboard/GoalProgressCard';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import MacroDonut from '@/components/dashboard/MacroDonut';
+import YouDiedScreen from '@/components/rpg/YouDiedScreen';
+import ComboCard from '@/components/rpg/ComboCard';
 
 /* ─── Mock data fallback ──────────────────────────────────────────────── */
 const mockStats: DashboardStats = {
@@ -275,6 +277,13 @@ export default function DashboardPage() {
     staleTime: 60_000,
   });
 
+  const { data: character } = useQuery<RPGCharacter>({
+    queryKey: ['rpg-character'],
+    queryFn: () => rpgApi.character().then((r) => r.data.character as RPGCharacter),
+    staleTime: 60_000,
+    retry: false,
+  });
+
   // Merge API data with mock fallbacks so no field is ever undefined
   const stats: DashboardStats = {
     ...mockStats,
@@ -301,8 +310,15 @@ export default function DashboardPage() {
 
   const xpTrend = stats.todayXP > stats.yesterdayXP ? 'up' : 'down';
   const xpDiff = Math.abs(stats.todayXP - stats.yesterdayXP);
+  const inPenitence = character?.inPenitence === true;
 
   return (
+    <>
+      {/* YOU DIED overlay */}
+      <AnimatePresence>
+        {inPenitence && <YouDiedScreen key="you-died" />}
+      </AnimatePresence>
+
     <div className="space-y-6 pb-8">
       {/* Row 1: Hero Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -369,6 +385,12 @@ export default function DashboardPage() {
         <WaterTracker cups={stats.waterCups} goal={stats.waterGoal} />
         <SleepDisplay hours={stats.sleepHours} />
       </div>
+
+      {/* Row 6: RPG Combo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ComboCard />
+      </div>
     </div>
+    </>
   );
 }

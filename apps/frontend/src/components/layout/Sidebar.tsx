@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
 import { Progress } from '@/components/ui/Progress'
+import { CharacterPanel } from '@/components/rpg/CharacterPanel'
 
 const navItems = [
   { href: '/dashboard',   label: 'Panel',          icon: LayoutDashboard },
@@ -162,6 +163,11 @@ export function Sidebar() {
           )
         })}
       </nav>
+
+      {/* Character panel */}
+      <div className="pb-2 border-t border-[#1E1E1E] pt-3 flex-shrink-0">
+        <CharacterPanel collapsed={sidebarCollapsed} />
+      </div>
 
       {/* Collapse toggle */}
       <div className="p-3 border-t border-[#1E1E1E] flex-shrink-0">

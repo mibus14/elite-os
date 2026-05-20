@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/auth');
+const rpg = require('../lib/rpg');
 
 const prisma = new PrismaClient();
 
@@ -9,27 +10,6 @@ function startOfDay(d) {
   const dt = new Date(d);
   dt.setHours(0, 0, 0, 0);
   return dt;
-}
-
-function addXP(userId, amount) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      xp: { increment: amount },
-    },
-  });
-}
-
-async function recalcRankLevel(userId) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { xp: true } });
-  const xp = user.xp;
-  const level = Math.floor(xp / 500) + 1;
-  let rank = 'Bronze';
-  if (xp >= 10001) rank = 'Diamond';
-  else if (xp >= 5001) rank = 'Platinum';
-  else if (xp >= 2001) rank = 'Gold';
-  else if (xp >= 501) rank = 'Silver';
-  await prisma.user.update({ where: { id: userId }, data: { level, rank } });
 }
 
 // GET /api/habits
@@ -169,9 +149,10 @@ router.post('/:id/log', authenticate, async (req, res, next) => {
       });
       // Award XP only if transitioning to completed
       if (!wasCompleted && completed) {
-        xpAwarded = habit.xpReward;
-        await addXP(req.user.id, xpAwarded);
-        await recalcRankLevel(req.user.id);
+        const { finalXP } = await rpg.awardXP(req.user.id, 'habits', habit.xpReward, prisma);
+        xpAwarded = finalXP;
+        await rpg.updateCombo(req.user.id, 'habits', prisma);
+        await rpg.checkAndUpdateStreak(req.user.id, prisma);
       }
     } else {
       log = await prisma.habitLog.create({
@@ -184,9 +165,10 @@ router.post('/:id/log', authenticate, async (req, res, next) => {
         },
       });
       if (completed) {
-        xpAwarded = habit.xpReward;
-        await addXP(req.user.id, xpAwarded);
-        await recalcRankLevel(req.user.id);
+        const { finalXP } = await rpg.awardXP(req.user.id, 'habits', habit.xpReward, prisma);
+        xpAwarded = finalXP;
+        await rpg.updateCombo(req.user.id, 'habits', prisma);
+        await rpg.checkAndUpdateStreak(req.user.id, prisma);
       }
     }
 

@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
+import DebuffBar from '@/components/rpg/DebuffBar'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router        = useRouter()
@@ -85,6 +86,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Topbar */}
         <Topbar />
+
+        {/* Debuff bar — only renders when character has active debuffs */}
+        <DebuffBar />
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden">

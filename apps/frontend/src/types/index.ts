@@ -237,3 +237,28 @@ export interface ChatUser {
   online: boolean;
   lastSeen?: string;
 }
+
+// ─── RPG ──────────────────────────────────────────────────────────
+
+export interface RPGDebuff {
+  id: string;
+  name: string;
+  icon: string;
+  expiresAt: string; // ISO date
+}
+
+export interface RPGComboModule {
+  key: string;
+  label: string;
+  icon: string;
+  completed: boolean;
+}
+
+export interface RPGCharacter {
+  inPenitence: boolean;
+  debuffs: RPGDebuff[];
+  comboActive: boolean;
+  comboModulesCompleted: number;
+  comboModulesRequired: number;
+  comboModules: RPGComboModule[];
+}
