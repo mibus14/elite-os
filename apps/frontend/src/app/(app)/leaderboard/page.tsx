@@ -128,7 +128,7 @@ function Podium({ users }: { users: LeaderboardUser[] }) {
 
             {/* Avatar */}
             <div className={`rounded-full border-2 overflow-hidden ${borderColors[idx]} ${isFirst ? 'w-20 h-20' : 'w-14 h-14'}`}>
-              <img src={user.avatar} alt={user.username} className="w-full h-full object-cover bg-[#1E1E1E]" />
+              <img src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover bg-[#1E1E1E]" />
             </div>
 
             {/* Username + class + title */}
@@ -356,7 +356,7 @@ export default function LeaderboardPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full overflow-hidden border border-white/10 bg-[#1E1E1E]">
-                          <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                          <img src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
                         </div>
                         <div>
                           <span className="text-white font-semibold block">{user.username}</span>
