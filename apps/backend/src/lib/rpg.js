@@ -88,7 +88,7 @@ async function recalcRankLevel(userId, prisma) {
 async function awardXP(userId, module, baseXP, prisma) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { class: true, inPenitence: true, statStr: true, statInt: true, statVit: true, statDis: true, statWis: true, statGol: true },
+    select: { class: true, inPenitence: true, seasonMultiplier: true, statStr: true, statInt: true, statVit: true, statDis: true, statWis: true, statGol: true },
   });
 
   if (user.inPenitence) {
@@ -124,7 +124,8 @@ async function awardXP(userId, module, baseXP, prisma) {
   }
 
   // 4. Final XP
-  const finalXP = Math.round(baseXP * classMultiplier * debuffMultiplier);
+  const seasonMultiplier = user.seasonMultiplier ?? 1.0;
+  const finalXP = Math.round(baseXP * classMultiplier * debuffMultiplier * seasonMultiplier);
 
   if (finalXP <= 0) {
     return { finalXP: 0, debuffMultiplier, classMultiplier, blocked: 'zero_xp' };

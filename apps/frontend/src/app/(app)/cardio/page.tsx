@@ -61,10 +61,11 @@ function QuickCardioModal({ open, onClose, onSave }: {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            onClick={onClose}
           >
             <div
-              className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-5 pointer-events-auto"
+              className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-sm max-h-[90dvh] overflow-y-auto shadow-2xl p-6 space-y-5"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}

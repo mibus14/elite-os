@@ -58,8 +58,41 @@ model User {
   financeEntries  FinanceEntry[]
   debuffs         Debuff[]
   dailyCombos     DailyCombo[]
+  seasonResults   SeasonResult[]
+
+  // Season bonus fields (reset each season)
+  seasonMultiplier Float @default(1.0)
+  seasonXPBonus    Int   @default(0)
 
   @@map("users")
+}
+
+model Season {
+  id        String   @id @default(uuid())
+  number    Int      @unique
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("active") // active | completed
+  createdAt DateTime @default(now())
+  results   SeasonResult[]
+  @@map("seasons")
+}
+
+model SeasonResult {
+  id              String   @id @default(uuid())
+  userId          String
+  seasonId        String
+  finalRank       String
+  finalXP         Int
+  finalLevel      Int
+  finalStreak     Int
+  bonusXP         Int      @default(0)
+  bonusMultiplier Float    @default(1.0)
+  createdAt       DateTime @default(now())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  @@unique([userId, seasonId])
+  @@map("season_results")
 }
 
 model Debuff {

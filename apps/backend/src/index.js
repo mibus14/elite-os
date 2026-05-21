@@ -69,6 +69,34 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/rpg', require('./routes/rpg'));
 app.use('/api/daily-log', require('./routes/daily-log'));
 app.use('/api/report', require('./routes/report'));
+app.use('/api/seasons', require('./routes/seasons').router);
+
+// ─── Season Init ──────────────────────────────────────────────────────────────
+const { ensureActiveSeason, endCurrentSeason } = require('./routes/seasons');
+const { PrismaClient: PrismaSeasons } = require('@prisma/client');
+(async () => {
+  const p = new PrismaSeasons();
+  try { await ensureActiveSeason(p); } catch(e) { console.error('[SEASON] init error:', e.message); } finally { await p.$disconnect(); }
+})();
+
+// ─── Season End Cron (daily 00:01) ────────────────────────────────────────────
+function scheduleSeasonCheck() {
+  const now = new Date();
+  const next = new Date();
+  next.setDate(now.getDate() + 1);
+  next.setHours(0, 1, 0, 0);
+  setTimeout(async () => {
+    const ps = new PrismaSeasons();
+    try {
+      const season = await ps.season.findFirst({ where: { status: 'active' } });
+      if (season && new Date(season.endDate) <= new Date()) {
+        await endCurrentSeason(ps);
+      }
+    } catch(e) { console.error('[SEASON CRON]', e.message); }
+    finally { await ps.$disconnect(); scheduleSeasonCheck(); }
+  }, next - now);
+}
+scheduleSeasonCheck();
 
 // ─── Daily Streak Cron ────────────────────────────────────────────────────────
 const { checkAndUpdateStreak } = require('./lib/rpg');

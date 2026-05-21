@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Dumbbell, Apple, Activity, BookOpen,
   Target, CheckSquare, TrendingUp, Trophy, MessageCircle,
-  Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword, X, Moon, BarChart2,
+  Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword, X, Moon, BarChart2, Shield,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
@@ -14,7 +14,7 @@ import { useUIStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
 import { Progress } from '@/components/ui/Progress'
 import { CharacterPanel } from '@/components/rpg/CharacterPanel'
-import { rpgApi } from '@/lib/api'
+import { rpgApi, seasonsApi } from '@/lib/api'
 
 const navItems = [
   { href: '/dashboard',   label: 'Cuartel',         icon: LayoutDashboard },
@@ -29,6 +29,7 @@ const navItems = [
   { href: '/savings',     label: 'Coliseo',         icon: Sword },
   { href: '/leaderboard', label: 'Héroes',          icon: Trophy },
   { href: '/chat',        label: 'Mensajería',      icon: MessageCircle },
+  { href: '/seasons',     label: 'Temporada',       icon: Shield },
   { href: '/report',      label: 'Informe',         icon: BarChart2 },
   { href: '/settings',    label: 'Pergamino',       icon: Settings },
 ]
@@ -142,6 +143,13 @@ function SidebarContent({
   const xpNeeded       = nextLevelXp - currentLevelXp
   const xpPct          = Math.min(100, (xpInLevel / xpNeeded) * 100)
 
+  const { data: seasonData } = useQuery({
+    queryKey: ['seasons-current-sidebar'],
+    queryFn: () => seasonsApi.current().then(r => r.data),
+    staleTime: 300_000,
+    retry: false,
+  })
+
   return (
     <div className="flex flex-col h-full bg-[#0D0D0D] border-r border-[#1E1E1E] overflow-hidden">
       {/* Logo */}
@@ -198,6 +206,15 @@ function SidebarContent({
                 {user.streak}d
               </span>
             </div>
+            {seasonData?.season && (
+              <div className="flex items-center justify-between mt-2 px-2 py-1 bg-elite-600/10 border border-elite-600/20 rounded-lg">
+                <span className="text-[10px] font-bold text-elite-600 flex items-center gap-1">
+                  <Shield size={9} />
+                  T{seasonData.season.number}
+                </span>
+                <span className="text-[10px] text-gray-500">{seasonData.season.daysLeft}d restantes</span>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

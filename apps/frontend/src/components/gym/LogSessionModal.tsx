@@ -134,7 +134,7 @@ export default function LogSessionModal({ open, onClose, onXP }: LogSessionModal
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-2xl max-h-[90dvh] overflow-y-auto shadow-2xl">
               <div className="sticky top-0 bg-[#111111] border-b border-[#1A1A1A] p-6 flex items-center justify-between z-10">
                 <div className="flex items-center gap-3">
                   <Dumbbell className="w-5 h-5 text-[#DC143C]" />

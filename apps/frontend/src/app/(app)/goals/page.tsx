@@ -257,7 +257,7 @@ function CreateGoalModal({ open, onClose, onCreate }: {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 w-full max-w-lg max-h-[90dvh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-5">

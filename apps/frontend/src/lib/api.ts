@@ -180,3 +180,9 @@ export const dailyLogApi = {
 export const reportApi = {
   summary: () => api.get('/report/summary'),
 }
+
+// ─── Seasons ─────────────────────────────────────────────────────
+export const seasonsApi = {
+  current: () => api.get('/seasons/current'),
+  history: () => api.get('/seasons/history'),
+}

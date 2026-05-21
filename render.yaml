@@ -3,7 +3,7 @@ services:
     name: elite-os-backend
     runtime: node
     rootDir: apps/backend
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss
     startCommand: node src/index.js
     envVars:
       - key: NODE_ENV

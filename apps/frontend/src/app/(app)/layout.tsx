@@ -90,10 +90,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <motion.div
               key="content"
               className="p-3 md:p-6 pb-20 md:pb-6 min-h-full"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
               {children}
             </motion.div>

@@ -74,8 +74,9 @@ function AcceptModal({ open, bet, onClose, onAccept }: {
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm" onClick={onClose} />
           <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-[#0D0D0D] border border-yellow-500/20 rounded-2xl w-full max-w-xs shadow-2xl p-6 space-y-4 pointer-events-auto"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            onClick={onClose}>
+            <div className="bg-[#0D0D0D] border border-yellow-500/20 rounded-2xl w-full max-w-xs max-h-[90dvh] overflow-y-auto shadow-2xl p-6 space-y-4"
               style={{ boxShadow: '0 0 40px rgba(234,179,8,0.1)' }}
               onClick={e => e.stopPropagation()}>
 
@@ -153,8 +154,9 @@ function CreateChallengeModal({ open, onClose, onCreate }: {
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm" onClick={onClose} />
           <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-[#0D0D0D] border border-[#DC143C]/30 rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4 pointer-events-auto max-h-[90vh] overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            onClick={onClose}>
+            <div className="bg-[#0D0D0D] border border-[#DC143C]/30 rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4 max-h-[90dvh] overflow-y-auto"
               style={{ boxShadow: '0 0 40px rgba(220,20,60,0.1)' }}
               onClick={e => e.stopPropagation()}>
 
