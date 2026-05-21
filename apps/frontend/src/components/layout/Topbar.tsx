@@ -6,7 +6,7 @@ import { Bell, LogOut, User, Settings, ChevronDown, Zap, Menu } from 'lucide-rea
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import type { RPGCharacter } from '@/types'
@@ -23,10 +23,17 @@ export function Topbar({ title }: { title?: string }) {
   const { user, logout } = useAuthStore()
   const { notifications: storeNotifs, toggleMobileSidebar } = useUIStore()
   const router = useRouter()
+  const pathname = usePathname()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [dateStr, setDateStr] = useState('')
   useEffect(() => { setDateStr(format(new Date(), 'EEEE, MMMM d, yyyy')) }, [])
+
+  // Cerrar dropdowns al navegar
+  useEffect(() => {
+    setUserMenuOpen(false)
+    setNotifOpen(false)
+  }, [pathname])
 
   // Fetch RPG character for smart notifications
   const { data: character } = useQuery<RPGCharacter>({

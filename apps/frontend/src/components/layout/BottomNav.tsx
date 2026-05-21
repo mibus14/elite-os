@@ -18,15 +18,23 @@ const PRIMARY_NAV = [
 
 export function BottomNav() {
   const pathname = usePathname()
-  const { toggleMobileSidebar } = useUIStore()
+  const { toggleMobileSidebar, setMobileSidebarOpen } = useUIStore()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#0D0D0D]/95 backdrop-blur-md border-t border-[#1E1E1E]" style={{ touchAction: 'manipulation' }}>
-      <div className="flex items-center justify-around h-16 px-2 safe-area-inset-bottom">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#0D0D0D]/95 backdrop-blur-md border-t border-[#1E1E1E]"
+      style={{ touchAction: 'manipulation', paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="flex items-center justify-around h-16 px-2">
         {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
-            <Link key={href} href={href} className="flex-1">
+            <Link
+              key={href}
+              href={href}
+              className="flex-1"
+              onClick={() => setMobileSidebarOpen(false)}
+            >
               <motion.div
                 whileTap={{ scale: 0.88 }}
                 className="flex flex-col items-center gap-1 py-1"

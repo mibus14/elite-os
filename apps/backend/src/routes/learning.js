@@ -67,7 +67,31 @@ router.patch('/items/:id', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-/* ─── POST /api/learning/generate ───────────────────────────────── */
+/* ─── Fallback suggestion pool (varied, random) ──────────────────── */
+const FALLBACK_TEMPLATES = [
+  (i) => `Fundamentos esenciales de ${i}`,
+  (i) => `Proyecto práctico desde cero con ${i}`,
+  (i) => `${i} avanzado: patrones y mejores prácticas`,
+  (i) => `Guía paso a paso para aprender ${i}`,
+  (i) => `Los 10 conceptos clave de ${i}`,
+  (i) => `Cómo aplicar ${i} en proyectos reales`,
+  (i) => `Errores comunes en ${i} y cómo evitarlos`,
+  (i) => `De cero a intermedio en ${i}: hoja de ruta`,
+  (i) => `${i} en la práctica: ejercicios y retos`,
+  (i) => `Recursos esenciales para dominar ${i}`,
+  (i) => `${i} para principiantes: primer proyecto real`,
+  (i) => `Teoría que todo experto en ${i} conoce`,
+  (i) => `${i}: comparativa de herramientas y enfoques`,
+  (i) => `30 días de ${i}: plan de estudio intensivo`,
+  (i) => `Casos de uso reales donde brilla ${i}`,
+];
+
+function pickFallback(interest) {
+  const shuffled = [...FALLBACK_TEMPLATES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 3).map((fn) => ({ tag: interest, title: fn(interest) }));
+}
+
+/* ─── POST /api/learning/generate — devuelve preview sin guardar ─── */
 router.post('/generate', authenticate, async (req, res, next) => {
   try {
     const { interests } = req.body;
@@ -75,8 +99,8 @@ router.post('/generate', authenticate, async (req, res, next) => {
       return res.status(400).json({ error: 'interests required' });
 
     const prompt = `Tengo estos intereses de aprendizaje: ${interests.join(', ')}.
-Genera exactamente 3 sugerencias concretas de cosas para aprender por cada interés.
-Cada sugerencia debe ser específica y accionable (no genérica).
+Genera exactamente 3 sugerencias concretas y diferentes de cosas para aprender por cada interés.
+Cada sugerencia debe ser específica y accionable (no genérica). Varía el tipo: tutoriales, proyectos, conceptos teóricos, etc.
 Responde SOLO JSON válido, sin markdown:
 [{"tag":"interés","title":"sugerencia"},...]
 Genera ${interests.length * 3} objetos en total.`;
@@ -89,7 +113,7 @@ Genera ${interests.length * 3} objetos en total.`;
         {
           model: 'llama-3.3-70b-versatile',
           max_tokens: 800,
-          temperature: 0.5,
+          temperature: 0.9,
           messages: [
             {
               role: 'system',
@@ -108,38 +132,44 @@ Genera ${interests.length * 3} objetos en total.`;
       );
 
       const content = response.data.choices[0].message.content.trim();
-
-      // Extract JSON array robustly — find the first [...] block in the response
       const match = content.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error('No JSON array in response: ' + content.slice(0, 100));
+      if (!match) throw new Error('No JSON array in response');
       suggestions = JSON.parse(match[0]);
-
       if (!Array.isArray(suggestions) || suggestions.length === 0)
         throw new Error('Empty suggestions array');
     } catch (aiErr) {
       console.error('[Learning] Groq AI error:', aiErr.message);
-      // Fallback: generate static suggestions so the user always gets something
-      suggestions = interests.flatMap((interest) => [
-        { tag: interest, title: `Fundamentos esenciales de ${interest}` },
-        { tag: interest, title: `Proyecto práctico: aplica ${interest} desde cero` },
-        { tag: interest, title: `${interest} avanzado: mejores prácticas y casos reales` },
-      ]);
+      suggestions = interests.flatMap((interest) => pickFallback(interest));
     }
 
-    const created = await prisma.learningItem.createMany({
-      data: suggestions.map((s) => ({
+    // Return suggestions as preview — NOT saved to DB yet
+    res.json({ suggestions });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ─── POST /api/learning/items/bulk — guarda sugerencias elegidas ── */
+router.post('/items/bulk', authenticate, async (req, res, next) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ error: 'items required' });
+
+    await prisma.learningItem.createMany({
+      data: items.map((s) => ({
         userId: req.user.id,
-        tag: s.tag,
-        title: s.title,
+        tag: String(s.tag).slice(0, 100),
+        title: String(s.title).slice(0, 500),
       })),
     });
 
-    const items = await prisma.learningItem.findMany({
+    const all = await prisma.learningItem.findMany({
       where: { userId: req.user.id },
       orderBy: [{ completed: 'asc' }, { createdAt: 'desc' }],
     });
 
-    res.json({ items, generated: created.count });
+    res.status(201).json({ items: all });
   } catch (err) {
     next(err);
   }

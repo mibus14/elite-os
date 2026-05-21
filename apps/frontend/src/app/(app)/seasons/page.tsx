@@ -44,23 +44,55 @@ interface HistoryResult {
   season: { number: number; startDate: string; endDate: string }
 }
 
+function SeasonSkeleton() {
+  return (
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-3xl mx-auto space-y-5 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-white/5" />
+        <div className="space-y-2">
+          <div className="h-7 w-40 rounded-lg bg-white/5" />
+          <div className="h-3 w-24 rounded bg-white/5" />
+        </div>
+      </div>
+      <div className="h-40 rounded-2xl bg-white/5" />
+      <div className="h-32 rounded-2xl bg-white/5" />
+      <div className="h-64 rounded-2xl bg-white/5" />
+    </div>
+  )
+}
+
 export default function SeasonsPage() {
   const { user } = useAuthStore()
 
-  const { data, isLoading } = useQuery<SeasonData>({
+  const { data, isLoading, isError, refetch } = useQuery<SeasonData>({
     queryKey: ['seasons-current'],
     queryFn: () => seasonsApi.current().then(r => r.data),
     staleTime: 60_000,
+    retry: 1,
   })
 
   const { data: historyData } = useQuery<{ results: HistoryResult[] }>({
     queryKey: ['seasons-history'],
     queryFn: () => seasonsApi.history().then(r => r.data),
     staleTime: 60_000,
+    retry: 1,
   })
 
-  if (isLoading || !data) {
-    return <div className="flex items-center justify-center h-64 text-gray-500">Cargando temporada...</div>
+  if (isLoading) return <SeasonSkeleton />
+
+  if (isError || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Sword size={32} className="text-gray-700" />
+        <p className="text-gray-400 text-sm">No se pudo cargar la temporada</p>
+        <button
+          onClick={() => refetch()}
+          className="px-5 py-2 rounded-xl bg-[#DC143C] text-white text-sm font-bold transition-all hover:opacity-90"
+        >
+          Reintentar
+        </button>
+      </div>
+    )
   }
 
   const { season, myPosition, myRank, nextBonus, leaderboard } = data

@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter, usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { io, Socket } from 'socket.io-client'
 import { isAuthenticated } from '@/lib/auth'
 import { useAuthStore } from '@/store/authStore'
@@ -14,15 +14,25 @@ import DebuffBar from '@/components/rpg/DebuffBar'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router          = useRouter()
+  const pathname        = usePathname()
   const socketRef       = useRef<Socket | null>(null)
+  const mainRef         = useRef<HTMLElement>(null)
   const user            = useAuthStore(s => s.user)
   const addNotification = useUIStore(s => s.addNotification)
+  const setMobileSidebarOpen = useUIStore(s => s.setMobileSidebarOpen)
+
   // Auth guard
   useEffect(() => {
     if (!isAuthenticated()) {
       router.replace('/login')
     }
   }, [router])
+
+  // Reset scroll and close mobile sidebar on every navigation
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+    setMobileSidebarOpen(false)
+  }, [pathname, setMobileSidebarOpen])
 
   // Socket.io connection
   useEffect(() => {
@@ -67,15 +77,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [user, addNotification])
 
   return (
-    <div className="flex h-screen bg-[#0A0A0A] overflow-hidden" suppressHydrationWarning>
+    <div
+      className="flex bg-[#0A0A0A] overflow-hidden"
+      style={{ height: '100dvh' }}
+      suppressHydrationWarning
+    >
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main area */}
-      <div
-        className="flex flex-col flex-1 overflow-hidden transition-all duration-300"
-        style={{ marginLeft: 0 }}
-      >
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* Topbar */}
         <Topbar />
 
@@ -83,21 +94,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <DebuffBar />
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto"
+        <main
+          ref={mainRef}
+          className="flex-1 overflow-y-auto overscroll-contain"
           style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="content"
-              className="p-3 md:p-6 pb-20 md:pb-6 min-h-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            key={pathname}
+            className="p-3 md:p-6 pb-24 md:pb-6 min-h-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.18 }}
+          >
+            {children}
+          </motion.div>
         </main>
       </div>
 
