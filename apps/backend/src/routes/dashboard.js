@@ -167,7 +167,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
     ]);
     const radarData = [
       { subject: 'Gym',       value: Math.min(100, totalGym * 3),             fullMark: 100 },
-      { subject: 'Nutrition', value: Math.min(100, (todayMeals._sum.calories || 0) > 0 ? 80 : 10), fullMark: 100 },
+      { subject: 'Nutrition', value: Math.min(100, (todayMeals._sum.calories || 0) > 0 ? 80 : 0), fullMark: 100 },
       { subject: 'Cardio',    value: Math.min(100, totalCardio * 4),          fullMark: 100 },
       { subject: 'Learning',  value: Math.min(100, totalLearning * 8),        fullMark: 100 },
       { subject: 'Habits',    value: totalHabits > 0 ? Math.round((completedHabitsToday / totalHabits) * 100) : 0, fullMark: 100 },

@@ -176,7 +176,6 @@ export default function GymPage() {
         })),
       })) as GymSession[];
     },
-    placeholderData: mockSessions,
   });
 
   const { data: exercisesData } = useQuery({
@@ -185,7 +184,6 @@ export default function GymPage() {
       const res = await gymApi.exercises();
       return (res.data?.exercises ?? res.data) as Exercise[];
     },
-    placeholderData: mockExercises,
   });
 
   const { data: recordsData } = useQuery({
@@ -194,7 +192,6 @@ export default function GymPage() {
       const res = await gymApi.records();
       return (res.data?.records ?? res.data) as PersonalRecord[];
     },
-    placeholderData: mockRecords,
   });
 
   const sessionList  = Array.isArray(sessionsData)  ? sessionsData  : [];

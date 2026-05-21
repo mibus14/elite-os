@@ -247,10 +247,10 @@ export default function FinancePage() {
   return (
     <div className="space-y-8 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
-            <DollarSign className="w-8 h-8 text-[#DC143C]" />
+          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+            <DollarSign className="w-7 h-7 text-[#DC143C]" />
             Tesorería
           </h1>
           <p className="text-gray-500 mt-1">Guarda tu oro, controla tu riqueza</p>
@@ -260,7 +260,8 @@ export default function FinancePage() {
           icon={<Plus className="w-4 h-4" />}
           onClick={() => setModalOpen(true)}
         >
-          Agregar Transacción
+          <span className="hidden sm:inline">Agregar Transacción</span>
+          <span className="sm:hidden">Añadir</span>
         </Button>
       </div>
 

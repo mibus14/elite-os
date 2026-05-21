@@ -404,10 +404,9 @@ export default function GoalsPage() {
       const res = await goalsApi.list();
       return (res.data?.goals ?? res.data) as Goal[];
     },
-    placeholderData: MOCK,
   });
 
-  const goals: Goal[] = Array.isArray(goalsData) ? goalsData : MOCK;
+  const goals: Goal[] = Array.isArray(goalsData) ? goalsData : [];
 
   const createMutation = useMutation({
     mutationFn: (data: object) => goalsApi.create(data),

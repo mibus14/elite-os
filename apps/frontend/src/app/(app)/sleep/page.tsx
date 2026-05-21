@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Moon, Droplets, Zap, Smile, Check } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -108,7 +108,7 @@ export default function SleepPage() {
   const SLEEP_PRESETS = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
   const weekChart = (weekData ?? []).map((l) => ({
-    day: format(parseISO(l.date + 'T12:00:00'), 'EEE'),
+    day: format(new Date(l.date), 'EEE'),
     horas: l.sleepHours,
   }))
 

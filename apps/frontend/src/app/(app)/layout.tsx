@@ -83,7 +83,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <DebuffBar />
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 overflow-y-auto"
+          style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key="content"

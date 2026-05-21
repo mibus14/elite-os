@@ -361,7 +361,7 @@ export default function DashboardPage() {
     caloriesConsumed:data?.caloriesConsumed ?? 0,
     caloriesGoal:    data?.caloriesGoal    ?? 0,
     activityHeatmap: data?.activityHeatmap ?? [],
-    radarData:       data?.radarData       ?? mockStats.radarData,
+    radarData:       data?.radarData       ?? [],
     weeklyXP:        data?.weeklyXP        ?? [],
     topGoals:        data?.topGoals        ?? [],
     recentActivity:  data?.recentActivity  ?? [],
@@ -435,8 +435,10 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Row 2: Activity Heatmap */}
-      <ActivityHeatmap data={stats.activityHeatmap} />
+      {/* Row 2: Activity Heatmap — hidden on mobile (touch-scroll conflict) */}
+      <div className="hidden md:block">
+        <ActivityHeatmap data={stats.activityHeatmap} />
+      </div>
 
       {/* Row 3: Radar + Weekly XP */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
