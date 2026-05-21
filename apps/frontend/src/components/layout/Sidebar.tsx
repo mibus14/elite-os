@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Dumbbell, Apple, Activity, BookOpen,
   Target, CheckSquare, TrendingUp, Trophy, MessageCircle,
-  Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword, X,
+  Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword, X, Moon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
@@ -24,6 +24,7 @@ const navItems = [
   { href: '/learning',    label: 'Grimorio',        icon: BookOpen },
   { href: '/goals',       label: 'Misiones',        icon: Target },
   { href: '/habits',      label: 'Juramentos',      icon: CheckSquare },
+  { href: '/sleep',       label: 'Santuario',       icon: Moon },
   { href: '/finance',     label: 'Tesorería',       icon: TrendingUp },
   { href: '/savings',     label: 'Coliseo',         icon: Sword },
   { href: '/leaderboard', label: 'Héroes',          icon: Trophy },

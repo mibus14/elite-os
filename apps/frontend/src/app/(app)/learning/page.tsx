@@ -84,11 +84,11 @@ export default function LearningPage() {
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <BookOpen className="w-8 h-8 text-[#DC143C]" />
-            Aprendizaje
+          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+            <BookOpen className="w-7 h-7 text-[#DC143C]" />
+            Grimorio
           </h1>
           <p className="text-gray-500 mt-1">Cosas que quieres aprender</p>
         </div>

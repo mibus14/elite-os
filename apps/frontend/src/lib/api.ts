@@ -165,3 +165,10 @@ export const rewardsApi = {
   sync:   () => api.post('/rewards/sync'),
   redeem: (id: string) => api.post(`/rewards/${id}/redeem`),
 }
+
+// ─── Daily Log (sleep, mood, energy, water) ───────────────────────
+export const dailyLogApi = {
+  today: ()            => api.get('/daily-log/today'),
+  save:  (data: object) => api.post('/daily-log', data),
+  week:  ()            => api.get('/daily-log/week'),
+}

@@ -67,6 +67,7 @@ app.use('/api/bets',     require('./routes/bets'));
 app.use('/api/rewards',  require('./routes/rewards'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rpg', require('./routes/rpg'));
+app.use('/api/daily-log', require('./routes/daily-log'));
 
 // ─── Daily Streak Cron ────────────────────────────────────────────────────────
 const { checkAndUpdateStreak } = require('./lib/rpg');

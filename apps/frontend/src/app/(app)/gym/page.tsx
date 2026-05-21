@@ -197,9 +197,9 @@ export default function GymPage() {
     placeholderData: mockRecords,
   });
 
-  const sessionList  = Array.isArray(sessionsData)  ? sessionsData  : mockSessions;
-  const exerciseList = Array.isArray(exercisesData) ? exercisesData : mockExercises;
-  const recordList   = Array.isArray(recordsData)   ? recordsData   : mockRecords;
+  const sessionList  = Array.isArray(sessionsData)  ? sessionsData  : [];
+  const exerciseList = Array.isArray(exercisesData) ? exercisesData : [];
+  const recordList   = Array.isArray(recordsData)   ? recordsData   : [];
 
   return (
     <div className="space-y-6 pb-8 relative">
@@ -212,11 +212,11 @@ export default function GymPage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
-            <Dumbbell className="w-8 h-8 text-[#DC143C]" />
-            Forja del Guerrero
+          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+            <Dumbbell className="w-7 h-7 text-[#DC143C]" />
+            Forja
           </h1>
           <p className="text-gray-500 mt-1">Forja tu cuerpo en el fuego del esfuerzo</p>
         </div>
@@ -224,25 +224,26 @@ export default function GymPage() {
           whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(220,20,60,0.4)' }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Registrar Sesión
+          <span className="hidden sm:inline">Registrar Sesión</span>
+          <span className="sm:hidden">Sesión</span>
         </motion.button>
       </div>
 
       <Tabs.Root defaultValue="sessions">
-        <Tabs.List className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 mb-6 w-fit">
+        <Tabs.List className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 mb-6 overflow-x-auto scrollbar-none">
           {[
             { value: 'sessions', label: 'Hazañas', icon: CalendarDays },
             { value: 'exercises', label: 'Arsenal', icon: Dumbbell },
             { value: 'records', label: 'Leyendas', icon: Trophy },
-            { value: 'stats', label: 'Estadísticas', icon: BarChart2 },
+            { value: 'stats', label: 'Stats', icon: BarChart2 },
           ].map(({ value, label, icon: Icon }) => (
             <Tabs.Trigger
               key={value}
               value={value}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-400 data-[state=active]:bg-[#DC143C] data-[state=active]:text-white transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 data-[state=active]:bg-[#DC143C] data-[state=active]:text-white transition-all whitespace-nowrap flex-shrink-0"
             >
               <Icon className="w-4 h-4" />
               {label}
@@ -360,68 +361,86 @@ export default function GymPage() {
 
         {/* Stats Tab */}
         <Tabs.Content value="stats">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Volume over time */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6"
-            >
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#DC143C]" />
-                Volumen en el Tiempo
-              </h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={volumeData}>
-                  <CartesianGrid stroke="#1A1A1A" vertical={false} />
-                  <XAxis dataKey="week" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, color: '#fff' }} />
-                  <Line type="monotone" dataKey="volume" stroke="#DC143C" strokeWidth={2.5} dot={{ fill: '#DC143C', r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </motion.div>
+          {sessionList.length === 0 ? (
+            <div className="text-center py-16 text-gray-600">
+              <BarChart2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-lg font-semibold">Sin datos aún</p>
+              <p className="text-sm mt-1">Registra sesiones para ver tus estadísticas</p>
+            </div>
+          ) : (() => {
+            // Compute stats from real session data
+            const weekVolume = sessionList.reduce<Record<string, number>>((acc, s) => {
+              const w = `S${Math.ceil((new Date(s.date).getDate()) / 7)}`
+              acc[w] = (acc[w] ?? 0) + (s.totalVolume ?? 0)
+              return acc
+            }, {})
+            const volData = Object.entries(weekVolume).map(([week, volume]) => ({ week, volume }))
 
-            {/* Muscle group radar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6"
-            >
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
-                Frecuencia Muscular
-              </h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <RadarChart data={muscleRadarData}>
-                  <PolarGrid stroke="#1A1A1A" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#6B7280', fontSize: 11 }} />
-                  <Radar dataKey="value" stroke="#DC143C" fill="#DC143C" fillOpacity={0.25} strokeWidth={2} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </motion.div>
+            const muscleCounts = sessionList.flatMap((s) =>
+              s.exercises.flatMap((e) => e.muscleGroups ?? [])
+            ).reduce<Record<string, number>>((acc, m) => { acc[m] = (acc[m] ?? 0) + 1; return acc }, {})
+            const radarData = Object.entries(muscleCounts).map(([subject, value]) => ({ subject, value }))
 
-            {/* Top exercises */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6 lg:col-span-2"
-            >
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
-                Ejercicios Principales
-              </h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={topExercisesData} barSize={40} margin={{ left: -20 }}>
-                  <CartesianGrid stroke="#1A1A1A" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, color: '#fff' }} />
-                  <Bar dataKey="sessions" radius={[6, 6, 0, 0]} fill="#DC143C" />
-                </BarChart>
-              </ResponsiveContainer>
-            </motion.div>
-          </div>
+            const exCounts = sessionList.flatMap((s) => s.exercises.map((e) => e.exerciseName))
+              .reduce<Record<string, number>>((acc, n) => { acc[n] = (acc[n] ?? 0) + 1; return acc }, {})
+            const topEx = Object.entries(exCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+              .map(([name, sessions]) => ({ name: name.split(' ')[0], sessions }))
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#DC143C]" />
+                    Volumen en el Tiempo
+                  </h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={volData}>
+                      <CartesianGrid stroke="#1A1A1A" vertical={false} />
+                      <XAxis dataKey="week" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, color: '#fff' }} />
+                      <Line type="monotone" dataKey="volume" stroke="#DC143C" strokeWidth={2.5} dot={{ fill: '#DC143C', r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </motion.div>
+
+                {radarData.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                    className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
+                      Frecuencia Muscular
+                    </h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <RadarChart data={radarData}>
+                        <PolarGrid stroke="#1A1A1A" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#6B7280', fontSize: 11 }} />
+                        <Radar dataKey="value" stroke="#DC143C" fill="#DC143C" fillOpacity={0.25} strokeWidth={2} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                )}
+
+                {topEx.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6 lg:col-span-2">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
+                      Ejercicios Principales
+                    </h3>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={topEx} barSize={40} margin={{ left: -20 }}>
+                        <CartesianGrid stroke="#1A1A1A" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ background: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, color: '#fff' }} />
+                        <Bar dataKey="sessions" radius={[6, 6, 0, 0]} fill="#DC143C" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                )}
+              </div>
+            )
+          })()}
         </Tabs.Content>
       </Tabs.Root>
 

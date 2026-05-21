@@ -276,7 +276,7 @@ export default function ChatPage() {
           </div>
 
           <div className="p-3 border-t border-[#1E1E1E] bg-[#111111]">
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center min-w-0">
               <input
                 ref={inputRef}
                 type="text"
@@ -284,7 +284,7 @@ export default function ChatPage() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={`Escribe a ${selectedUser.username}…`}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] transition-colors"
+                className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] transition-colors"
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -310,7 +310,7 @@ export default function ChatPage() {
   )
 
   return (
-    <div className="flex h-[calc(100svh-130px)] md:h-[calc(100vh-120px)] overflow-hidden rounded-2xl border border-[#1E1E1E]">
+    <div className="flex h-[calc(100dvh-130px)] md:h-[calc(100vh-120px)] overflow-hidden rounded-2xl border border-[#1E1E1E]">
       {/* Desktop: side-by-side | Mobile: toggle between list/chat */}
       <div className={`w-64 flex-shrink-0 md:flex ${mobileView === 'list' ? 'flex w-full md:w-64' : 'hidden md:flex'}`}>
         {UserListPanel}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -131,6 +131,9 @@ function CalorieRing({ current, goal }: { current: number; goal: number }) {
 export default function NutritionPage() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [meals, setMeals] = useState<any[]>([]);
+  const [byCategory, setByCategory] = useState<Record<string, number>>({ BAD: 0, HOMEMADE_CAL: 0, HEALTHY: 0 });
+  const [weekStats, setWeekStats] = useState<any[]>([]);
 
   const { data: todayData } = useQuery({
     queryKey: ['nutrition', 'today'],
@@ -138,7 +141,6 @@ export default function NutritionPage() {
       const res = await nutritionApi.today();
       return res.data;
     },
-    placeholderData: MOCK_TODAY,
   });
 
   const { data: weeklyData } = useQuery({
@@ -147,8 +149,23 @@ export default function NutritionPage() {
       const res = await nutritionApi.weeklyStats();
       return res.data;
     },
-    placeholderData: MOCK_WEEKLY,
   });
+
+  useEffect(() => {
+    if (todayData) {
+      setMeals(todayData.meals ?? []);
+      setByCategory(todayData.byCategory ?? { BAD: 0, HOMEMADE_CAL: 0, HEALTHY: 0 });
+    }
+  }, [todayData]);
+
+  useEffect(() => {
+    if (weeklyData?.stats) {
+      setWeekStats(weeklyData.stats.map((d: any) => ({
+        ...d,
+        day: format(new Date(d.date + 'T12:00:00'), 'EEE'),
+      })));
+    }
+  }, [weeklyData]);
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => nutritionApi.removeMeal(id),
@@ -158,23 +175,16 @@ export default function NutritionPage() {
     },
   });
 
-  const meals: any[]  = todayData?.meals      ?? MOCK_TODAY.meals;
-  const byCategory    = todayData?.byCategory  ?? MOCK_TODAY.byCategory;
   const totalCalories = meals.reduce((s: number, m: any) => s + (m.calories || 0), 0);
-
-  const weekStats = (weeklyData?.stats ?? MOCK_WEEKLY.stats).map((d: any) => ({
-    ...d,
-    day: format(new Date(d.date + 'T12:00:00'), 'EEE'),
-  }));
 
   return (
     <div className="space-y-6 pb-8">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
-            <Utensils className="w-8 h-8 text-[#DC143C]" />
+          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+            <Utensils className="w-7 h-7 text-[#DC143C]" />
             Taberna
           </h1>
           <p className="text-gray-500 mt-1">El combustible de tu aventura</p>
@@ -183,7 +193,7 @@ export default function NutritionPage() {
           whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(220,20,60,0.4)' }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
           Registrar
@@ -289,7 +299,13 @@ export default function NutritionPage() {
       </div>
 
       {/* Gráfica semanal por categoría */}
-      <motion.div
+      {weekStats.length === 0 && (
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-8 text-center">
+          <Flame className="w-10 h-10 mx-auto mb-2 text-gray-700" />
+          <p className="text-sm text-gray-600">Registra comidas para ver tu historial semanal</p>
+        </div>
+      )}
+      {weekStats.length > 0 && <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
@@ -325,7 +341,7 @@ export default function NutritionPage() {
             </div>
           ))}
         </div>
-      </motion.div>
+      </motion.div>}
 
       {/* Modal */}
       <QuickNutritionModal open={modalOpen} onClose={() => setModalOpen(false)} />

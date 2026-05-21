@@ -357,10 +357,10 @@ export default function HabitsPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
-            <CheckSquare className="w-8 h-8 text-[#DC143C]" />
+          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+            <CheckSquare className="w-7 h-7 text-[#DC143C]" />
             Juramentos
           </h1>
           <p className="text-gray-500 mt-1">
@@ -372,7 +372,8 @@ export default function HabitsPage() {
           icon={<Plus className="w-4 h-4" />}
           onClick={() => setModalOpen(true)}
         >
-          Agregar Hábito
+          <span className="hidden sm:inline">Agregar Hábito</span>
+          <span className="sm:hidden">Hábito</span>
         </Button>
       </div>
 
