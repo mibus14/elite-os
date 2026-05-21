@@ -15,5 +15,6 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: FRONTEND_URL
-        sync: false
+        value: https://frontend-facturai1.vercel.app
     healthCheckPath: /health
+    plan: free
