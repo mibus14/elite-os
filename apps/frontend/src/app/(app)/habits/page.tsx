@@ -271,7 +271,8 @@ export default function HabitsPage() {
     queryKey: ['habits'],
     queryFn: async () => {
       const res = await habitsApi.list()
-      return (res.data.habits ?? res.data) as Habit[]
+      const raw = (res.data.habits ?? res.data) as any[]
+      return raw.map((h) => ({ ...h, streak: h.streak ?? 0, totalCompletions: h.totalCompletions ?? 0 })) as Habit[]
     },
   })
 
