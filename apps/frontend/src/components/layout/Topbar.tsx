@@ -43,11 +43,11 @@ export function Topbar({ title }: { title?: string }) {
     retry: false,
   })
 
-  // Fetch today's XP from dashboard stats (lightweight, cached)
+  // Fetch today's XP from dashboard stats (shares cache with dashboard page)
   const { data: dashStats } = useQuery({
-    queryKey: ['dashboard-stats-topbar'],
+    queryKey: ['dashboard-stats'],
     queryFn: () => dashboardApi.stats().then(r => r.data),
-    staleTime: 120_000,
+    staleTime: 60_000,
     retry: false,
   })
   const todayXP: number = (dashStats as { todayXP?: number })?.todayXP ?? 0
