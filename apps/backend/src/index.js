@@ -68,6 +68,7 @@ app.use('/api/rewards',  require('./routes/rewards'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rpg', require('./routes/rpg'));
 app.use('/api/daily-log', require('./routes/daily-log'));
+app.use('/api/report', require('./routes/report'));
 
 // ─── Daily Streak Cron ────────────────────────────────────────────────────────
 const { checkAndUpdateStreak } = require('./lib/rpg');
@@ -111,6 +112,52 @@ function scheduleMidnightCheck() {
   }, msUntilNext);
 }
 scheduleMidnightCheck();
+
+// ─── Daily Backup Cron (03:00 UTC) ───────────────────────────────────────────
+const { PrismaClient: PrismaBackup } = require('@prisma/client');
+
+function scheduleBackup() {
+  const now = new Date();
+  const next = new Date();
+  next.setUTCDate(now.getUTCDate() + (now.getUTCHours() >= 3 ? 1 : 0));
+  next.setUTCHours(3, 0, 0, 0);
+  const ms = next - now;
+
+  setTimeout(async () => {
+    const pb = new PrismaBackup();
+    try {
+      const users = await pb.user.findMany({
+        select: {
+          id: true, username: true, email: true, class: true,
+          xp: true, level: true, rank: true, streak: true,
+          createdAt: true,
+        },
+      });
+      const counts = await Promise.all([
+        pb.gymSession.count(),
+        pb.cardioSession.count(),
+        pb.meal.count(),
+        pb.habitLog.count(),
+        pb.goal.count(),
+        pb.dailyLog.count(),
+      ]);
+      console.log('[BACKUP]', JSON.stringify({
+        ts: new Date().toISOString(),
+        users,
+        totals: {
+          gymSessions: counts[0], cardioSessions: counts[1], meals: counts[2],
+          habitLogs: counts[3], goals: counts[4], dailyLogs: counts[5],
+        },
+      }));
+    } catch (e) {
+      console.error('[BACKUP ERROR]', e.message);
+    } finally {
+      await pb.$disconnect();
+      scheduleBackup();
+    }
+  }, ms);
+}
+scheduleBackup();
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {

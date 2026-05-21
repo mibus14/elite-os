@@ -18,8 +18,9 @@ import {
   BookOpen,
   Apple,
 } from 'lucide-react';
-import { dashboardApi, rpgApi } from '@/lib/api';
+import { dashboardApi, rpgApi, dailyLogApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DashboardStats, RPGCharacter } from '@/types';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
 import RadarChart from '@/components/dashboard/RadarChart';
@@ -198,7 +199,22 @@ function StatCard({ label, value, sub, icon, trend, trendValue, glowColor = '#DC
 
 /* ─── Water Tracker ─────────────────────────────────────────────────── */
 function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
+  const qc = useQueryClient()
   const [current, setCurrent] = useState(cups);
+
+  // Sync when parent data updates
+  useEffect(() => { setCurrent(cups) }, [cups])
+
+  const saveMutation = useMutation({
+    mutationFn: (n: number) => dailyLogApi.save({ waterGlasses: n }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+  })
+
+  const toggle = (i: number) => {
+    const next = i < current ? i : i + 1
+    setCurrent(next)
+    saveMutation.mutate(next)
+  }
 
   return (
     <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
@@ -212,7 +228,7 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
             key={i}
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.9 }}
-            onClick={() => setCurrent(i < current ? i : i + 1)}
+            onClick={() => toggle(i)}
             className={`w-9 h-9 rounded-full border-2 transition-all ${
               i < current
                 ? 'bg-blue-500 border-blue-400 text-white'
@@ -225,33 +241,82 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
       </div>
       <p className="text-xs text-gray-500 mt-3">
         {current}/{goal} vasos · {(current * 250) / 1000}L
+        {saveMutation.isPending && <span className="ml-2 text-blue-400">...</span>}
       </p>
     </div>
   );
 }
 
-/* ─── Sleep Display ─────────────────────────────────────────────────── */
+/* ─── Sleep Quick-Log ───────────────────────────────────────────────── */
+const SLEEP_PRESETS = [5, 6, 7, 7.5, 8, 8.5, 9];
+
 function SleepDisplay({ hours }: { hours: number }) {
-  const quality = hours >= 8 ? 'Excelente' : hours >= 7 ? 'Bueno' : hours >= 6 ? 'Regular' : 'Malo';
-  const qualityColor = hours >= 8 ? 'text-green-400' : hours >= 7 ? 'text-blue-400' : hours >= 6 ? 'text-yellow-400' : 'text-red-400';
+  const qc = useQueryClient()
+  const [selected, setSelected] = useState(hours > 0 ? hours : null as number | null)
+  const [saved, setSaved] = useState(hours > 0)
+
+  useEffect(() => { if (hours > 0) { setSelected(hours); setSaved(true) } }, [hours])
+
+  const saveMutation = useMutation({
+    mutationFn: (h: number) => dailyLogApi.save({ sleepHours: h }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setSaved(true) },
+  })
+
+  const quality = !selected ? '' : selected >= 8 ? 'Excelente' : selected >= 7 ? 'Bueno' : selected >= 6 ? 'Regular' : 'Malo'
+  const qualityColor = !selected ? '' : selected >= 8 ? 'text-green-400' : selected >= 7 ? 'text-blue-400' : selected >= 6 ? 'text-yellow-400' : 'text-red-400'
 
   return (
     <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Moon className="w-4 h-4 text-indigo-400" />
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Sueño</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Moon className="w-4 h-4 text-indigo-400" />
+          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Sueño</h3>
+        </div>
+        {saved && selected && <span className="text-xs text-indigo-400">{selected}h · {quality}</span>}
       </div>
-      <div className="text-4xl font-bold text-white">{hours}h</div>
-      <div className={`text-sm font-semibold mt-1 ${qualityColor}`}>{quality}</div>
-      <div className="mt-3 h-2 bg-gray-800 rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${(hours / 9) * 100}%` }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          className="h-full rounded-full bg-gradient-to-r from-indigo-800 to-indigo-500"
-        />
-      </div>
-      <p className="text-xs text-gray-500 mt-1">Meta: 8h</p>
+
+      {selected && (
+        <>
+          <div className={`text-3xl font-bold text-white mb-1`}>{selected}h</div>
+          <div className={`text-sm font-semibold mb-3 ${qualityColor}`}>{quality}</div>
+          <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-3">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((selected / 9) * 100, 100)}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="h-full rounded-full bg-gradient-to-r from-indigo-800 to-indigo-500"
+            />
+          </div>
+        </>
+      )}
+
+      {!saved && (
+        <>
+          <p className="text-xs text-gray-500 mb-2">¿Cuánto dormiste anoche?</p>
+          <div className="grid grid-cols-4 gap-1.5 mb-3">
+            {SLEEP_PRESETS.map((h) => (
+              <button
+                key={h}
+                onClick={() => setSelected(h)}
+                className={`py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                  selected === h
+                    ? 'border-indigo-400 bg-indigo-500/20 text-indigo-300'
+                    : 'border-white/10 bg-white/5 text-gray-500 hover:border-white/20'
+                }`}
+              >{h}h</button>
+            ))}
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            disabled={!selected || saveMutation.isPending}
+            onClick={() => selected && saveMutation.mutate(selected)}
+            className="w-full py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:opacity-40 transition-all"
+          >
+            {saveMutation.isPending ? 'Guardando...' : 'Registrar sueño'}
+          </motion.button>
+        </>
+      )}
+      {saved && <p className="text-xs text-gray-600 mt-1">Meta: 8h</p>}
     </div>
   );
 }

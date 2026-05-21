@@ -172,3 +172,8 @@ export const dailyLogApi = {
   save:  (data: object) => api.post('/daily-log', data),
   week:  ()            => api.get('/daily-log/week'),
 }
+
+// ─── Report ───────────────────────────────────────────────────────
+export const reportApi = {
+  summary: () => api.get('/report/summary'),
+}
