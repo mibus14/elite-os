@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import { rpgApi } from '@/lib/rpgApi'
+import { rpgApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { RPGCharacter } from '@/types/rpg'
 
@@ -366,38 +367,16 @@ interface CharacterPanelProps {
 }
 
 export function CharacterPanel({ collapsed = false }: CharacterPanelProps) {
-  const [char, setChar]       = useState<RPGCharacter | null>(null)
   const [modalOpen, setModal] = useState(false)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    rpgApi
-      .character()
-      .then(res => setChar(res.data.character))
-      .catch(() => {
-        // Use mock data when the API is not yet available
-        setChar({
-          class:       'Guerrero',
-          level:       1,
-          xp:          0,
-          rank:        'Bronce',
-          statStr:     10,
-          statInt:     5,
-          statVit:     8,
-          statDis:     5,
-          statWis:     5,
-          statGol:     3,
-          comboStreak: 0,
-          deathCount:  0,
-          inPenitence: false,
-          debuffs:     [],
-          combo:       null,
-        })
-      })
-      .finally(() => setLoading(false))
-  }, [])
+  const { data: char, isLoading } = useQuery<RPGCharacter>({
+    queryKey: ['rpg-character'],
+    queryFn: () => rpgApi.character().then(r => r.data.character as RPGCharacter),
+    staleTime: 60_000,
+    retry: false,
+  })
 
-  if (loading || !char) {
+  if (isLoading || !char) {
     return (
       <div className="mx-2 h-14 rounded-xl bg-white/[0.03] border border-white/[0.07] animate-pulse" />
     )
