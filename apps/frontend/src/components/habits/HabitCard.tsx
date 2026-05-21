@@ -35,7 +35,7 @@ export default function HabitCard({ habit, delay = 0 }: HabitCardProps) {
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay, type: 'spring', stiffness: 300, damping: 25 }}
-      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.98 }}
       className={`relative rounded-2xl border p-5 cursor-pointer transition-all overflow-hidden ${
         isCompleted
           ? 'border-opacity-50 bg-opacity-20'

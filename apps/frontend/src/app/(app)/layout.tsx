@@ -96,12 +96,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Content */}
         <main
           ref={mainRef}
-          className="flex-1 overflow-y-auto overscroll-contain"
-          style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          className="flex-1 overflow-y-auto"
+          style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' } as React.CSSProperties}
         >
           <motion.div
             key={pathname}
-            className="p-3 md:p-6 pb-24 md:pb-6 min-h-full"
+            className="p-3 md:p-6 pb-24 md:pb-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.18 }}

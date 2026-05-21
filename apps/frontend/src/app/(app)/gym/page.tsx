@@ -151,7 +151,6 @@ export default function GymPage() {
           <p className="text-gray-500 mt-1">Forja tu cuerpo en el fuego del esfuerzo</p>
         </div>
         <motion.button
-          whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(220,20,60,0.4)' }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm flex-shrink-0"

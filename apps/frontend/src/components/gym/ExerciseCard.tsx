@@ -31,7 +31,6 @@ export default function ExerciseCard({ exercise, delay = 0 }: ExerciseCardProps)
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(220,20,60,0.1)' }}
       className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-5 cursor-default"
     >
       <div className="flex items-start justify-between mb-3">

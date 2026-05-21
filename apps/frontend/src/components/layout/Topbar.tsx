@@ -152,6 +152,8 @@ export function Topbar({ title }: { title?: string }) {
           </button>
           <AnimatePresence>
             {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
               <motion.div
                 initial={{ opacity: 0, y: 8, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -181,6 +183,7 @@ export function Topbar({ title }: { title?: string }) {
                   ))
                 )}
               </motion.div>
+              </>
             )}
           </AnimatePresence>
         </div>
@@ -205,32 +208,35 @@ export function Topbar({ title }: { title?: string }) {
 
           <AnimatePresence>
             {userMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                className="absolute right-0 top-12 w-48 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
-              >
-                <button
-                  onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  className="absolute right-0 top-12 w-48 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
                 >
-                  <User size={15} /> Perfil
-                </button>
-                <button
-                  onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
-                >
-                  <Settings size={15} /> Configuración
-                </button>
-                <div className="border-t border-[#1E1E1E] mx-3" />
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/10 transition-all"
-                >
-                  <LogOut size={15} /> Cerrar Sesión
-                </button>
-              </motion.div>
+                  <button
+                    onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <User size={15} /> Perfil
+                  </button>
+                  <button
+                    onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <Settings size={15} /> Configuración
+                  </button>
+                  <div className="border-t border-[#1E1E1E] mx-3" />
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/10 transition-all"
+                  >
+                    <LogOut size={15} /> Cerrar Sesión
+                  </button>
+                </motion.div>
+              </>
             )}
           </AnimatePresence>
         </div>

@@ -189,7 +189,6 @@ function QuickActions() {
       {QUICK_ACTIONS.map(({ label, icon: Icon, href, color }) => (
         <motion.button
           key={href}
-          whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.96 }}
           onClick={() => router.push(href)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors"

@@ -70,7 +70,6 @@ export default function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay, ease: [0.23, 1, 0.32, 1] }}
       onAnimationComplete={() => setVisible(true)}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
       className={cn(
         'relative bg-[#111111] border border-[#1E1E1E] rounded-2xl p-5 transition-all duration-300',
         'hover:border-elite-600/20 hover:shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_16px_rgba(220,20,60,0.08)]',

@@ -48,7 +48,6 @@ export default function GoalCard({ goal, onUpdateProgress, delay = 0 }: GoalCard
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: 'spring', stiffness: 300, damping: 25 }}
-      whileHover={{ scale: 1.02, boxShadow: `0 0 20px ${config.color}20` }}
       className={`rounded-2xl bg-white/5 backdrop-blur border ${config.border} p-5 flex flex-col gap-4`}
     >
       {/* Header */}
@@ -108,7 +107,6 @@ export default function GoalCard({ goal, onUpdateProgress, delay = 0 }: GoalCard
       {/* Update button */}
       {!goal.completed && onUpdateProgress && (
         <motion.button
-          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => onUpdateProgress(goal)}
           className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-sm font-semibold transition-all border"
