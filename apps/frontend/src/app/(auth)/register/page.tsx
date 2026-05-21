@@ -163,7 +163,7 @@ export default function RegisterPage() {
 
   const { register, isLoading, error } = useAuth()
 
-  const avatarUrl = `https://api.dicebear.com/8.x/${AVATAR_STYLES[selectedAvatar].style}/svg?seed=${selectedSeed}`
+  const avatarUrl = `https://api.dicebear.com/7.x/${AVATAR_STYLES[selectedAvatar].style}/svg?seed=${selectedSeed}`
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -266,7 +266,7 @@ export default function RegisterPage() {
                 {/* Style selector */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {AVATAR_STYLES.map((av, i) => {
-                    const url = `https://api.dicebear.com/8.x/${av.style}/svg?seed=${selectedSeed}`
+                    const url = `https://api.dicebear.com/7.x/${av.style}/svg?seed=${selectedSeed}`
                     return (
                       <motion.button
                         key={av.style}

@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, MessageCircle, Circle } from 'lucide-react'
+import { Send, MessageCircle, Circle, Users } from 'lucide-react'
 import { io, Socket } from 'socket.io-client'
 import { messagesApi, usersApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
@@ -14,8 +14,8 @@ interface ChatUser {
   username: string
   avatar: string
   online: boolean
-  lastMessage?: string
-  lastMessageTime?: string
+  level?: number
+  rank?: string
 }
 
 interface Message {
@@ -25,53 +25,6 @@ interface Message {
   content: string
   createdAt: string
   read: boolean
-}
-
-/* ─── Mock Data ──────────────────────────────────────────────────── */
-const mockUsers: ChatUser[] = [
-  {
-    id: '1',
-    username: 'Diego',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=diego',
-    online: true,
-    lastMessage: 'Bro did you hit the gym today?',
-    lastMessageTime: '2m ago',
-  },
-  {
-    id: '2',
-    username: 'Pedro',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=pedro',
-    online: false,
-    lastMessage: 'I ran 7km this morning 🔥',
-    lastMessageTime: '1h ago',
-  },
-  {
-    id: '3',
-    username: 'Cristopher',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=cristopher',
-    online: true,
-    lastMessage: 'Let me know when you want to spar',
-    lastMessageTime: '3h ago',
-  },
-]
-
-const mockMessages: Record<string, Message[]> = {
-  '1': [
-    { id: '1', senderId: '1', receiverId: 'me', content: "Bro did you hit the gym today?", createdAt: '2026-05-20T10:00:00Z', read: true },
-    { id: '2', senderId: 'me', receiverId: '1', content: "Yeah! Push day. Hit 82.5kg on bench 💪", createdAt: '2026-05-20T10:02:00Z', read: true },
-    { id: '3', senderId: '1', receiverId: 'me', content: "LET'S GO! I did legs, absolutely destroyed 🦵", createdAt: '2026-05-20T10:03:00Z', read: true },
-    { id: '4', senderId: 'me', receiverId: '1', content: "Keep pushing bro, we're getting those PRs 🏆", createdAt: '2026-05-20T10:05:00Z', read: true },
-    { id: '5', senderId: '1', receiverId: 'me', content: "Bro did you hit the gym today?", createdAt: '2026-05-20T14:30:00Z', read: false },
-  ],
-  '2': [
-    { id: '6', senderId: '2', receiverId: 'me', content: "I ran 7km this morning 🔥", createdAt: '2026-05-20T09:00:00Z', read: true },
-    { id: '7', senderId: 'me', receiverId: '2', content: "Insane! What was your pace?", createdAt: '2026-05-20T09:30:00Z', read: true },
-    { id: '8', senderId: '2', receiverId: 'me', content: "5:42/km. Getting faster every week", createdAt: '2026-05-20T09:32:00Z', read: true },
-  ],
-  '3': [
-    { id: '9', senderId: '3', receiverId: 'me', content: "Let me know when you want to spar", createdAt: '2026-05-20T07:00:00Z', read: true },
-    { id: '10', senderId: 'me', receiverId: '3', content: "This weekend works for me", createdAt: '2026-05-20T07:15:00Z', read: true },
-  ],
 }
 
 /* ─── Format time ────────────────────────────────────────────────── */
@@ -107,17 +60,20 @@ function MessageBubble({ msg, isSelf }: { msg: Message; isSelf: boolean }) {
 export default function ChatPage() {
   const currentUser = useAuthStore((s) => s.user)
   const token = useAuthStore((s) => s.token)
-  const [selectedUserId, setSelectedUserId] = useState<string>('1')
+  const queryClient = useQueryClient()
+
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState('')
-  const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>(mockMessages)
+  const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const socketRef = useRef<Socket | null>(null)
 
-  // Real Socket.io connection
+  // Socket.io connection using the same backend URL as the API
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://192.168.1.74:3001', {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+    const socket = io(backendUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
     })
@@ -134,43 +90,56 @@ export default function ChatPage() {
       setOnlineUserIds(userIds)
     })
 
-    return () => {
-      socket.disconnect()
-    }
+    return () => { socket.disconnect() }
   }, [token])
 
-  const { data: usersData } = useQuery({
+  // Load all users (excluding self)
+  const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ['chat-users'],
     queryFn: async () => {
       const res = await usersApi.all()
-      return res.data as ChatUser[]
+      const all = (res.data.users ?? []) as ChatUser[]
+      return all.filter((u) => u.id !== currentUser?.id)
     },
-    placeholderData: mockUsers,
   })
 
+  // Auto-select first user once loaded
+  useEffect(() => {
+    if (usersData && usersData.length > 0 && !selectedUserId) {
+      setSelectedUserId(usersData[0].id)
+    }
+  }, [usersData, selectedUserId])
+
+  // Load conversation messages
   const { data: messagesData } = useQuery({
     queryKey: ['messages', selectedUserId],
     queryFn: async () => {
-      const res = await messagesApi.conversation(selectedUserId)
-      return res.data as Message[]
+      const res = await messagesApi.conversation(selectedUserId!)
+      return (res.data.messages ?? []) as Message[]
     },
     enabled: !!selectedUserId,
-    placeholderData: mockMessages[selectedUserId] ?? [],
   })
+
+  // Sync fetched messages into localMessages
+  useEffect(() => {
+    if (messagesData && selectedUserId) {
+      setLocalMessages((prev) => ({ ...prev, [selectedUserId]: messagesData }))
+    }
+  }, [messagesData, selectedUserId])
 
   const sendMutation = useMutation({
     mutationFn: (data: object) => messagesApi.send(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', selectedUserId] })
+    },
   })
 
-  const users = (usersData && usersData.length > 0 ? usersData : mockUsers)
-    .filter((u) => u.id !== currentUser?.id)
-    .map((u) => ({
-      ...u,
-      // Override online status with real socket data when available
-      online: onlineUserIds.length > 0 ? onlineUserIds.includes(u.id) : u.online,
-    }))
+  const users = (usersData ?? []).map((u) => ({
+    ...u,
+    online: onlineUserIds.length > 0 ? onlineUserIds.includes(u.id) : false,
+  }))
 
-  const currentMessages = localMessages[selectedUserId] ?? messagesData ?? mockMessages[selectedUserId] ?? []
+  const currentMessages = localMessages[selectedUserId ?? ''] ?? []
   const selectedUser = users.find((u) => u.id === selectedUserId)
 
   // Scroll to bottom on new messages
@@ -184,25 +153,22 @@ export default function ChatPage() {
 
     const newMsg: Message = {
       id: String(Date.now()),
-      senderId: currentUser?.id ?? 'me',
+      senderId: currentUser?.id ?? '',
       receiverId: selectedUserId,
       content,
       createdAt: new Date().toISOString(),
       read: false,
     }
 
-    // Emit via socket for real-time delivery
     socketRef.current?.emit('message:send', {
       receiverId: selectedUserId,
       content,
-      senderId: currentUser?.id ?? 'me',
+      senderId: currentUser?.id,
       createdAt: newMsg.createdAt,
     })
 
-    // Persist via REST API
     sendMutation.mutate({ receiverId: selectedUserId, content })
 
-    // Optimistic local update
     setLocalMessages((prev) => ({
       ...prev,
       [selectedUserId]: [...(prev[selectedUserId] ?? []), newMsg],
@@ -222,7 +188,6 @@ export default function ChatPage() {
     <div className="flex h-[calc(100vh-120px)] gap-0 overflow-hidden rounded-2xl border border-[#1E1E1E]">
       {/* LEFT: User list */}
       <div className="w-64 flex-shrink-0 bg-[#111111] border-r border-[#1E1E1E] flex flex-col">
-        {/* Header */}
         <div className="p-4 border-b border-[#1E1E1E]">
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-[#DC143C]" />
@@ -230,8 +195,20 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Users */}
         <div className="flex-1 overflow-y-auto">
+          {usersLoading && (
+            <div className="p-4 text-center text-xs text-gray-600">Cargando operadores...</div>
+          )}
+
+          {!usersLoading && users.length === 0 && (
+            <div className="p-6 text-center">
+              <Users className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+              <p className="text-xs text-gray-600">
+                No hay otros operadores registrados todavía.
+              </p>
+            </div>
+          )}
+
           {users.map((user, idx) => (
             <motion.button
               key={user.id}
@@ -245,7 +222,6 @@ export default function ChatPage() {
                   : 'border-l-transparent hover:bg-white/5'
               }`}
             >
-              {/* Avatar + online dot */}
               <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1E1E1E] border border-white/10">
                   <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
@@ -256,17 +232,10 @@ export default function ChatPage() {
                   }`}
                 />
               </div>
-
-              {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">{user.username}</span>
-                  {user.lastMessageTime && (
-                    <span className="text-[10px] text-gray-600">{user.lastMessageTime}</span>
-                  )}
-                </div>
-                {user.lastMessage && (
-                  <p className="text-xs text-gray-500 truncate mt-0.5">{user.lastMessage}</p>
+                <span className="text-sm font-semibold text-white block truncate">{user.username}</span>
+                {user.rank && (
+                  <span className="text-[10px] text-gray-500">Lv.{user.level} · {user.rank}</span>
                 )}
               </div>
             </motion.button>
@@ -303,9 +272,16 @@ export default function ChatPage() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
+              {currentMessages.length === 0 && (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-gray-700">
+                    Empieza la conversación con {selectedUser.username} 👊
+                  </p>
+                </div>
+              )}
               <AnimatePresence initial={false}>
                 {currentMessages.map((msg) => {
-                  const isSelf = msg.senderId === (currentUser?.id ?? 'me') || msg.senderId === 'me'
+                  const isSelf = msg.senderId === currentUser?.id
                   return <MessageBubble key={msg.id} msg={msg} isSelf={isSelf} />
                 })}
               </AnimatePresence>
@@ -321,7 +297,7 @@ export default function ChatPage() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Escribe un mensaje a ${selectedUser.username}…`}
+                  placeholder={`Escribe a ${selectedUser.username}…`}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] transition-colors"
                 />
                 <motion.button
@@ -334,14 +310,18 @@ export default function ChatPage() {
                   <Send className="w-4 h-4 text-white" />
                 </motion.button>
               </div>
-              <p className="text-[10px] text-gray-700 mt-1.5 ml-1">Presiona Enter para enviar</p>
+              <p className="text-[10px] text-gray-700 mt-1.5 ml-1">Enter para enviar</p>
             </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-600">
             <div className="text-center">
               <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>Selecciona una conversación</p>
+              <p className="text-sm">
+                {users.length === 0
+                  ? 'Esperando que otros operadores se registren...'
+                  : 'Selecciona una conversación'}
+              </p>
             </div>
           </div>
         )}
