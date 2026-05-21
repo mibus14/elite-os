@@ -136,7 +136,7 @@ function StatsModal({
               <img
                 src={
                   user?.avatar ||
-                  `https://api.dicebear.com/8.x/avataaars/svg?seed=${user?.username ?? 'elite'}`
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'elite'}`
                 }
                 alt={user?.username}
                 className="w-full h-full bg-[#1A1A1A]"
@@ -300,7 +300,7 @@ function MiniPanel({
             <img
               src={
                 user?.avatar ||
-                `https://api.dicebear.com/8.x/avataaars/svg?seed=${user?.username ?? 'elite'}`
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username ?? 'elite'}`
               }
               alt={user?.username}
               className="w-full h-full bg-[#1A1A1A]"

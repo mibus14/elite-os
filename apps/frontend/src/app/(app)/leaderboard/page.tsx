@@ -220,7 +220,7 @@ export default function LeaderboardPage() {
     },
   })
 
-  const users = players && players.length >= 3 ? players : []
+  const users = players ?? []
 
   const metrics = [
     { label: 'XP Total', icon: <Zap className="w-4 h-4" />, getValue: (u: LeaderboardUser) => u.xp, suffix: '' },

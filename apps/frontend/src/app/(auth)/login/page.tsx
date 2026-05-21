@@ -37,26 +37,10 @@ export default function LoginPage() {
     >
       {/* Header */}
       <motion.div className="text-center mb-8" variants={itemVariants}>
-        <motion.h1
-          className="text-5xl font-black tracking-tight mb-2"
-          style={{
-            fontFamily: 'Space Grotesk, sans-serif',
-            background: 'linear-gradient(135deg, #FF6B6B 0%, #DC143C 50%, #B91C1C 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            textShadow: 'none',
-            filter: 'drop-shadow(0 0 24px rgba(220,20,60,0.5))',
-          }}
-        >
-          ELITE OS
-        </motion.h1>
-        <p className="text-dark-100 text-sm tracking-widest uppercase">
+        <p className="text-dark-100 text-sm tracking-widest uppercase mb-3">
           Your Personal Command Center
         </p>
-
-        {/* Live indicator */}
-        <div className="flex items-center justify-center gap-2 mt-3">
+        <div className="flex items-center justify-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <span className="text-xs text-dark-100">System Online</span>
         </div>

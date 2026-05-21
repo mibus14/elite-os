@@ -271,7 +271,7 @@ export default function HabitsPage() {
     queryKey: ['habits'],
     queryFn: async () => {
       const res = await habitsApi.list()
-      return res.data as Habit[]
+      return (res.data.habits ?? res.data) as Habit[]
     },
     placeholderData: mockHabits,
   })

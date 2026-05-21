@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { User, Mail, Lock, Check, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -193,23 +192,10 @@ export default function RegisterPage() {
     >
       {/* Header */}
       <motion.div className="text-center mb-6" variants={itemVariants}>
-        <h1
-          className="text-4xl font-black tracking-tight mb-1"
-          style={{
-            fontFamily: 'Space Grotesk, sans-serif',
-            background: 'linear-gradient(135deg, #FF6B6B 0%, #DC143C 60%, #B91C1C 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            filter: 'drop-shadow(0 0 20px rgba(220,20,60,0.4))',
-          }}
-        >
-          Join ELITE OS
-        </h1>
-        <p className="text-dark-100 text-sm">Begin your ascension</p>
+        <p className="text-dark-100 text-sm mb-3">Begin your ascension</p>
 
         {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2 mt-3">
+        <div className="flex items-center justify-center gap-2">
           {[1, 2].map(s => (
             <div key={s} className="flex items-center gap-2">
               <div
@@ -259,7 +245,7 @@ export default function RegisterPage() {
                     animate={{ scale: 1,   opacity: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <Image src={avatarUrl} alt="Selected avatar" width={80} height={80} className="bg-[#1A1A1A] w-full h-full" />
+                    <img src={avatarUrl} alt="Selected avatar" className="bg-[#1A1A1A] w-full h-full" />
                   </motion.div>
                 </div>
 
@@ -281,7 +267,7 @@ export default function RegisterPage() {
                         }`}
                       >
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1A1A1A]">
-                          <Image src={url} alt={av.label} width={40} height={40} />
+                          <img src={url} alt={av.label} className="w-full h-full" />
                         </div>
                         <span className="text-xs text-dark-100">{av.label}</span>
                         {selectedAvatar === i && (

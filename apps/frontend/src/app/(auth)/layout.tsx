@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0A0A0A]">
+    <div className="relative min-h-screen flex items-start justify-center overflow-y-auto overflow-x-hidden bg-[#0A0A0A]">
       {/* Animated gradient mesh background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Large blurred orbs */}
@@ -105,7 +105,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 w-full max-w-md px-4">
+      <div className="relative z-10 w-full max-w-md px-4 pt-24 pb-16">
         {children}
       </div>
 

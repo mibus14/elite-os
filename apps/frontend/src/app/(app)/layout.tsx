@@ -30,7 +30,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('elite_token') : null
     if (!token) return
 
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3001', {
+    const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001', {
       auth: { token },
       transports: ['websocket'],
       reconnectionAttempts: 5,

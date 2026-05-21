@@ -195,7 +195,7 @@ export default function FinancePage() {
     queryKey: ['finance-entries'],
     queryFn: async () => {
       const res = await financeApi.entries()
-      return res.data as FinanceEntry[]
+      return (res.data.entries ?? res.data) as FinanceEntry[]
     },
     placeholderData: mockEntries,
   })
