@@ -200,11 +200,14 @@ function StatCard({ label, value, sub, icon, trend, trendValue, glowColor = '#DC
 /* ─── Water Tracker ─────────────────────────────────────────────────── */
 function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
   const [current, setCurrent] = useState(cups);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => { setCurrent(cups) }, [cups])
 
   const saveMutation = useMutation({
     mutationFn: (n: number) => dailyLogApi.save({ waterGlasses: n }),
+    onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 1200) },
+    onError: () => { setCurrent(cups) }, // revert on error
   })
 
   const toggle = (i: number) => {
@@ -215,30 +218,33 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
 
   return (
     <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Droplets className="w-4 h-4 text-blue-400" />
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Agua</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Droplets className="w-4 h-4 text-blue-400" />
+          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Agua</h3>
+        </div>
+        {saved && <span className="text-xs text-blue-400 font-medium">✓ Guardado</span>}
+        {saveMutation.isPending && <span className="text-xs text-gray-500">...</span>}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {Array.from({ length: goal }).map((_, i) => (
-          <motion.button
+          <button
             key={i}
-            whileHover={{ scale: 1.15 }}
-            whileTap={{ scale: 0.9 }}
+            type="button"
+            style={{ touchAction: 'manipulation' }}
             onClick={() => toggle(i)}
-            className={`w-9 h-9 rounded-full border-2 transition-all ${
+            className={`h-11 rounded-xl border-2 transition-all flex items-center justify-center active:scale-90 ${
               i < current
-                ? 'bg-blue-500 border-blue-400 text-white'
+                ? 'bg-blue-500/80 border-blue-400 text-white'
                 : 'bg-transparent border-gray-700 text-gray-600'
             }`}
           >
-            <Droplets className="w-4 h-4 mx-auto" />
-          </motion.button>
+            <Droplets className="w-4 h-4" />
+          </button>
         ))}
       </div>
       <p className="text-xs text-gray-500 mt-3">
         {current}/{goal} vasos · {(current * 250) / 1000}L
-        {saveMutation.isPending && <span className="ml-2 text-blue-400">...</span>}
       </p>
     </div>
   );

@@ -73,6 +73,7 @@ export const nutritionApi = {
   removeMeal:    (id: string) => api.delete(`/nutrition/meals/${id}`),
   weeklyStats:   () => api.get('/nutrition/stats/weekly'),
   goals:         () => api.get('/nutrition/goals'),
+  setGoals:      (data: object) => api.put('/nutrition/goals', data),
 }
 
 // ─── Cardio ──────────────────────────────────────────────────────

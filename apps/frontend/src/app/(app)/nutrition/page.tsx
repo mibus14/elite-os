@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
   Utensils, Plus, Flame, Trash2,
   ShieldAlert, Home, Leaf,
-  Sun, Sunset, Moon, Cookie,
+  Sun, Sunset, Moon, Cookie, Settings2, ChevronDown,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { nutritionApi } from '@/lib/api';
@@ -18,7 +18,7 @@ import {
 } from 'recharts';
 
 /* ─── Constantes ─────────────────────────────────────────────────── */
-const DAILY_GOAL = 2200;
+const DEFAULT_GOALS = { calories: 2200, protein: 160, carbs: 280, fat: 75, fiber: 30 };
 
 type Category = 'BAD' | 'HOMEMADE_CAL' | 'HEALTHY';
 type MealTime = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -131,9 +131,11 @@ function CalorieRing({ current, goal }: { current: number; goal: number }) {
 export default function NutritionPage() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(false);
   const [meals, setMeals] = useState<any[]>([]);
   const [byCategory, setByCategory] = useState<Record<string, number>>({ BAD: 0, HOMEMADE_CAL: 0, HEALTHY: 0 });
   const [weekStats, setWeekStats] = useState<any[]>([]);
+  const [goalsForm, setGoalsForm] = useState(DEFAULT_GOALS);
 
   const { data: todayData } = useQuery({
     queryKey: ['nutrition', 'today'],
@@ -150,6 +152,28 @@ export default function NutritionPage() {
       return res.data;
     },
   });
+
+  const { data: goalsData } = useQuery({
+    queryKey: ['nutrition', 'goals'],
+    queryFn: () => nutritionApi.goals().then(r => r.data.goals),
+    staleTime: 300_000,
+  });
+
+  useEffect(() => {
+    if (goalsData) setGoalsForm(goalsData);
+  }, [goalsData]);
+
+  const goalsMutation = useMutation({
+    mutationFn: (data: typeof DEFAULT_GOALS) => nutritionApi.setGoals(data),
+    onSuccess: (res) => {
+      qc.setQueryData(['nutrition', 'goals'], res.data.goals);
+      setGoalsOpen(false);
+      toast.success('Objetivos guardados');
+    },
+    onError: () => toast.error('Error al guardar'),
+  });
+
+  const myGoals = goalsData ?? DEFAULT_GOALS;
 
   useEffect(() => {
     if (todayData) {
@@ -189,16 +213,72 @@ export default function NutritionPage() {
           </h1>
           <p className="text-gray-500 mt-1">El combustible de tu aventura</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(220,20,60,0.4)' }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm flex-shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Registrar
-        </motion.button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            style={{ touchAction: 'manipulation' }}
+            onClick={() => setGoalsOpen(o => !o)}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-gray-400 text-sm"
+          >
+            <Settings2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Objetivos</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${goalsOpen ? 'rotate-180' : ''}`} />
+          </button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            style={{ touchAction: 'manipulation' }}
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm flex-shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Registrar
+          </motion.button>
+        </div>
       </div>
+
+      {/* Goals panel */}
+      {goalsOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-4"
+        >
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-elite-600" />
+            Mis objetivos diarios
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {([
+              { key: 'calories', label: 'Calorías', unit: 'kcal', min: 800, max: 5000 },
+              { key: 'protein',  label: 'Proteína',  unit: 'g',    min: 0,   max: 400 },
+              { key: 'carbs',    label: 'Carbohidratos', unit: 'g', min: 0,  max: 600 },
+              { key: 'fat',      label: 'Grasa',     unit: 'g',    min: 0,   max: 300 },
+              { key: 'fiber',    label: 'Fibra',     unit: 'g',    min: 0,   max: 100 },
+            ] as const).map(({ key, label, unit, min, max }) => (
+              <div key={key} className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500 font-medium">{label} <span className="text-gray-600">({unit})</span></label>
+                <input
+                  type="number"
+                  min={min}
+                  max={max}
+                  value={goalsForm[key]}
+                  onChange={e => setGoalsForm(f => ({ ...f, [key]: parseInt(e.target.value) || 0 }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-elite-600/50"
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            style={{ touchAction: 'manipulation' }}
+            disabled={goalsMutation.isPending}
+            onClick={() => goalsMutation.mutate(goalsForm)}
+            className="w-full py-2.5 rounded-xl bg-elite-600 text-white text-sm font-bold disabled:opacity-50 transition-all"
+          >
+            {goalsMutation.isPending ? 'Guardando...' : 'Guardar objetivos'}
+          </button>
+        </motion.div>
+      )}
 
       {/* Resumen del día: anillo + 3 categorías */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -208,7 +288,7 @@ export default function NutritionPage() {
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col items-center justify-center gap-2"
         >
-          <CalorieRing current={totalCalories} goal={DAILY_GOAL} />
+          <CalorieRing current={totalCalories} goal={myGoals.calories} />
           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total hoy</p>
         </motion.div>
 

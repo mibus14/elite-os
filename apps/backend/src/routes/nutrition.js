@@ -13,13 +13,12 @@ function startOfDay(d) {
   return dt;
 }
 
-const DAILY_GOALS = {
-  calories: 2200,
-  protein: 160,
-  carbs: 280,
-  fat: 75,
-  fiber: 30,
-};
+const DEFAULT_GOALS = { calories: 2200, protein: 160, carbs: 280, fat: 75, fiber: 30 };
+
+async function getUserGoals(userId) {
+  const g = await prisma.nutritionGoal.findUnique({ where: { userId } });
+  return g ? { calories: g.calories, protein: g.protein, carbs: g.carbs, fat: g.fat, fiber: g.fiber } : { ...DEFAULT_GOALS };
+}
 
 /* ─── Lookup local (fallback sin API) ───────────────────────────── */
 // Each entry: [keywords[], calories_per_serving, servingNote]
@@ -217,7 +216,8 @@ router.get('/today', authenticate, async (req, res, next) => {
       { BAD: 0, HOMEMADE_CAL: 0, HEALTHY: 0 }
     );
 
-    res.json({ meals, totals, byCategory, goals: DAILY_GOALS });
+    const goals = await getUserGoals(req.user.id);
+    res.json({ meals, totals, byCategory, goals });
   } catch (err) {
     next(err);
   }
@@ -314,15 +314,39 @@ router.get('/stats/weekly', authenticate, async (req, res, next) => {
       })
     );
 
-    res.json({ stats, goals: DAILY_GOALS });
+    const goals = await getUserGoals(req.user.id);
+    res.json({ stats, goals });
   } catch (err) {
     next(err);
   }
 });
 
 // GET /api/nutrition/goals
-router.get('/goals', authenticate, async (req, res) => {
-  res.json({ goals: DAILY_GOALS });
+router.get('/goals', authenticate, async (req, res, next) => {
+  try {
+    const goals = await getUserGoals(req.user.id);
+    res.json({ goals });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/nutrition/goals
+router.put('/goals', authenticate, async (req, res, next) => {
+  try {
+    const { calories, protein, carbs, fat, fiber } = req.body;
+    const data = {};
+    if (calories !== undefined) data.calories = Math.max(500, parseInt(calories) || 2200);
+    if (protein  !== undefined) data.protein  = Math.max(0,   parseInt(protein)  || 160);
+    if (carbs    !== undefined) data.carbs    = Math.max(0,   parseInt(carbs)    || 280);
+    if (fat      !== undefined) data.fat      = Math.max(0,   parseInt(fat)      || 75);
+    if (fiber    !== undefined) data.fiber    = Math.max(0,   parseInt(fiber)    || 30);
+
+    const goal = await prisma.nutritionGoal.upsert({
+      where:  { userId: req.user.id },
+      update: data,
+      create: { userId: req.user.id, ...DEFAULT_GOALS, ...data },
+    });
+    res.json({ goals: { calories: goal.calories, protein: goal.protein, carbs: goal.carbs, fat: goal.fat, fiber: goal.fiber } });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;
