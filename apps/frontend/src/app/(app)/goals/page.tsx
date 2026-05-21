@@ -48,32 +48,7 @@ const PRIORITY_COLORS = {
   low:    'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
 
-/* ─── Mock data ──────────────────────────────────────────────────── */
-const MOCK: Goal[] = [
-  {
-    id: '1', title: 'Press de Banca 100kg', category: 'fitness',
-    targetValue: 100, currentValue: 60, unit: 'kg',
-    deadline: '2026-09-01', status: 'active', priority: 'high', progressPercent: 60,
-    milestones: [
-      { id: 'm1', title: 'Llegar a 80kg de forma consistente', weight: 20, completed: true,  order: 0 },
-      { id: 'm2', title: 'Dominar técnica con 85kg',           weight: 20, completed: true,  order: 1 },
-      { id: 'm3', title: 'Mover 90kg en 3 series de 5',        weight: 20, completed: true,  order: 2 },
-      { id: 'm4', title: 'Alcanzar 95kg limpio',               weight: 20, completed: false, order: 3 },
-      { id: 'm5', title: '¡Levantar 100kg!',                   weight: 20, completed: false, order: 4 },
-    ],
-  },
-  {
-    id: '2', title: 'Ahorrar $10,000', category: 'finance',
-    targetValue: 100, currentValue: 40, unit: '%',
-    deadline: '2026-12-31', status: 'active', priority: 'high', progressPercent: 40,
-    milestones: [
-      { id: 'm6', title: 'Crear presupuesto mensual',       weight: 10, completed: true,  order: 0 },
-      { id: 'm7', title: 'Ahorrar primeros $2,500',         weight: 30, completed: true,  order: 1 },
-      { id: 'm8', title: 'Llegar a $5,000',                 weight: 30, completed: false, order: 2 },
-      { id: 'm9', title: 'Meta alcanzada: $10,000',         weight: 30, completed: false, order: 3 },
-    ],
-  },
-];
+
 
 /* ─── Goal Card ──────────────────────────────────────────────────── */
 function GoalCard({ goal, onToggle, onDelete }: {

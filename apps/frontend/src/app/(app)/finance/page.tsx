@@ -21,16 +21,6 @@ interface FinanceEntry {
   description: string
 }
 
-/* ─── Mock Data ──────────────────────────────────────────────────── */
-const mockEntries: FinanceEntry[] = [
-  { id: '1', date: '2026-05-20', type: 'expense', category: 'food',       amount: 85.50,  description: 'Groceries' },
-  { id: '2', date: '2026-05-19', type: 'income',  category: 'salary',     amount: 3200,   description: 'Monthly Salary' },
-  { id: '3', date: '2026-05-18', type: 'expense', category: 'fitness',    amount: 65,     description: 'Gym Membership' },
-  { id: '4', date: '2026-05-17', type: 'expense', category: 'education',  amount: 29.99,  description: 'Duolingo Plus' },
-  { id: '5', date: '2026-05-16', type: 'expense', category: 'transport',  amount: 45,     description: 'Gas' },
-  { id: '6', date: '2026-05-15', type: 'income',  category: 'freelance',  amount: 500,    description: 'Freelance project' },
-]
-
 const CATEGORY_META: Record<string, { emoji: string; color: string }> = {
   food:       { emoji: '🍔', color: '#F97316' },
   salary:     { emoji: '💼', color: '#22C55E' },

@@ -76,28 +76,6 @@ const MEAL_TIMES: {
   { id: 'snack',     label: 'Snack',    icon: Cookie },
 ];
 
-/* ─── Mock data ──────────────────────────────────────────────────── */
-const MOCK_TODAY = {
-  meals: [
-    { id: '1', mealType: 'breakfast', name: 'Avena con plátano', category: 'HEALTHY',      calories: 340 },
-    { id: '2', mealType: 'lunch',     name: 'Sopa de fideo + pollo', category: 'HOMEMADE_CAL', calories: 620 },
-    { id: '3', mealType: 'snack',     name: 'Refresco + papas fritas', category: 'BAD',     calories: 420 },
-  ],
-  byCategory: { BAD: 420, HOMEMADE_CAL: 620, HEALTHY: 340 },
-};
-
-const MOCK_WEEKLY = {
-  stats: [
-    { date: '2026-05-14', calories: 2050, bad: 400, home: 800, good: 850 },
-    { date: '2026-05-15', calories: 1900, bad: 200, home: 900, good: 800 },
-    { date: '2026-05-16', calories: 2300, bad: 700, home: 900, good: 700 },
-    { date: '2026-05-17', calories: 1800, bad: 0,   home: 800, good: 1000 },
-    { date: '2026-05-18', calories: 2200, bad: 300, home: 700, good: 1200 },
-    { date: '2026-05-19', calories: 2100, bad: 500, home: 800, good: 800 },
-    { date: '2026-05-20', calories: 1380, bad: 420, home: 620, good: 340 },
-  ],
-};
-
 /* ─── Calorie ring ───────────────────────────────────────────────── */
 function CalorieRing({ current, goal }: { current: number; goal: number }) {
   const pct = Math.min(current / goal, 1);
