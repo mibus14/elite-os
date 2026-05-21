@@ -154,7 +154,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
     // ── Top goals ─────────────────────────────────────────────────────────
     const topGoals = await prisma.goal.findMany({
       where: { userId, status: 'active' },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 3,
     });
 
