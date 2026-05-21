@@ -79,21 +79,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
         >
-          <div className="relative w-10 h-10 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-lg bg-elite-600 opacity-20 animate-glow-pulse" />
-            <div
-              className="absolute inset-0 rounded-lg border border-elite-600 opacity-60"
-              style={{ boxShadow: '0 0 12px rgba(220,20,60,0.4)' }}
-            />
-            <span
-              className="relative text-xl font-black text-elite-600"
-              style={{
-                fontFamily: 'Space Grotesk, sans-serif',
-                textShadow: '0 0 16px rgba(220,20,60,0.7)',
-              }}
-            >
-              E
-            </span>
+          <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
+            <img src="/logo.png" alt="ELITE OS" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(220,20,60,0.6)]" />
           </div>
           <span
             className="text-lg font-bold tracking-[0.2em] text-white uppercase"

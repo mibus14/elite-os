@@ -22,8 +22,10 @@ router.get('/summary', authenticate, async (req, res, next) => {
       completedGoals,
       totalLearning,
       sleepLogs,
-      savingsGoals,
-      bets,
+      savingsEntries,
+      earnedSavings,
+      createdBets,
+      acceptedBets,
     ] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -52,25 +54,36 @@ router.get('/summary', authenticate, async (req, res, next) => {
         _avg: { sleepHours: true, energyLevel: true, mood: true },
         _count: { id: true },
       }),
-      prisma.savingsGoal.aggregate({
-        where: { userId },
-        _count: { id: true },
-        _sum: { currentAmount: true, targetAmount: true },
+      // Total savings entries count
+      prisma.savingsEntry.count({ where: { userId } }),
+      // Sum of earned savings
+      prisma.savingsEntry.aggregate({
+        where: { userId, earned: true },
+        _sum: { weeklyAmount: true },
       }),
+      // Bets created by user (to determine creator win/loss)
       prisma.bet.findMany({
-        where: { OR: [{ creatorId: userId }, { challengedId: userId }] },
-        select: { status: true, creatorId: true, winnerId: true },
+        where: { creatorId: userId, status: { in: ['won', 'lost', 'completed'] } },
+        select: { result: true, status: true },
+      }),
+      // Bet acceptances (to determine accepted bet outcomes)
+      prisma.betAcceptance.findMany({
+        where: { userId },
+        select: { status: true },
       }),
     ]);
 
-    const wonBets = bets.filter((b) => b.winnerId === userId).length;
-    const lostBets = bets.filter(
-      (b) => b.status === 'completed' && b.winnerId !== userId &&
-        (b.creatorId === userId || true)
-    ).length - wonBets;
+    const wonBets =
+      createdBets.filter((b) => b.result === true).length +
+      acceptedBets.filter((b) => b.status === 'won').length;
 
-    // Days since registration
+    const lostBets =
+      createdBets.filter((b) => b.result === false).length +
+      acceptedBets.filter((b) => b.status === 'lost').length;
+
     const daysSince = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / 86400000);
+
+    const totalSaved = parseFloat((earnedSavings._sum.weeklyAmount || 0).toFixed(2));
 
     res.json({
       profile: {
@@ -117,9 +130,9 @@ router.get('/summary', authenticate, async (req, res, next) => {
         avgMood: parseFloat((sleepLogs._avg.mood || 0).toFixed(1)),
       },
       savings: {
-        totalGoals: savingsGoals._count.id || 0,
-        totalSaved: parseFloat((savingsGoals._sum.currentAmount || 0).toFixed(2)),
-        totalTarget: parseFloat((savingsGoals._sum.targetAmount || 0).toFixed(2)),
+        totalGoals: savingsEntries,
+        totalSaved,
+        totalTarget: totalSaved,
       },
       bets: { won: wonBets, lost: Math.max(0, lostBets) },
     });

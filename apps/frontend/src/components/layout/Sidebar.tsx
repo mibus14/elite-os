@@ -155,8 +155,8 @@ function SidebarContent({
       {/* Logo */}
       <div className="flex items-center h-16 px-4 border-b border-[#1E1E1E] flex-shrink-0">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-lg bg-elite-600 flex items-center justify-center flex-shrink-0 shadow-glow-red">
-            <span className="text-white font-bold text-sm font-heading">E</span>
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <img src="/logo.png" alt="ELITE OS" className="w-8 h-8 object-contain" />
           </div>
           <AnimatePresence>
             {!collapsed && (

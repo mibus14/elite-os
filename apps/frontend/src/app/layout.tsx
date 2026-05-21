@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'ELITE OS | Your Personal Command Center',
   description: 'Cyberpunk personal growth system. Track gym, nutrition, learning, habits, and dominate your goals.',
   keywords: ['personal growth', 'habit tracker', 'gym tracker', 'productivity'],
-  icons: { icon: '/favicon.ico' },
+  icons: { icon: '/logo.png', apple: '/logo.png' },
   manifest: '/manifest.json',
 }
 
