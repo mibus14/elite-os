@@ -74,6 +74,10 @@ router.post('/generate', authenticate, async (req, res, next) => {
     if (!Array.isArray(interests) || interests.length === 0)
       return res.status(400).json({ error: 'interests required' });
 
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(503).json({ error: 'IA no disponible. Configura GROQ_API_KEY en el servidor.' });
+    }
+
     const prompt = `Tengo estos intereses de aprendizaje: ${interests.join(', ')}.
 Genera exactamente 3 sugerencias concretas de cosas para aprender por cada interés.
 Cada sugerencia debe ser específica y accionable (no genérica).
@@ -81,30 +85,38 @@ Responde SOLO JSON válido, sin markdown:
 [{"tag":"interés","title":"sugerencia"},...]
 Genera ${interests.length * 3} objetos en total.`;
 
-    const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 600,
-        temperature: 0.6,
-        messages: [{ role: 'user', content: prompt }],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
+    let suggestions;
+    try {
+      const response = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 600,
+          temperature: 0.6,
+          messages: [{ role: 'user', content: prompt }],
         },
-        timeout: 12000,
-      }
-    );
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 12000,
+        }
+      );
 
-    const raw = response.data.choices[0].message.content
-      .trim()
-      .replace(/^```[a-z]*\n?/i, '')
-      .replace(/```$/, '')
-      .trim();
+      const raw = response.data.choices[0].message.content
+        .trim()
+        .replace(/^```[a-z]*\n?/i, '')
+        .replace(/```$/, '')
+        .trim();
 
-    const suggestions = JSON.parse(raw);
+      suggestions = JSON.parse(raw);
+    } catch (aiErr) {
+      console.error('[Learning] Groq AI error:', aiErr.message);
+      // Return 503 — never propagate external API status codes to avoid
+      // inadvertently triggering the frontend's 401 logout interceptor
+      return res.status(503).json({ error: 'Error al conectar con la IA. Inténtalo más tarde.' });
+    }
 
     const created = await prisma.learningItem.createMany({
       data: suggestions.map((s) => ({
@@ -121,7 +133,6 @@ Genera ${interests.length * 3} objetos en total.`;
 
     res.json({ items, generated: created.count });
   } catch (err) {
-    console.error('Generate error:', err.message);
     next(err);
   }
 });

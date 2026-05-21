@@ -20,6 +20,9 @@ api.interceptors.response.use(
     if (err.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('elite_token')
       localStorage.removeItem('elite_user')
+      localStorage.removeItem('elite-auth') // clear zustand persisted auth
+      // Also clear the cookie set by js-cookie in lib/auth.ts
+      document.cookie = 'elite_token=; Max-Age=0; path=/'
       window.location.href = '/login'
     }
     return Promise.reject(err)

@@ -300,7 +300,7 @@ export function Sidebar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm md:hidden cursor-pointer"
               onClick={() => setMobileSidebarOpen(false)}
             />
             {/* Drawer */}
@@ -310,7 +310,7 @@ export function Sidebar() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="fixed left-0 top-0 bottom-0 z-50 w-72 md:hidden"
+              className="fixed left-0 top-0 bottom-0 z-60 w-72 md:hidden"
             >
               <div className="h-full relative">
                 {/* Close button */}

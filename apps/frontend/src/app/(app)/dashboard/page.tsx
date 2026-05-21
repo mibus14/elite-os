@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { dashboardApi, rpgApi, dailyLogApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import type { DashboardStats, RPGCharacter } from '@/types';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
 import RadarChart from '@/components/dashboard/RadarChart';
@@ -199,15 +199,12 @@ function StatCard({ label, value, sub, icon, trend, trendValue, glowColor = '#DC
 
 /* ─── Water Tracker ─────────────────────────────────────────────────── */
 function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
-  const qc = useQueryClient()
   const [current, setCurrent] = useState(cups);
 
-  // Sync when parent data updates
   useEffect(() => { setCurrent(cups) }, [cups])
 
   const saveMutation = useMutation({
     mutationFn: (n: number) => dailyLogApi.save({ waterGlasses: n }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard-stats'] }),
   })
 
   const toggle = (i: number) => {
@@ -251,7 +248,6 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
 const SLEEP_PRESETS = [5, 6, 7, 7.5, 8, 8.5, 9];
 
 function SleepDisplay({ hours }: { hours: number }) {
-  const qc = useQueryClient()
   const [selected, setSelected] = useState(hours > 0 ? hours : null as number | null)
   const [saved, setSaved] = useState(hours > 0)
 
@@ -259,7 +255,7 @@ function SleepDisplay({ hours }: { hours: number }) {
 
   const saveMutation = useMutation({
     mutationFn: (h: number) => dailyLogApi.save({ sleepHours: h }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setSaved(true) },
+    onSuccess: () => setSaved(true),
   })
 
   const quality = !selected ? '' : selected >= 8 ? 'Excelente' : selected >= 7 ? 'Bueno' : selected >= 6 ? 'Regular' : 'Malo'

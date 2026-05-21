@@ -21,7 +21,7 @@ export function BottomNav() {
   const { toggleMobileSidebar } = useUIStore()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#0D0D0D]/95 backdrop-blur-md border-t border-[#1E1E1E]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#0D0D0D]/95 backdrop-blur-md border-t border-[#1E1E1E]" style={{ touchAction: 'manipulation' }}>
       <div className="flex items-center justify-around h-16 px-2 safe-area-inset-bottom">
         {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
