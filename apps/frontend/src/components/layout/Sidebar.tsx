@@ -229,7 +229,6 @@ function SidebarContent({
           return (
             <Link key={href} href={href} onClick={onNavClick}>
               <motion.div
-                whileHover={{ x: 2 }}
                 whileTap={{ scale: 0.97 }}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group',

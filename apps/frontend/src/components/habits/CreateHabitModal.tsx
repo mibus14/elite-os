@@ -69,7 +69,7 @@ export default function CreateHabitModal({ open, onClose }: CreateHabitModalProp
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-lg shadow-2xl">
+            <div className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-lg shadow-2xl max-h-[90dvh] overflow-y-auto">
               <div className="p-6 border-b border-[#1A1A1A] flex items-center justify-between">
                 <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
                   <Plus className="w-5 h-5 text-[#DC143C]" />

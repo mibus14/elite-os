@@ -158,7 +158,7 @@ function CreateHabitModal({ open, onClose, onCreate }: {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 w-full max-w-md"
+          className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-6 w-full max-w-md max-h-[90dvh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">

@@ -166,7 +166,7 @@ export default function QuickLogModal({ open, onClose, onXP }: QuickLogModalProp
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-5">
+            <div className="bg-[#111111] border border-[#1A1A1A] rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-5 max-h-[90dvh] overflow-y-auto">
 
               {/* Header */}
               <div className="flex items-center justify-between">
