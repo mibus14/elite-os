@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DollarSign, Plus, X, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
@@ -188,7 +188,7 @@ function AddTransactionModal({ open, onClose, onAdd }: {
 /* ─── Page ───────────────────────────────────────────────────────── */
 export default function FinancePage() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [localEntries, setLocalEntries] = useState<FinanceEntry[]>(mockEntries)
+  const [localEntries, setLocalEntries] = useState<FinanceEntry[]>([])
   const queryClient = useQueryClient()
 
   const { data: entriesData, isLoading } = useQuery({
@@ -197,8 +197,11 @@ export default function FinancePage() {
       const res = await financeApi.entries()
       return (res.data.entries ?? res.data) as FinanceEntry[]
     },
-    placeholderData: mockEntries,
   })
+
+  useEffect(() => {
+    if (entriesData) setLocalEntries(entriesData)
+  }, [entriesData])
 
   const createMutation = useMutation({
     mutationFn: (data: object) => financeApi.create(data),
@@ -210,7 +213,7 @@ export default function FinancePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['finance-entries'] }),
   })
 
-  const entries = localEntries.length > 0 ? localEntries : (entriesData ?? mockEntries)
+  const entries = localEntries
 
   const handleAdd = (data: object) => {
     setLocalEntries((prev) => [data as FinanceEntry, ...prev])

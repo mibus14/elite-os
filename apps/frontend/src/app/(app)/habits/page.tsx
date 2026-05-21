@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckSquare, Plus, Flame, Star, Zap, Calendar, X, Check } from 'lucide-react'
@@ -263,7 +263,7 @@ function CreateHabitModal({ open, onClose, onCreate }: {
 /* ─── Page ───────────────────────────────────────────────────────── */
 export default function HabitsPage() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [localHabits, setLocalHabits] = useState<Habit[]>(mockHabits)
+  const [localHabits, setLocalHabits] = useState<Habit[]>([])
   const [xpFloat, setXpFloat] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 })
   const queryClient = useQueryClient()
 
@@ -273,8 +273,12 @@ export default function HabitsPage() {
       const res = await habitsApi.list()
       return (res.data.habits ?? res.data) as Habit[]
     },
-    placeholderData: mockHabits,
   })
+
+  // Sync server habits into local state (keeps optimistic updates working)
+  useEffect(() => {
+    if (habits) setLocalHabits(habits)
+  }, [habits])
 
   const { data: character } = useQuery<RPGCharacter>({
     queryKey: ['rpg-character'],
@@ -303,10 +307,6 @@ export default function HabitsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['habits'] }),
   })
 
-  const habitList = (habits && habits.length > 0 ? habits : mockHabits).map((h) =>
-    localHabits.find((lh) => lh.id === h.id) ?? h
-  )
-
   const handleComplete = (id: string) => {
     setLocalHabits((prev) =>
       prev.map((h) => (h.id === id ? { ...h, completedToday: true, streak: h.streak + 1 } : h))
@@ -326,7 +326,7 @@ export default function HabitsPage() {
     createMutation.mutate(data)
   }
 
-  const displayHabits = localHabits.length > 0 ? localHabits : habitList
+  const displayHabits = localHabits
 
   const completedToday = displayHabits.filter((h) => h.completedToday).length
   const totalXpToday = displayHabits.filter((h) => h.completedToday).reduce((s, h) => s + h.xpReward, 0)
