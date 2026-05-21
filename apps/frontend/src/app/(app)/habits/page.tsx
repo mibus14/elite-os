@@ -25,16 +25,6 @@ interface Habit {
   lastCompleted?: string
 }
 
-/* ─── Mock Data ──────────────────────────────────────────────────── */
-const mockHabits: Habit[] = [
-  { id: '1', name: 'Morning Workout', icon: '💪', color: '#DC143C', streak: 14, completedToday: true, xpReward: 20, totalCompletions: 42, lastCompleted: '2026-05-20' },
-  { id: '2', name: 'Read 30 min', icon: '📚', color: '#3B82F6', streak: 7, completedToday: false, xpReward: 10, totalCompletions: 28, lastCompleted: '2026-05-19' },
-  { id: '3', name: 'Cold Shower', icon: '🚿', color: '#06B6D4', streak: 21, completedToday: true, xpReward: 15, totalCompletions: 63, lastCompleted: '2026-05-20' },
-  { id: '4', name: 'Meditate', icon: '🧘', color: '#8B5CF6', streak: 5, completedToday: false, xpReward: 10, totalCompletions: 18, lastCompleted: '2026-05-19' },
-  { id: '5', name: 'No Sugar', icon: '🚫', color: '#F59E0B', streak: 3, completedToday: false, xpReward: 10, totalCompletions: 11, lastCompleted: '2026-05-19' },
-  { id: '6', name: '10k Steps', icon: '🦶', color: '#22C55E', streak: 10, completedToday: true, xpReward: 15, totalCompletions: 35, lastCompleted: '2026-05-20' },
-]
-
 const EMOJI_OPTIONS = ['💪', '📚', '🚿', '🧘', '🚫', '🦶', '💤', '🥗', '🧠', '🎯', '💧', '🏃', '✍️', '🎨', '🎸', '🌅', '🧹', '💊', '🚴', '🤸']
 const COLOR_OPTIONS = ['#DC143C', '#3B82F6', '#06B6D4', '#8B5CF6', '#F59E0B', '#22C55E', '#EC4899', '#F97316', '#14B8A6', '#6366F1']
 

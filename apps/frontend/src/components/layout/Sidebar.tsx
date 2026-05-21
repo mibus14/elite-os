@@ -62,7 +62,7 @@ const COMBO_MODULES = [
 
 function DailyComboTracker({ collapsed }: { collapsed: boolean }) {
   const { data } = useQuery({
-    queryKey: ['rpg-combo-sidebar'],
+    queryKey: ['rpg-combo'],
     queryFn: () => rpgApi.combo().then(r => r.data.combo as DailyCombo),
     staleTime: 60_000,
     retry: false,
@@ -144,7 +144,7 @@ function SidebarContent({
   const xpPct          = Math.min(100, (xpInLevel / xpNeeded) * 100)
 
   const { data: seasonData } = useQuery({
-    queryKey: ['seasons-current-sidebar'],
+    queryKey: ['seasons-current'],
     queryFn: () => seasonsApi.current().then(r => r.data),
     staleTime: 300_000,
     retry: false,
