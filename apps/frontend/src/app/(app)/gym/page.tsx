@@ -126,7 +126,7 @@ function WeekCalendar({ sessions }: { sessions: GymSession[] }) {
   const sessionDates = new Set(sessions.map((s) => s.date.split('T')[0]));
 
   return (
-    <div className="grid grid-cols-7 gap-2 mb-6">
+    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
       {days.map((day, i) => {
         const dateStr = day.toISOString().split('T')[0];
         const hasSession = sessionDates.has(dateStr);

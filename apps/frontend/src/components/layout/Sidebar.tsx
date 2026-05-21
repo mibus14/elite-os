@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Dumbbell, Apple, Activity, BookOpen,
   Target, CheckSquare, TrendingUp, Trophy, MessageCircle,
-  Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword,
+  Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword, X,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
@@ -84,9 +84,7 @@ function DailyComboTracker({ collapsed }: { collapsed: boolean }) {
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Combo diario</span>
         {done >= 3 && (
-          <span className="text-[10px] font-bold text-orange-400">
-            x{multiplier.toFixed(1)} XP 🔥
-          </span>
+          <span className="text-[10px] font-bold text-orange-400">x{multiplier.toFixed(1)} XP 🔥</span>
         )}
       </div>
       <div className="flex gap-1.5">
@@ -125,10 +123,16 @@ function DailyComboTracker({ collapsed }: { collapsed: boolean }) {
   )
 }
 
-export function Sidebar() {
+function SidebarContent({
+  collapsed,
+  onNavClick,
+}: {
+  collapsed: boolean
+  onNavClick?: () => void
+}) {
   const pathname = usePathname()
   const { user } = useAuthStore()
-  const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const { toggleSidebar } = useUIStore()
 
   const currentLevelXp = getXpForCurrentLevel(user?.level ?? 1)
   const nextLevelXp    = getXpForNextLevel(user?.level ?? 1)
@@ -137,22 +141,15 @@ export function Sidebar() {
   const xpPct          = Math.min(100, (xpInLevel / xpNeeded) * 100)
 
   return (
-    <motion.aside
-      animate={{ width: sidebarCollapsed ? 64 : 240 }}
-      transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-      className="relative flex flex-col h-full bg-[#0D0D0D] border-r border-[#1E1E1E] overflow-hidden flex-shrink-0"
-    >
+    <div className="flex flex-col h-full bg-[#0D0D0D] border-r border-[#1E1E1E] overflow-hidden">
       {/* Logo */}
       <div className="flex items-center h-16 px-4 border-b border-[#1E1E1E] flex-shrink-0">
-        <motion.div
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-3 overflow-hidden"
-        >
+        <div className="flex items-center gap-3 overflow-hidden">
           <div className="w-8 h-8 rounded-lg bg-elite-600 flex items-center justify-center flex-shrink-0 shadow-glow-red">
             <span className="text-white font-bold text-sm font-heading">E</span>
           </div>
           <AnimatePresence>
-            {!sidebarCollapsed && (
+            {!collapsed && (
               <motion.span
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -163,12 +160,12 @@ export function Sidebar() {
               </motion.span>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
       </div>
 
       {/* User profile */}
       <AnimatePresence>
-        {!sidebarCollapsed && user && (
+        {!collapsed && user && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -204,14 +201,14 @@ export function Sidebar() {
       </AnimatePresence>
 
       {/* Daily Combo Tracker */}
-      <DailyComboTracker collapsed={sidebarCollapsed} />
+      <DailyComboTracker collapsed={collapsed} />
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
-            <Link key={href} href={href}>
+            <Link key={href} href={href} onClick={onNavClick}>
               <motion.div
                 whileHover={{ x: 2 }}
                 whileTap={{ scale: 0.97 }}
@@ -230,7 +227,7 @@ export function Sidebar() {
                   )}
                 />
                 <AnimatePresence>
-                  {!sidebarCollapsed && (
+                  {!collapsed && (
                     <motion.span
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -241,7 +238,7 @@ export function Sidebar() {
                     </motion.span>
                   )}
                 </AnimatePresence>
-                {active && !sidebarCollapsed && (
+                {active && !collapsed && (
                   <motion.div
                     layoutId="nav-active"
                     className="ml-auto w-1.5 h-1.5 rounded-full bg-elite-600"
@@ -255,16 +252,16 @@ export function Sidebar() {
 
       {/* Character panel */}
       <div className="pb-2 border-t border-[#1E1E1E] pt-3 flex-shrink-0">
-        <CharacterPanel collapsed={sidebarCollapsed} />
+        <CharacterPanel collapsed={collapsed} />
       </div>
 
-      {/* Collapse toggle */}
-      <div className="p-3 border-t border-[#1E1E1E] flex-shrink-0">
+      {/* Collapse toggle (desktop only) */}
+      <div className="p-3 border-t border-[#1E1E1E] flex-shrink-0 hidden md:block">
         <button
           onClick={toggleSidebar}
           className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
         >
-          {sidebarCollapsed ? <ChevronRight size={16} /> : (
+          {collapsed ? <ChevronRight size={16} /> : (
             <>
               <ChevronLeft size={16} />
               <span className="text-xs">Contraer</span>
@@ -272,6 +269,64 @@ export function Sidebar() {
           )}
         </button>
       </div>
-    </motion.aside>
+    </div>
+  )
+}
+
+export function Sidebar() {
+  const { sidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen } = useUIStore()
+
+  return (
+    <>
+      {/* ── Desktop sidebar ── */}
+      <motion.aside
+        animate={{ width: sidebarCollapsed ? 64 : 240 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        className="relative hidden md:flex flex-col h-full flex-shrink-0"
+      >
+        <SidebarContent collapsed={sidebarCollapsed} />
+      </motion.aside>
+
+      {/* ── Mobile drawer ── */}
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            {/* Drawer */}
+            <motion.div
+              key="drawer"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              className="fixed left-0 top-0 bottom-0 z-50 w-72 md:hidden"
+            >
+              <div className="h-full relative">
+                {/* Close button */}
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="absolute top-4 right-4 z-10 p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <X size={18} />
+                </button>
+                <SidebarContent
+                  collapsed={false}
+                  onNavClick={() => setMobileSidebarOpen(false)}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

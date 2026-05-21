@@ -63,6 +63,7 @@ export default function ChatPage() {
   const queryClient = useQueryClient()
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [inputValue, setInputValue] = useState('')
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([])
@@ -103,10 +104,10 @@ export default function ChatPage() {
     },
   })
 
-  // Auto-select first user once loaded
+  // Auto-select first user on desktop once loaded
   useEffect(() => {
     if (usersData && usersData.length > 0 && !selectedUserId) {
-      setSelectedUserId(usersData[0].id)
+      if (window.innerWidth >= 768) setSelectedUserId(usersData[0].id)
     }
   }, [usersData, selectedUserId])
 
@@ -184,147 +185,138 @@ export default function ChatPage() {
     }
   }
 
-  return (
-    <div className="flex h-[calc(100vh-120px)] gap-0 overflow-hidden rounded-2xl border border-[#1E1E1E]">
-      {/* LEFT: User list */}
-      <div className="w-64 flex-shrink-0 bg-[#111111] border-r border-[#1E1E1E] flex flex-col">
-        <div className="p-4 border-b border-[#1E1E1E]">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-[#DC143C]" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">Mensajes</h2>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {usersLoading && (
-            <div className="p-4 text-center text-xs text-gray-600">Cargando operadores...</div>
-          )}
-
-          {!usersLoading && users.length === 0 && (
-            <div className="p-6 text-center">
-              <Users className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-              <p className="text-xs text-gray-600">
-                No hay otros operadores registrados todavía.
-              </p>
-            </div>
-          )}
-
-          {users.map((user, idx) => (
-            <motion.button
-              key={user.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.07 }}
-              onClick={() => setSelectedUserId(user.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 transition-all text-left border-l-2 ${
-                selectedUserId === user.id
-                  ? 'bg-[#DC143C]/10 border-l-[#DC143C]'
-                  : 'border-l-transparent hover:bg-white/5'
-              }`}
-            >
-              <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1E1E1E] border border-white/10">
-                  <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
-                </div>
-                <div
-                  className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#111111] ${
-                    user.online ? 'bg-emerald-400' : 'bg-gray-600'
-                  }`}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-semibold text-white block truncate">{user.username}</span>
-                {user.rank && (
-                  <span className="text-[10px] text-gray-500">Lv.{user.level} · {user.rank}</span>
-                )}
-              </div>
-            </motion.button>
-          ))}
-        </div>
+  /* ── User list panel ── */
+  const UserListPanel = (
+    <div className="flex flex-col h-full bg-[#111111] border-r border-[#1E1E1E]">
+      <div className="p-4 border-b border-[#1E1E1E] flex items-center gap-2">
+        <MessageCircle className="w-5 h-5 text-[#DC143C]" />
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex-1">Mensajes</h2>
       </div>
-
-      {/* RIGHT: Chat area */}
-      <div className="flex-1 bg-[#0A0A0A] flex flex-col">
-        {selectedUser ? (
-          <>
-            {/* Top bar */}
-            <div className="px-5 py-4 border-b border-[#1E1E1E] bg-[#111111] flex items-center gap-3">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-full overflow-hidden bg-[#1E1E1E]">
-                  <img src={selectedUser.avatar} alt={selectedUser.username} className="w-full h-full object-cover" />
-                </div>
-                <div
-                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#111111] ${
-                    selectedUser.online ? 'bg-emerald-400' : 'bg-gray-600'
-                  }`}
-                />
-              </div>
-              <div>
-                <p className="text-white font-semibold text-sm">{selectedUser.username}</p>
-                <div className="flex items-center gap-1.5">
-                  <Circle className={`w-2 h-2 fill-current ${selectedUser.online ? 'text-emerald-400' : 'text-gray-600'}`} />
-                  <span className={`text-xs ${selectedUser.online ? 'text-emerald-400' : 'text-gray-600'}`}>
-                    {selectedUser.online ? 'En línea' : 'Desconectado'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
-              {currentMessages.length === 0 && (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-xs text-gray-700">
-                    Empieza la conversación con {selectedUser.username} 👊
-                  </p>
-                </div>
-              )}
-              <AnimatePresence initial={false}>
-                {currentMessages.map((msg) => {
-                  const isSelf = msg.senderId === currentUser?.id
-                  return <MessageBubble key={msg.id} msg={msg} isSelf={isSelf} />
-                })}
-              </AnimatePresence>
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input */}
-            <div className="p-4 border-t border-[#1E1E1E] bg-[#111111]">
-              <div className="flex gap-3 items-center">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={`Escribe a ${selectedUser.username}…`}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] transition-colors"
-                />
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSend}
-                  disabled={!inputValue.trim()}
-                  className="w-10 h-10 rounded-xl bg-[#DC143C] hover:bg-[#C01230] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 transition-colors shadow-[0_0_12px_rgba(220,20,60,0.3)]"
-                >
-                  <Send className="w-4 h-4 text-white" />
-                </motion.button>
-              </div>
-              <p className="text-[10px] text-gray-700 mt-1.5 ml-1">Enter para enviar</p>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-600">
-            <div className="text-center">
-              <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">
-                {users.length === 0
-                  ? 'Esperando que otros operadores se registren...'
-                  : 'Selecciona una conversación'}
-              </p>
-            </div>
+      <div className="flex-1 overflow-y-auto">
+        {usersLoading && (
+          <div className="p-4 text-center text-xs text-gray-600">Cargando operadores...</div>
+        )}
+        {!usersLoading && users.length === 0 && (
+          <div className="p-6 text-center">
+            <Users className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+            <p className="text-xs text-gray-600">No hay otros operadores registrados todavía.</p>
           </div>
         )}
+        {users.map((user, idx) => (
+          <motion.button
+            key={user.id}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.07 }}
+            onClick={() => { setSelectedUserId(user.id); setMobileView('chat') }}
+            className={`w-full flex items-center gap-3 px-4 py-3.5 transition-all text-left border-l-2 ${
+              selectedUserId === user.id
+                ? 'bg-[#DC143C]/10 border-l-[#DC143C]'
+                : 'border-l-transparent hover:bg-white/5'
+            }`}
+          >
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1E1E1E] border border-white/10">
+                <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+              </div>
+              <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#111111] ${user.online ? 'bg-emerald-400' : 'bg-gray-600'}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold text-white block truncate">{user.username}</span>
+              {user.rank && <span className="text-[10px] text-gray-500">Lv.{user.level} · {user.rank}</span>}
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  )
+
+  /* ── Chat panel ── */
+  const ChatPanel = (
+    <div className="flex-1 bg-[#0A0A0A] flex flex-col min-w-0">
+      {selectedUser ? (
+        <>
+          <div className="px-4 py-3 border-b border-[#1E1E1E] bg-[#111111] flex items-center gap-3">
+            {/* Back button (mobile only) */}
+            <button
+              onClick={() => setMobileView('list')}
+              className="md:hidden p-1 rounded-lg text-gray-400 hover:text-white transition-colors mr-1"
+            >
+              ←
+            </button>
+            <div className="relative">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-[#1E1E1E]">
+                <img src={selectedUser.avatar} alt={selectedUser.username} className="w-full h-full object-cover" />
+              </div>
+              <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#111111] ${selectedUser.online ? 'bg-emerald-400' : 'bg-gray-600'}`} />
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm">{selectedUser.username}</p>
+              <div className="flex items-center gap-1.5">
+                <Circle className={`w-2 h-2 fill-current ${selectedUser.online ? 'text-emerald-400' : 'text-gray-600'}`} />
+                <span className={`text-xs ${selectedUser.online ? 'text-emerald-400' : 'text-gray-600'}`}>
+                  {selectedUser.online ? 'En línea' : 'Desconectado'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            {currentMessages.length === 0 && (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-xs text-gray-700">Empieza la conversación con {selectedUser.username} 👊</p>
+              </div>
+            )}
+            <AnimatePresence initial={false}>
+              {currentMessages.map((msg) => (
+                <MessageBubble key={msg.id} msg={msg} isSelf={msg.senderId === currentUser?.id} />
+              ))}
+            </AnimatePresence>
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="p-3 border-t border-[#1E1E1E] bg-[#111111]">
+            <div className="flex gap-2 items-center">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`Escribe a ${selectedUser.username}…`}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#DC143C] transition-colors"
+              />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSend}
+                disabled={!inputValue.trim()}
+                className="w-10 h-10 rounded-xl bg-[#DC143C] disabled:opacity-40 flex items-center justify-center flex-shrink-0 transition-colors"
+              >
+                <Send className="w-4 h-4 text-white" />
+              </motion.button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-gray-600">
+          <div className="text-center">
+            <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">{users.length === 0 ? 'Esperando que otros operadores se registren...' : 'Selecciona una conversación'}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="flex h-[calc(100svh-130px)] md:h-[calc(100vh-120px)] overflow-hidden rounded-2xl border border-[#1E1E1E]">
+      {/* Desktop: side-by-side | Mobile: toggle between list/chat */}
+      <div className={`w-64 flex-shrink-0 md:flex ${mobileView === 'list' ? 'flex w-full md:w-64' : 'hidden md:flex'}`}>
+        {UserListPanel}
+      </div>
+      <div className={`flex-1 md:flex ${mobileView === 'chat' ? 'flex' : 'hidden md:flex'}`}>
+        {ChatPanel}
       </div>
     </div>
   )

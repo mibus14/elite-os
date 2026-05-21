@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
+import { BottomNav } from '@/components/layout/BottomNav'
 import DebuffBar from '@/components/rpg/DebuffBar'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -86,7 +87,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AnimatePresence mode="wait">
             <motion.div
               key="content"
-              className="p-6 min-h-full"
+              className="p-3 md:p-6 pb-20 md:pb-6 min-h-full"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
@@ -97,6 +98,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <BottomNav />
     </div>
   )
 }

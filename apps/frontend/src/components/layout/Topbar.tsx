@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, LogOut, User, Settings, ChevronDown, Zap } from 'lucide-react'
+import { Bell, LogOut, User, Settings, ChevronDown, Zap, Menu } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -21,7 +21,7 @@ interface DerivedNotif {
 
 export function Topbar({ title }: { title?: string }) {
   const { user, logout } = useAuthStore()
-  const { notifications: storeNotifs } = useUIStore()
+  const { notifications: storeNotifs, toggleMobileSidebar } = useUIStore()
   const router = useRouter()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -100,11 +100,19 @@ export function Topbar({ title }: { title?: string }) {
   }
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 border-b border-[#1E1E1E] bg-[#0D0D0D]/80 backdrop-blur-md flex-shrink-0">
-      {/* Title */}
-      <div>
-        <h1 className="text-lg font-bold font-heading text-white">{title}</h1>
-        <p className="text-xs text-gray-500">{dateStr}</p>
+    <header className="h-14 md:h-16 flex items-center justify-between px-3 md:px-6 border-b border-[#1E1E1E] bg-[#0D0D0D]/80 backdrop-blur-md flex-shrink-0">
+      {/* Left: hamburger (mobile) + title */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={toggleMobileSidebar}
+          className="md:hidden p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <Menu size={20} />
+        </button>
+        <div>
+          <h1 className="text-base md:text-lg font-bold font-heading text-white leading-tight">{title}</h1>
+          <p className="text-xs text-gray-500 hidden sm:block">{dateStr}</p>
+        </div>
       </div>
 
       {/* Right side */}

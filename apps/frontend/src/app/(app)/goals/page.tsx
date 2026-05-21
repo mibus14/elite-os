@@ -283,7 +283,7 @@ function CreateGoalModal({ open, onClose, onCreate }: {
             {/* Categoría */}
             <div>
               <label className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5 block">Categoría</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {(Object.entries(CAT) as [keyof typeof CAT, typeof CAT[keyof typeof CAT]][]).map(([key, c]) => {
                   const Ic = c.icon;
                   return (

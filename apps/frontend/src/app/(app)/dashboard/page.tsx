@@ -316,13 +316,13 @@ function QuickActions() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-36 rounded-2xl bg-white/5" />
+          <div key={i} className="h-28 md:h-36 rounded-2xl bg-white/5" />
         ))}
       </div>
       <div className="h-48 rounded-2xl bg-white/5" />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="h-80 rounded-2xl bg-white/5" />
         <div className="h-80 rounded-2xl bg-white/5" />
       </div>

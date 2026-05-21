@@ -11,11 +11,14 @@ interface Notification {
 
 interface UIState {
   sidebarCollapsed: boolean
+  mobileSidebarOpen: boolean
   activeModule: string
   notifications: Notification[]
   onlineUsers: string[]
   toggleSidebar: () => void
   setSidebarCollapsed: (val: boolean) => void
+  toggleMobileSidebar: () => void
+  setMobileSidebarOpen: (val: boolean) => void
   setActiveModule: (module: string) => void
   addNotification: (n: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void
   markNotificationRead: (id: string) => void
@@ -25,12 +28,15 @@ interface UIState {
 
 export const useUIStore = create<UIState>((set) => ({
   sidebarCollapsed: false,
+  mobileSidebarOpen: false,
   activeModule: 'dashboard',
   notifications: [],
   onlineUsers: [],
 
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarCollapsed: (val) => set({ sidebarCollapsed: val }),
+  toggleMobileSidebar: () => set((s) => ({ mobileSidebarOpen: !s.mobileSidebarOpen })),
+  setMobileSidebarOpen: (val) => set({ mobileSidebarOpen: val }),
   setActiveModule: (module) => set({ activeModule: module }),
 
   addNotification: (n) =>
