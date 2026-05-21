@@ -2,18 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Mail, Lock, ArrowRight, Zap } from 'lucide-react'
+import { Mail, Lock, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-
-const PREVIEW_USERS = [
-  { name: 'Diego',      seed: 'diego',      style: 'adventurer' },
-  { name: 'Pedro',      seed: 'pedro',      style: 'adventurer' },
-  { name: 'Cristopher', seed: 'cristopher', style: 'adventurer' },
-]
 
 const containerVariants = {
   hidden: {},
@@ -66,41 +59,6 @@ export default function LoginPage() {
         <div className="flex items-center justify-center gap-2 mt-3">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <span className="text-xs text-dark-100">System Online</span>
-        </div>
-      </motion.div>
-
-      {/* Preview users */}
-      <motion.div variants={itemVariants} className="mb-6">
-        <p className="text-center text-xs text-dark-50 uppercase tracking-wider mb-3">Active Operators</p>
-        <div className="flex justify-center gap-4">
-          {PREVIEW_USERS.map((user, i) => (
-            <motion.div
-              key={user.name}
-              className="flex flex-col items-center gap-1 cursor-pointer group"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 + i * 0.08 }}
-              onClick={() => setEmail(`${user.seed}@eliteos.app`)}
-            >
-              <div
-                className="w-12 h-12 rounded-full border-2 border-transparent group-hover:border-elite-600 transition-all duration-200 overflow-hidden"
-                style={{ boxShadow: '0 0 0 1px rgba(220,20,60,0.1)' }}
-              >
-                <Image
-                  src={`https://api.dicebear.com/8.x/${user.style}/svg?seed=${user.seed}`}
-                  alt={user.name}
-                  width={48}
-                  height={48}
-                  className="w-full h-full object-cover bg-[#1A1A1A]"
-                />
-              </div>
-              <span className="text-xs text-dark-100 group-hover:text-white transition-colors">
-                {user.name}
-              </span>
-            </motion.div>
-          ))}
         </div>
       </motion.div>
 
@@ -163,20 +121,6 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-dark-400" />
-          <span className="text-xs text-dark-50">OR</span>
-          <div className="flex-1 h-px bg-dark-400" />
-        </div>
-
-        {/* Quick access info */}
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-elite-600/5 border border-elite-600/15">
-          <Zap size={14} className="text-elite-gold mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-dark-100">
-            Click any operator avatar above to pre-fill their email and access quickly.
-          </p>
-        </div>
       </motion.div>
 
       {/* Register link */}

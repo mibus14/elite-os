@@ -31,35 +31,35 @@ interface CharClass {
 
 const CLASSES: CharClass[] = [
   {
-    id:      'Guerrero',
+    id:      'Warrior',
     emoji:   '⚔️',
     name:    'Guerrero',
     tagline: 'Forja tu cuerpo en hierro',
     bonuses: ['Gimnasio +50%', 'Cardio +30%'],
   },
   {
-    id:      'Monje',
+    id:      'Monk',
     emoji:   '🧘',
     name:    'Monje',
     tagline: 'La disciplina es el poder',
     bonuses: ['Hábitos +50%', 'Nutrición +20%'],
   },
   {
-    id:      'Sabio',
+    id:      'Sage',
     emoji:   '📚',
     name:    'Sabio',
     tagline: 'El conocimiento es tu arma',
     bonuses: ['Aprendizaje +50%', 'Finanzas +30%'],
   },
   {
-    id:      'Asesino',
+    id:      'Assassin',
     emoji:   '🗡️',
     name:    'Asesino',
     tagline: 'Todo o nada — sin excusas',
     bonuses: ['Todos los módulos +20%', 'x2 si completas todo'],
   },
   {
-    id:      'Mercader',
+    id:      'Merchant',
     emoji:   '💰',
     name:    'Mercader',
     tagline: 'Domina el juego del dinero',
@@ -158,7 +158,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [selectedAvatar,  setSelectedAvatar]  = useState(0)
   const [selectedSeed,    setSelectedSeed]    = useState(SEEDS[0])
-  const [selectedClass,   setSelectedClass]   = useState<string>('Guerrero')
+  const [selectedClass,   setSelectedClass]   = useState<string>('Warrior')
   const [step,            setStep]            = useState<1 | 2>(1)
 
   const { register, isLoading, error } = useAuth()
