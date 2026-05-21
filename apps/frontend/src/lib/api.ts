@@ -105,6 +105,7 @@ export const learningApi = {
   toggleItem:      (id: string) => api.patch(`/learning/items/${id}`, {}),
   generate:        (interests: string[]) => api.post('/learning/generate', { interests }),
   addItems:        (items: { tag: string; title: string }[]) => api.post('/learning/items/bulk', { items }),
+  deleteItem:      (id: string) => api.delete(`/learning/items/${id}`),
 }
 
 // ─── Finance ─────────────────────────────────────────────────────

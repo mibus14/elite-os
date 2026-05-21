@@ -219,7 +219,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
       caloriesGoal:     2200,
       sessionsThisWeek: gymThisWeek + cardioThisWeek,
       avgSleep:         parseFloat(avgSleep.toFixed(1)),
-      sleepHours:       parseFloat(avgSleep.toFixed(1)),
+      sleepHours:       dailyLogToday?.sleepHours ?? 0,
       activityHeatmap:  weeklyHeatmap,
       radarData,
       topGoals:         topGoals.map((g) => ({

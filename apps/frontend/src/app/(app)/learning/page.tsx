@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Plus, X, Loader2, Sparkles, Check, RefreshCw } from 'lucide-react'
+import { BookOpen, Plus, X, Loader2, Sparkles, Check, RefreshCw, Trash2 } from 'lucide-react'
 import { learningApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -40,6 +40,18 @@ export default function LearningPage() {
   const removeInterestMutation = useMutation({
     mutationFn: (id: string) => learningApi.removeInterest(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['learning-interests'] }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => learningApi.deleteItem(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['learning-items'] })
+      const prev = qc.getQueryData<Item[]>(['learning-items'])
+      qc.setQueryData(['learning-items'], (old: Item[] = []) => old.filter((i) => i.id !== id))
+      return { prev }
+    },
+    onError: (_err, _id, ctx) => qc.setQueryData(['learning-items'], ctx?.prev),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['learning-items'] }),
   })
 
   const toggleMutation = useMutation({
@@ -275,21 +287,32 @@ export default function LearningPage() {
                 Por aprender ({pending.length})
               </p>
               {pending.map((item, idx) => (
-                <motion.button
+                <motion.div
                   key={item.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => toggleMutation.mutate(item.id)}
-                  className="w-full flex items-center gap-3 bg-[#111111] border border-[#1A1A1A] rounded-xl px-4 py-3.5 text-left hover:border-white/10 transition-all group"
+                  className="flex items-center gap-2 group"
                 >
-                  <div className="w-5 h-5 rounded-full border border-white/20 flex-shrink-0 group-hover:border-white/40 transition-colors" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm text-gray-200">{item.title}</span>
-                    <span className="ml-2 text-[10px] text-gray-600 bg-white/5 rounded-full px-2 py-0.5">{item.tag}</span>
-                  </div>
-                </motion.button>
+                  <button
+                    onClick={() => toggleMutation.mutate(item.id)}
+                    className="flex-1 flex items-center gap-3 bg-[#111111] border border-[#1A1A1A] rounded-xl px-4 py-3.5 text-left hover:border-white/10 transition-all"
+                  >
+                    <div className="w-5 h-5 rounded-full border border-white/20 flex-shrink-0 group-hover:border-white/40 transition-colors" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-gray-200">{item.title}</span>
+                      <span className="ml-2 text-[10px] text-gray-600 bg-white/5 rounded-full px-2 py-0.5">{item.tag}</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => deleteMutation.mutate(item.id)}
+                    disabled={deleteMutation.isPending}
+                    title="Eliminar"
+                    className="w-9 h-9 rounded-xl border border-white/5 bg-white/[0.03] text-gray-600 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-40"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </motion.div>
               ))}
             </div>
           )}

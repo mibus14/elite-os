@@ -88,21 +88,40 @@ module.exports.endCurrentSeason = endCurrentSeason;
 // ─── GET /api/seasons/current ────────────────────────────────────────────────
 router.get('/current', authenticate, async (req, res, next) => {
   try {
-    const season = await ensureActiveSeason(prisma);
+    let season;
+    try {
+      season = await ensureActiveSeason(prisma);
+    } catch (dbErr) {
+      // Tabla seasons no existe en DB (falta migración) → devolver temporada sintética
+      console.error('[SEASON] DB error, returning synthetic season:', dbErr.message);
+      const start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
+      const end = new Date(start); end.setDate(end.getDate() + 60);
+      const myRank = req.user.rank || 'Bronze';
+      return res.json({
+        season: { number: 1, startDate: start, endDate: end, totalDays: 60, daysElapsed: 0, daysLeft: 60, progressPct: 0 },
+        myPosition: 1,
+        myRank,
+        nextBonus: RANK_BONUS[myRank] || RANK_BONUS.Bronze,
+        leaderboard: [],
+      });
+    }
+
     const now = new Date();
-    const totalDays = Math.round((new Date(season.endDate) - new Date(season.startDate)) / 86400000);
+    const totalDays = Math.max(1, Math.round((new Date(season.endDate) - new Date(season.startDate)) / 86400000));
     const daysElapsed = Math.max(0, Math.round((now - new Date(season.startDate)) / 86400000));
     const daysLeft = Math.max(0, Math.round((new Date(season.endDate) - now) / 86400000));
 
     // User rank in this season (by current XP)
-    const allUsers = await prisma.user.findMany({
-      select: { id: true, username: true, xp: true, rank: true, class: true, avatar: true, level: true },
-      orderBy: { xp: 'desc' },
-    });
-    const position = allUsers.findIndex(u => u.id === req.user.id) + 1;
+    let allUsers = [];
+    try {
+      allUsers = await prisma.user.findMany({
+        select: { id: true, username: true, xp: true, rank: true, class: true, avatar: true, level: true },
+        orderBy: { xp: 'desc' },
+      });
+    } catch (_) { /* users table fine, ignore */ }
 
-    // User's bonus for next season (preview)
-    const myRank = req.user.rank;
+    const position = Math.max(1, allUsers.findIndex(u => u.id === req.user.id) + 1);
+    const myRank = req.user.rank || 'Bronze';
     const nextBonus = RANK_BONUS[myRank] || RANK_BONUS.Bronze;
 
     res.json({

@@ -51,6 +51,18 @@ router.get('/items', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/* ─── DELETE /api/learning/items/:id ────────────────────────────── */
+router.delete('/items/:id', authenticate, async (req, res, next) => {
+  try {
+    const item = await prisma.learningItem.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    await prisma.learningItem.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { next(err); }
+});
+
 /* ─── PATCH /api/learning/items/:id ─────────────────────────────── */
 router.patch('/items/:id', authenticate, async (req, res, next) => {
   try {
