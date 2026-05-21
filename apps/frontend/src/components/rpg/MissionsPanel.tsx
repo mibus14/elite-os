@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Circle, ClipboardList } from 'lucide-react'
-import { rpgApi } from '@/lib/rpgApi'
+import { rpgApi } from '@/lib/api'
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Mission {
