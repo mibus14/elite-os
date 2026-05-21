@@ -217,7 +217,7 @@ export default function ChatPage() {
           >
             <div className="relative flex-shrink-0">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1E1E1E] border border-white/10">
-                <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                <img src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
               </div>
               <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#111111] ${user.online ? 'bg-emerald-400' : 'bg-gray-600'}`} />
             </div>
@@ -246,7 +246,7 @@ export default function ChatPage() {
             </button>
             <div className="relative">
               <div className="w-9 h-9 rounded-full overflow-hidden bg-[#1E1E1E]">
-                <img src={selectedUser.avatar} alt={selectedUser.username} className="w-full h-full object-cover" />
+                <img src={selectedUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.username}`} alt={selectedUser.username} className="w-full h-full object-cover" />
               </div>
               <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#111111] ${selectedUser.online ? 'bg-emerald-400' : 'bg-gray-600'}`} />
             </div>
