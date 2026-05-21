@@ -74,10 +74,6 @@ router.post('/generate', authenticate, async (req, res, next) => {
     if (!Array.isArray(interests) || interests.length === 0)
       return res.status(400).json({ error: 'interests required' });
 
-    if (!process.env.GROQ_API_KEY) {
-      return res.status(503).json({ error: 'IA no disponible. Configura GROQ_API_KEY en el servidor.' });
-    }
-
     const prompt = `Tengo estos intereses de aprendizaje: ${interests.join(', ')}.
 Genera exactamente 3 sugerencias concretas de cosas para aprender por cada interés.
 Cada sugerencia debe ser específica y accionable (no genérica).
@@ -87,35 +83,47 @@ Genera ${interests.length * 3} objetos en total.`;
 
     let suggestions;
     try {
+      if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY not set');
       const response = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
         {
           model: 'llama-3.3-70b-versatile',
-          max_tokens: 600,
-          temperature: 0.6,
-          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 800,
+          temperature: 0.5,
+          messages: [
+            {
+              role: 'system',
+              content: 'Eres un asistente que responde ÚNICAMENTE con JSON válido. Nunca agregues markdown, explicaciones ni texto fuera del JSON.',
+            },
+            { role: 'user', content: prompt },
+          ],
         },
         {
           headers: {
             Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
             'Content-Type': 'application/json',
           },
-          timeout: 12000,
+          timeout: 15000,
         }
       );
 
-      const raw = response.data.choices[0].message.content
-        .trim()
-        .replace(/^```[a-z]*\n?/i, '')
-        .replace(/```$/, '')
-        .trim();
+      const content = response.data.choices[0].message.content.trim();
 
-      suggestions = JSON.parse(raw);
+      // Extract JSON array robustly — find the first [...] block in the response
+      const match = content.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('No JSON array in response: ' + content.slice(0, 100));
+      suggestions = JSON.parse(match[0]);
+
+      if (!Array.isArray(suggestions) || suggestions.length === 0)
+        throw new Error('Empty suggestions array');
     } catch (aiErr) {
       console.error('[Learning] Groq AI error:', aiErr.message);
-      // Return 503 — never propagate external API status codes to avoid
-      // inadvertently triggering the frontend's 401 logout interceptor
-      return res.status(503).json({ error: 'Error al conectar con la IA. Inténtalo más tarde.' });
+      // Fallback: generate static suggestions so the user always gets something
+      suggestions = interests.flatMap((interest) => [
+        { tag: interest, title: `Fundamentos esenciales de ${interest}` },
+        { tag: interest, title: `Proyecto práctico: aplica ${interest} desde cero` },
+        { tag: interest, title: `${interest} avanzado: mejores prácticas y casos reales` },
+      ]);
     }
 
     const created = await prisma.learningItem.createMany({
