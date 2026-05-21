@@ -8,11 +8,13 @@ import {
   Target, CheckSquare, TrendingUp, Trophy, MessageCircle,
   Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
 import { Progress } from '@/components/ui/Progress'
 import { CharacterPanel } from '@/components/rpg/CharacterPanel'
+import { rpgApi } from '@/lib/api'
 
 const navItems = [
   { href: '/dashboard',   label: 'Cuartel',         icon: LayoutDashboard },
@@ -39,6 +41,89 @@ const rankColors: Record<string, string> = {
 
 function getXpForNextLevel(level: number) { return level * 500 }
 function getXpForCurrentLevel(level: number) { return (level - 1) * 500 }
+
+interface DailyCombo {
+  gymDone: boolean; nutritionDone: boolean; habitsDone: boolean;
+  cardioDone: boolean; learningDone: boolean; financeDone: boolean;
+  comboActive: boolean; comboMultiplier: number;
+}
+
+const COMBO_MODULES = [
+  { key: 'gymDone',       icon: '🏋️', label: 'Forja' },
+  { key: 'nutritionDone', icon: '🥗', label: 'Taberna' },
+  { key: 'cardioDone',    icon: '🏃', label: 'Campo' },
+  { key: 'habitsDone',    icon: '✅', label: 'Juramentos' },
+  { key: 'learningDone',  icon: '📖', label: 'Grimorio' },
+  { key: 'financeDone',   icon: '💰', label: 'Tesorería' },
+] as const
+
+function DailyComboTracker({ collapsed }: { collapsed: boolean }) {
+  const { data } = useQuery({
+    queryKey: ['rpg-combo-sidebar'],
+    queryFn: () => rpgApi.combo().then(r => r.data.combo as DailyCombo),
+    staleTime: 60_000,
+    retry: false,
+  })
+
+  const done = COMBO_MODULES.filter(m => data?.[m.key as keyof DailyCombo]).length
+  const multiplier = data?.comboMultiplier ?? 1.0
+
+  if (collapsed) {
+    return (
+      <div className="px-2 py-2 flex flex-col items-center gap-1">
+        <div className="text-[10px] font-bold text-gray-600">{done}/6</div>
+        <div className="w-6 h-6 rounded-full border border-elite-600/30 flex items-center justify-center">
+          <span className="text-[10px]">{done >= 3 ? '🔥' : '○'}</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-3 py-3 border-b border-[#1E1E1E]">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Combo diario</span>
+        {done >= 3 && (
+          <span className="text-[10px] font-bold text-orange-400">
+            x{multiplier.toFixed(1)} XP 🔥
+          </span>
+        )}
+      </div>
+      <div className="flex gap-1.5">
+        {COMBO_MODULES.map((mod) => {
+          const isDone = data?.[mod.key as keyof DailyCombo] ?? false
+          return (
+            <motion.div
+              key={mod.key}
+              title={mod.label}
+              animate={isDone ? { scale: [1, 1.3, 1] } : {}}
+              transition={{ duration: 0.3 }}
+              className={cn(
+                'flex-1 h-7 rounded-lg flex items-center justify-center text-sm transition-all',
+                isDone
+                  ? 'bg-elite-600/20 border border-elite-600/40 shadow-[0_0_8px_rgba(220,20,60,0.3)]'
+                  : 'bg-white/[0.03] border border-white/5 opacity-40'
+              )}
+            >
+              {mod.icon}
+            </motion.div>
+          )
+        })}
+      </div>
+      <div className="mt-2 h-1 bg-white/5 rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${(done / 6) * 100}%` }}
+          transition={{ duration: 0.5 }}
+          className={cn(
+            'h-full rounded-full',
+            done >= 6 ? 'bg-yellow-400' : done >= 3 ? 'bg-elite-600' : 'bg-gray-600'
+          )}
+        />
+      </div>
+    </div>
+  )
+}
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -117,6 +202,9 @@ export function Sidebar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Daily Combo Tracker */}
+      <DailyComboTracker collapsed={sidebarCollapsed} />
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">

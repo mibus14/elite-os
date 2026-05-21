@@ -115,7 +115,7 @@ function MissionRow({ mission, delay }: { mission: Mission; delay: number }) {
 export default function MissionsPanel() {
   const { data } = useQuery<Mission[]>({
     queryKey: ['rpg-missions'],
-    queryFn: () => rpgApi.missions().then((r) => r.data),
+    queryFn: () => rpgApi.missions().then((r) => r.data.missions as Mission[]),
     placeholderData: mockMissions,
     refetchInterval: 60_000,
   })

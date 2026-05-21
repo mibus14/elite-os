@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "nodemon src/index.js",
+    "build": "npx prisma generate",
     "start": "node src/index.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

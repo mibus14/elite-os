@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, LogOut, User, Settings, ChevronDown } from 'lucide-react'
+import { Bell, LogOut, User, Settings, ChevronDown, Zap } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import type { RPGCharacter } from '@/types'
-import { rpgApi } from '@/lib/api'
+import { rpgApi, dashboardApi } from '@/lib/api'
 
 interface DerivedNotif {
   id: string
@@ -35,6 +35,15 @@ export function Topbar({ title }: { title?: string }) {
     staleTime: 60_000,
     retry: false,
   })
+
+  // Fetch today's XP from dashboard stats (lightweight, cached)
+  const { data: dashStats } = useQuery({
+    queryKey: ['dashboard-stats-topbar'],
+    queryFn: () => dashboardApi.stats().then(r => r.data),
+    staleTime: 120_000,
+    retry: false,
+  })
+  const todayXP: number = (dashStats as { todayXP?: number })?.todayXP ?? 0
 
   // Build dynamic notifications from character state
   const rpgNotifications = useMemo<DerivedNotif[]>(() => {
@@ -100,6 +109,19 @@ export function Topbar({ title }: { title?: string }) {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        {/* Live streak + today XP */}
+        {(user?.streak ?? 0) > 0 && (
+          <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/5 border border-white/8">
+            <span className="flex items-center gap-1 text-sm font-semibold text-orange-400">
+              🔥 {user?.streak}d
+            </span>
+            <div className="w-px h-4 bg-white/10" />
+            <span className="flex items-center gap-1 text-sm font-semibold text-yellow-400">
+              <Zap size={13} />
+              {todayXP} XP
+            </span>
+          </div>
+        )}
         {/* Notifications */}
         <div className="relative">
           <button

@@ -48,7 +48,7 @@ router.get('/character', authenticate, async (req, res, next) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const [activeDebuffs, todayCombo] = await Promise.all([
+    const [debuffs, todayCombo] = await Promise.all([
       prisma.debuff.findMany({
         where: { userId, active: true, expiresAt: { gt: now } },
         orderBy: { createdAt: 'desc' },
@@ -57,6 +57,17 @@ router.get('/character', authenticate, async (req, res, next) => {
         where: { userId_date: { userId, date: today } },
       }),
     ]);
+
+    // Build structured combo modules for the frontend
+    const comboModules = [
+      { key: 'gym',       label: 'Gym',         icon: '🏋️', completed: todayCombo?.gymDone      ?? false },
+      { key: 'nutrition', label: 'Nutrición',   icon: '🥗', completed: todayCombo?.nutritionDone ?? false },
+      { key: 'habits',    label: 'Hábitos',     icon: '🧠', completed: todayCombo?.habitsDone    ?? false },
+      { key: 'cardio',    label: 'Cardio',      icon: '🏃', completed: todayCombo?.cardioDone    ?? false },
+      { key: 'learning',  label: 'Aprendizaje', icon: '📚', completed: todayCombo?.learningDone  ?? false },
+      { key: 'finance',   label: 'Finanzas',    icon: '💰', completed: todayCombo?.financeDone   ?? false },
+    ];
+    const comboModulesCompleted = comboModules.filter(m => m.completed).length;
 
     res.json({
       character: {
@@ -69,8 +80,12 @@ router.get('/character', authenticate, async (req, res, next) => {
           WIS: user.statWis,
           GOL: user.statGol,
         },
-        activeDebuffs,
+        debuffs,
         todayCombo: todayCombo || null,
+        comboActive:           todayCombo?.comboActive      ?? false,
+        comboModulesCompleted,
+        comboModulesRequired:  3,
+        comboModules,
         classConfig: rpg.CLASS_BONUSES[user.class] || rpg.CLASS_BONUSES.Warrior,
       },
     });
@@ -291,20 +306,33 @@ router.get('/missions', authenticate, async (req, res, next) => {
     const cm = classMissions[user.class] || classMissions.Warrior;
     missions.push({ id: 'class', ...cm, completed: !!cm.done, type: 'class' });
 
-    // Mission 3: Streak mission
-    const activeToday = user.lastActiveDate &&
-      new Date(user.lastActiveDate).toDateString() === new Date().toDateString();
+    // Mission 3: Weak stat challenge — find the user's lowest stat and target it
+    const statMap = [
+      { key: 'statStr', value: user.statStr, module: 'gym',      icon: '💪', label: 'Forja',     action: 'Registra 1 sesión de gym hoy' },
+      { key: 'statInt', value: user.statInt, module: 'learning', icon: '🧠', label: 'Grimorio',   action: 'Estudia al menos 20 minutos' },
+      { key: 'statVit', value: user.statVit, module: 'cardio',   icon: '❤️', label: 'Campo',      action: 'Completa 1 sesión de cardio' },
+      { key: 'statDis', value: user.statDis, module: 'habits',   icon: '🎯', label: 'Juramentos', action: 'Completa todos tus hábitos hoy' },
+      { key: 'statWis', value: user.statWis, module: 'learning', icon: '📖', label: 'Sabiduría',  action: 'Registra 1 sesión de aprendizaje' },
+      { key: 'statGol', value: user.statGol, module: 'finance',  icon: '💰', label: 'Tesorería',  action: 'Registra al menos 1 transacción' },
+    ];
+    const weakStat = statMap.reduce((min, s) => s.value < min.value ? s : min, statMap[0]);
+    const weakDone = combo
+      ? (weakStat.module === 'gym' ? combo.gymDone
+        : weakStat.module === 'learning' ? combo.learningDone
+        : weakStat.module === 'cardio' ? combo.cardioDone
+        : weakStat.module === 'habits' ? combo.habitsDone
+        : weakStat.module === 'finance' ? combo.financeDone
+        : false)
+      : false;
 
     missions.push({
-      id: 'streak',
-      title: user.streak >= 7 ? `Racha de ${user.streak} días` : 'Mantén tu racha',
-      description: user.streak >= 7
-        ? '¡Eres imparable! Sigue así.'
-        : 'Activa cualquier módulo para no romper tu racha',
-      xpReward: user.streak * 10,
-      completed: !!activeToday,
-      icon: '🔥',
-      type: 'streak'
+      id: 'weak_stat',
+      title: `Fortalece tu ${weakStat.label}`,
+      description: `Tu stat más débil es ${weakStat.key.replace('stat', '')} (${weakStat.value}). ${weakStat.action}.`,
+      xpReward: 60,
+      completed: !!weakDone,
+      icon: weakStat.icon,
+      type: 'weak_stat',
     });
 
     res.json({ missions, date: new Date().toISOString().slice(0, 10) });
@@ -314,43 +342,52 @@ router.get('/missions', authenticate, async (req, res, next) => {
 });
 
 // ─── GET /api/rpg/leaderboard ─────────────────────────────────────────────────
-// All users sorted by XP, including class and stats.
+// All users sorted by XP, including class, stats, and aggregated activity counts.
 router.get('/leaderboard', authenticate, async (req, res, next) => {
   try {
-    const users = await prisma.user.findMany({
-      orderBy: { xp: 'desc' },
-      select: {
-        id: true,
-        username: true,
-        avatar: true,
-        level: true,
-        xp: true,
-        rank: true,
-        streak: true,
-        class: true,
-        statStr: true,
-        statInt: true,
-        statVit: true,
-        statDis: true,
-        statWis: true,
-        statGol: true,
-        comboStreak: true,
-        deathCount: true,
-      },
-    });
+    const [users, cardioAgg, learningAgg, goalsAgg] = await Promise.all([
+      prisma.user.findMany({
+        orderBy: { xp: 'desc' },
+        select: {
+          id: true, username: true, avatar: true, level: true, xp: true,
+          rank: true, streak: true, class: true, statStr: true, statInt: true,
+          statVit: true, statDis: true, statWis: true, statGol: true,
+          comboStreak: true, deathCount: true,
+          _count: { select: { gymSessions: true } },
+        },
+      }),
+      prisma.cardioSession.groupBy({
+        by: ['userId'],
+        _sum: { distance: true },
+      }),
+      prisma.learningSession.groupBy({
+        by: ['userId'],
+        _sum: { duration: true },
+      }),
+      prisma.goal.groupBy({
+        by: ['userId'],
+        where: { status: 'completed' },
+        _count: { id: true },
+      }),
+    ]);
+
+    const cardioKmMap = Object.fromEntries(cardioAgg.map(r => [r.userId, Math.round(r._sum.distance || 0)]));
+    const studyHrMap  = Object.fromEntries(learningAgg.map(r => [r.userId, Math.round((r._sum.duration || 0) / 60)]));
+    const goalsMap    = Object.fromEntries(goalsAgg.map(r => [r.userId, r._count.id || 0]));
 
     const leaderboard = users.map((user, index) => ({
-      ...user,
-      position: index + 1,
-      isCurrentUser: user.id === req.user.id,
-      stats: {
-        STR: user.statStr,
-        INT: user.statInt,
-        VIT: user.statVit,
-        DIS: user.statDis,
-        WIS: user.statWis,
-        GOL: user.statGol,
-      },
+      id: user.id, username: user.username, avatar: user.avatar,
+      level: user.level, xp: user.xp, rank: user.rank, streak: user.streak,
+      class: user.class, statStr: user.statStr, statInt: user.statInt,
+      statVit: user.statVit, statDis: user.statDis, statWis: user.statWis,
+      statGol: user.statGol, comboStreak: user.comboStreak, deathCount: user.deathCount,
+      gymSessions:    user._count.gymSessions,
+      cardioKm:       cardioKmMap[user.id] ?? 0,
+      habitsStreak:   user.streak,
+      goalsCompleted: goalsMap[user.id] ?? 0,
+      studyHours:     studyHrMap[user.id] ?? 0,
+      position:       index + 1,
+      isCurrentUser:  user.id === req.user.id,
     }));
 
     res.json({ leaderboard });

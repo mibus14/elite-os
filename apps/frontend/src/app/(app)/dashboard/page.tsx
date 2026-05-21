@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
   Zap,
   Flame,
@@ -12,8 +13,13 @@ import {
   Moon,
   TrendingUp,
   TrendingDown,
+  Dumbbell,
+  Activity,
+  BookOpen,
+  Apple,
 } from 'lucide-react';
 import { dashboardApi, rpgApi } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import type { DashboardStats, RPGCharacter } from '@/types';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
 import RadarChart from '@/components/dashboard/RadarChart';
@@ -250,6 +256,62 @@ function SleepDisplay({ hours }: { hours: number }) {
   );
 }
 
+/* ─── Dynamic Greeting ──────────────────────────────────────────────── */
+function DynamicGreeting({ username, streak }: { username: string; streak: number }) {
+  const [greeting, setGreeting] = useState('')
+  const [streakMsg, setStreakMsg] = useState('')
+
+  useEffect(() => {
+    const h = new Date().getHours()
+    setGreeting(h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches')
+    if (streak >= 365) setStreakMsg('Leyenda viviente. Un año de fuego.')
+    else if (streak >= 100) setStreakMsg('100 días de pura élite. Imparable.')
+    else if (streak >= 30) setStreakMsg(`${streak} días en racha. Eres una máquina.`)
+    else if (streak >= 14) setStreakMsg(`${streak} días seguidos. Racha épica.`)
+    else if (streak >= 7) setStreakMsg(`Semana completa. Sigue el camino.`)
+    else if (streak >= 2) setStreakMsg(`${streak} días. El hábito se forja ahora.`)
+    else setStreakMsg('Cada gran racha empieza con hoy.')
+  }, [streak])
+
+  return (
+    <div>
+      <h1 className="text-3xl font-black text-white uppercase tracking-wide">
+        {greeting}, <span className="text-elite-600">{username}</span>
+      </h1>
+      <p className="text-gray-500 mt-1">{streakMsg}</p>
+    </div>
+  )
+}
+
+/* ─── Quick Actions ─────────────────────────────────────────────────── */
+const QUICK_ACTIONS = [
+  { label: 'Forja',      icon: Dumbbell,  href: '/gym',       color: '#DC143C' },
+  { label: 'Taberna',    icon: Apple,     href: '/nutrition', color: '#22C55E' },
+  { label: 'Campo',      icon: Activity,  href: '/cardio',    color: '#3B82F6' },
+  { label: 'Grimorio',   icon: BookOpen,  href: '/learning',  color: '#8B5CF6' },
+]
+
+function QuickActions() {
+  const router = useRouter()
+  return (
+    <div className="flex gap-3 flex-wrap">
+      {QUICK_ACTIONS.map(({ label, icon: Icon, href, color }) => (
+        <motion.button
+          key={href}
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => router.push(href)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors"
+          style={{ boxShadow: `0 0 0 0 ${color}` }}
+        >
+          <Icon size={15} style={{ color }} />
+          {label}
+        </motion.button>
+      ))}
+    </div>
+  )
+}
+
 /* ─── Loading Skeleton ──────────────────────────────────────────────── */
 function DashboardSkeleton() {
   return (
@@ -270,6 +332,7 @@ function DashboardSkeleton() {
 
 /* ─── Page ──────────────────────────────────────────────────────────── */
 export default function DashboardPage() {
+  const { user: authUser } = useAuthStore()
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
@@ -285,6 +348,8 @@ export default function DashboardPage() {
     staleTime: 60_000,
     retry: false,
   });
+
+  const username = authUser?.username ?? 'Guerrero'
 
   // Use real API data; only fall back for complex objects that cannot be empty
   const stats: DashboardStats = {
@@ -321,9 +386,9 @@ export default function DashboardPage() {
 
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-black text-white uppercase tracking-wide">⚔ Cuartel General</h1>
-        <p className="text-gray-500 mt-1">El mapa de tu conquista diaria</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <DynamicGreeting username={username} streak={stats.currentStreak} />
+        <QuickActions />
       </div>
 
       {/* Row 1: Hero Stats */}

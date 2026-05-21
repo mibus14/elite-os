@@ -151,7 +151,12 @@ export const usersApi = {
 // ─── RPG ─────────────────────────────────────────────────────────
 export const rpgApi = {
   character:  () => api.get('/rpg/character'),
-  penitence:  () => api.post('/rpg/penitence/accept'),
+  combo:      () => api.get('/rpg/combo'),
+  debuffs:    () => api.get('/rpg/debuffs'),
+  missions:   () => api.get('/rpg/missions'),
+  leaderboard:() => api.get('/rpg/leaderboard'),
+  setClass:   (cls: string) => api.post('/rpg/class', { class: cls }),
+  penitence:  () => api.post('/rpg/penitence', { task: 'completed' }),
 }
 
 // ─── Rewards ─────────────────────────────────────────────────────
