@@ -68,18 +68,18 @@ router.get('/stats', authenticate, async (req, res, next) => {
         take: 5,
         select: { id: true, type: true, date: true, duration: true, distance: true, calories: true },
       }),
-      prisma.learningSession.findMany({
-        where: { userId },
-        orderBy: { date: 'desc' },
+      prisma.learningItem.findMany({
+        where: { userId, completed: true },
+        orderBy: { completedAt: 'desc' },
         take: 5,
-        select: { id: true, subject: true, date: true, duration: true, xpEarned: true },
+        select: { id: true, tag: true, title: true, completedAt: true },
       }),
     ]);
 
     const activityFeed = [
       ...recentGym.map((s) => ({ type: 'gym', ...s, label: `Gym: ${s.name}`, xp: 50 })),
       ...recentCardio.map((s) => ({ type: 'cardio', ...s, label: `Cardio: ${s.type}`, xp: 30 })),
-      ...recentLearning.map((s) => ({ type: 'learning', ...s, label: `Study: ${s.subject}`, xp: s.xpEarned })),
+      ...recentLearning.map((s) => ({ type: 'learning', id: s.id, date: s.completedAt, label: `Aprendizaje: ${s.title}`, xp: 30 })),
     ]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 10);
@@ -140,7 +140,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
     const [totalGym, totalCardio, totalLearning, totalGoalsCompleted] = await Promise.all([
       prisma.gymSession.count({ where: { userId } }),
       prisma.cardioSession.count({ where: { userId } }),
-      prisma.learningSession.count({ where: { userId } }),
+      prisma.learningItem.count({ where: { userId, completed: true } }),
       prisma.goal.count({ where: { userId, status: 'completed' } }),
     ]);
     const radarData = [

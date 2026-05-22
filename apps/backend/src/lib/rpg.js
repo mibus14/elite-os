@@ -358,13 +358,6 @@ async function updateCombo(userId, module, prisma) {
     data: { comboActive, comboMultiplier },
   });
 
-  if (comboActive) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { comboStreak: { increment: 0 } },
-    });
-  }
-
   return finalCombo;
 }
 

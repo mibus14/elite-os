@@ -25,7 +25,7 @@ router.get('/', authenticate, async (req, res, next) => {
             gymSessions: true,
             cardioSessions: true,
             habitLogs: true,
-            learningSessions: true,
+            learningItems: true,
           },
         },
       },
@@ -87,10 +87,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
               where: { userId: user.id },
               _sum: { totalVolume: true },
             }),
-            prisma.learningSession.aggregate({
-              where: { userId: user.id },
-              _sum: { duration: true },
-            }),
+            prisma.learningItem.count({ where: { userId: user.id, completed: true } }),
             prisma.goal.count({ where: { userId: user.id, status: 'completed' } }),
             prisma.habitLog.count({ where: { userId: user.id, completed: true } }),
           ]);
@@ -100,7 +97,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
           gymSessions: gymCount,
           cardioSessions: cardioCount,
           totalVolumeLifted: gymVolume._sum.totalVolume || 0,
-          totalLearningMinutes: totalLearning._sum.duration || 0,
+          totalLearningItems: totalLearning,
           goalsCompleted,
           habitsCompleted,
         };
