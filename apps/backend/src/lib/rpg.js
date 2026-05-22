@@ -442,6 +442,7 @@ module.exports = {
   ANTI_CHEAT,
   QUICK_MISSIONS,
   awardXP,
+  recalcRankLevel,
   checkAndApplyDebuffs,
   checkDeath,
   updateCombo,

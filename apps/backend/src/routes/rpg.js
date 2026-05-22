@@ -485,13 +485,24 @@ router.post('/quick-missions/:id/complete', authenticate, async (req, res, next)
       return res.status(429).json({ error: 'Límite diario total de XP alcanzado' });
     }
 
-    // Probation multiplier
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { createdAt: true },
-    });
+    // Probation + debuff + season multipliers
+    const [user, activeDebuffs] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { createdAt: true, seasonMultiplier: true },
+      }),
+      prisma.debuff.findMany({
+        where: { userId, active: true, expiresAt: { gt: new Date() } },
+      }),
+    ]);
     const probation = rpg.getProbationInfo(user.createdAt);
-    const xpAwarded = Math.max(1, Math.round(mission.xp * probation.xpMultiplier));
+    const debuffMultiplier = activeDebuffs.length > 0
+      ? Math.min(...activeDebuffs.map((d) => d.xpMultiplier))
+      : 1;
+    const seasonMultiplier = user.seasonMultiplier ?? 1.0;
+    const xpAwarded = Math.max(1, Math.round(
+      mission.xp * probation.xpMultiplier * debuffMultiplier * seasonMultiplier
+    ));
 
     // Persist: log + user XP + DailyCombo quickXP
     await Promise.all([
@@ -509,6 +520,10 @@ router.post('/quick-missions/:id/complete', authenticate, async (req, res, next)
       create: { userId, date: today, quickXP: xpAwarded, totalXP: xpAwarded },
       update: { quickXP: { increment: xpAwarded }, totalXP: { increment: xpAwarded } },
     });
+
+    // Recalculate level/rank + update streak
+    await rpg.recalcRankLevel(userId, prisma);
+    await rpg.checkAndUpdateStreak(userId, prisma);
 
     res.json({ xpAwarded, mission, earnedToday: currentQuickXP + xpAwarded });
   } catch (err) {
