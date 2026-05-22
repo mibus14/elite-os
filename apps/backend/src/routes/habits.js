@@ -138,6 +138,11 @@ router.post('/:id/log', authenticate, async (req, res, next) => {
     let log;
     let xpAwarded = 0;
 
+    // Anti-cheat: hábito debe existir desde antes de hoy para dar XP
+    const habitCreatedDay = new Date(habit.createdAt);
+    habitCreatedDay.setHours(0, 0, 0, 0);
+    const canEarnXP = habitCreatedDay.getTime() < today.getTime();
+
     if (existing) {
       const wasCompleted = existing.completed;
       log = await prisma.habitLog.update({
@@ -147,8 +152,7 @@ router.post('/:id/log', authenticate, async (req, res, next) => {
           count: count !== undefined ? count : (completed ? existing.count + 1 : 0),
         },
       });
-      // Award XP only if transitioning to completed
-      if (!wasCompleted && completed) {
+      if (!wasCompleted && completed && canEarnXP) {
         const { finalXP } = await rpg.awardXP(req.user.id, 'habits', habit.xpReward, prisma);
         xpAwarded = finalXP;
         await rpg.updateCombo(req.user.id, 'habits', prisma);
@@ -164,7 +168,7 @@ router.post('/:id/log', authenticate, async (req, res, next) => {
           count: count !== undefined ? count : (completed ? 1 : 0),
         },
       });
-      if (completed) {
+      if (completed && canEarnXP) {
         const { finalXP } = await rpg.awardXP(req.user.id, 'habits', habit.xpReward, prisma);
         xpAwarded = finalXP;
         await rpg.updateCombo(req.user.id, 'habits', prisma);

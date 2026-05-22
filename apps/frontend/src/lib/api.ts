@@ -162,8 +162,10 @@ export const rpgApi = {
   debuffs:    () => api.get('/rpg/debuffs'),
   missions:   () => api.get('/rpg/missions'),
   leaderboard:() => api.get('/rpg/leaderboard'),
-  setClass:   (cls: string) => api.post('/rpg/class', { class: cls }),
-  penitence:  () => api.post('/rpg/penitence', { task: 'completed' }),
+  setClass:             (cls: string) => api.post('/rpg/class', { class: cls }),
+  penitence:            () => api.post('/rpg/penitence', { task: 'completed' }),
+  quickMissions:        () => api.get('/rpg/quick-missions'),
+  completeQuickMission: (id: string) => api.post(`/rpg/quick-missions/${id}/complete`, {}),
 }
 
 // ─── Rewards ─────────────────────────────────────────────────────

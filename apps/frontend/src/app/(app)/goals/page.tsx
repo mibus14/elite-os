@@ -5,9 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target, Plus, X, Dumbbell, BookOpen, DollarSign, Star,
-  Check, Calendar, Sparkles, Loader2, ChevronDown, ChevronUp, Trash2,
+  Check, Calendar, ChevronDown, ChevronUp, Trash2, Zap,
 } from 'lucide-react';
-import { goalsApi } from '@/lib/api';
+import { goalsApi, rpgApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
@@ -34,6 +34,15 @@ interface Goal {
   progressPercent: number;
 }
 
+interface QuickMission {
+  id: string;
+  title: string;
+  icon: string;
+  xp: number;
+  category: string;
+  completedToday: boolean;
+}
+
 /* ─── Config visual ──────────────────────────────────────────────── */
 const CAT = {
   fitness:  { icon: Dumbbell,   color: '#DC143C', bg: 'bg-[#DC143C]/10', border: 'border-[#DC143C]/20', text: 'text-[#DC143C]',   label: 'Fitness' },
@@ -48,7 +57,115 @@ const PRIORITY_COLORS = {
   low:    'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
 
+/* ─── Micro-misiones ─────────────────────────────────────────────── */
+function QuickMissionsPanel() {
+  const qc = useQueryClient();
 
+  const { data, isLoading } = useQuery({
+    queryKey: ['quick-missions'],
+    queryFn: async () => {
+      const res = await rpgApi.quickMissions();
+      return res.data as { missions: QuickMission[]; earnedToday: number; dailyCap: number };
+    },
+    refetchInterval: 60_000,
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: (id: string) => rpgApi.completeQuickMission(id),
+    onSuccess: (res, id) => {
+      const xp = res.data.xpAwarded;
+      toast.success(`+${xp} XP`, { icon: '⚡' });
+      qc.invalidateQueries({ queryKey: ['quick-missions'] });
+      qc.invalidateQueries({ queryKey: ['rpg-character'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error ?? 'Error al completar misión');
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#111111] border border-[#1E1E1E] rounded-2xl p-5">
+        <div className="h-4 w-40 bg-white/5 rounded animate-pulse mb-4" />
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="h-20 bg-white/5 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const missions = data?.missions ?? [];
+  const earned = data?.earnedToday ?? 0;
+  const cap = data?.dailyCap ?? 30;
+  const allDone = missions.every((m) => m.completedToday);
+
+  return (
+    <div className="bg-[#111111] border border-[#1E1E1E] rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-[#1E1E1E] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <span className="text-sm font-bold text-white uppercase tracking-wide">Misiones Rápidas</span>
+          <span className="text-xs text-gray-600">— completa una vez al día</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-yellow-400 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(100, (earned / cap) * 100)}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+          <span className="text-xs text-gray-500 font-mono">{earned}/{cap} XP</span>
+        </div>
+      </div>
+
+      {/* Grid de misiones */}
+      <div className="p-4 grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {missions.map((m) => {
+          const done = m.completedToday;
+          const busy = completeMutation.isPending && completeMutation.variables === m.id;
+          return (
+            <motion.button
+              key={m.id}
+              whileTap={done ? {} : { scale: 0.93 }}
+              onClick={() => !done && !busy && completeMutation.mutate(m.id)}
+              disabled={done || busy}
+              className={`relative flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 border text-center transition-all ${
+                done
+                  ? 'bg-green-500/10 border-green-500/30 cursor-default'
+                  : 'bg-white/3 border-white/10 hover:border-white/20 hover:bg-white/6 cursor-pointer'
+              }`}
+            >
+              {done && (
+                <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                </div>
+              )}
+              <span className="text-xl leading-none">{m.icon}</span>
+              <span className={`text-[10px] font-medium leading-tight ${done ? 'text-green-400' : 'text-gray-400'}`}>
+                {m.title}
+              </span>
+              <span className={`text-[10px] font-bold ${done ? 'text-green-500' : 'text-yellow-400'}`}>
+                +{m.xp} XP
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {allDone && (
+        <div className="px-5 pb-4 text-center text-xs text-green-400 font-semibold">
+          ¡Todas las misiones rápidas completadas hoy! 🎉
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ─── Goal Card ──────────────────────────────────────────────────── */
 function GoalCard({ goal, onToggle, onDelete }: {
@@ -83,55 +200,49 @@ function GoalCard({ goal, onToggle, onDelete }: {
               {{ low: 'Baja', medium: 'Media', high: 'Alta' }[goal.priority]}
             </span>
           </div>
-          <button
-            onClick={() => onDelete(goal.id)}
-            className="text-gray-700 hover:text-red-400 transition-colors p-1"
-          >
+          <button onClick={() => onDelete(goal.id)} className="text-gray-700 hover:text-red-400 transition-colors p-1">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
 
         <h3 className="text-white font-bold text-base mb-3">{goal.title}</h3>
 
-        {/* Barra de progreso */}
         <div className="space-y-1.5">
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-500">
               {completedMilestones} de {goal.milestones.length} hitos
             </span>
-            <span className={`text-sm font-bold ${isCompleted ? 'text-green-400' : 'text-white'}`}>
+            <span className={`text-xs font-bold ${isCompleted ? 'text-green-400' : 'text-[#DC143C]'}`}>
               {goal.progressPercent}%
             </span>
           </div>
-          <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
             <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: isCompleted ? '#22C55E' : cat.color }}
               initial={{ width: 0 }}
               animate={{ width: `${goal.progressPercent}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+              className={`h-full rounded-full ${isCompleted ? 'bg-green-500' : 'bg-[#DC143C]'}`}
             />
           </div>
         </div>
 
-        {/* Deadline */}
         {goal.deadline && (
-          <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-600">
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-600">
             <Calendar className="w-3 h-3" />
-            {isCompleted ? '¡Completada!' : new Date(goal.deadline).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' })}
+            <span>{new Date(goal.deadline).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
         )}
       </div>
 
       {/* Milestones */}
       {goal.milestones.length > 0 && (
-        <>
+        <div className="border-t border-white/5">
           <button
-            onClick={() => setExpanded((e) => !e)}
-            className="w-full flex items-center justify-between px-5 py-2 border-t border-white/5 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            onClick={() => setExpanded((v) => !v)}
+            className="w-full px-5 py-2.5 flex items-center justify-between text-xs text-gray-500 hover:text-gray-300 transition-colors"
           >
             <span>Hitos</span>
-            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
 
           <AnimatePresence initial={false}>
@@ -140,43 +251,40 @@ function GoalCard({ goal, onToggle, onDelete }: {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
                 <div className="px-5 pb-4 space-y-2">
                   {goal.milestones.map((m) => (
                     <motion.button
                       key={m.id}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => !isCompleted && onToggle(goal.id, m.id)}
-                      className={`w-full flex items-center gap-3 text-left py-2 px-3 rounded-xl transition-all ${
-                        m.completed
-                          ? 'bg-green-500/10 border border-green-500/20'
-                          : 'bg-white/3 border border-white/5 hover:border-white/10'
-                      }`}
+                      layout
+                      onClick={() => onToggle(goal.id, m.id)}
+                      className="w-full flex items-center gap-3 group text-left"
                     >
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                        m.completed ? 'bg-green-500 border-green-500' : 'border-white/20'
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                        m.completed
+                          ? 'bg-green-500 border-green-500'
+                          : 'border-white/20 group-hover:border-white/40'
                       }`}>
-                        {m.completed && <Check className="w-3 h-3 text-white" />}
+                        {m.completed && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
                       </div>
-                      <span className={`text-sm flex-1 leading-snug ${m.completed ? 'text-green-300 line-through opacity-60' : 'text-gray-300'}`}>
+                      <span className={`text-sm transition-colors ${m.completed ? 'line-through text-gray-600' : 'text-gray-300 group-hover:text-white'}`}>
                         {m.title}
                       </span>
-                      <span className="text-xs text-gray-600 flex-shrink-0">+{m.weight}%</span>
+                      <span className="ml-auto text-xs text-gray-600 flex-shrink-0">+{m.weight}%</span>
                     </motion.button>
                   ))}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-        </>
+        </div>
       )}
     </motion.div>
   );
 }
 
-/* ─── Create Modal ───────────────────────────────────────────────── */
+/* ─── Modal crear meta ───────────────────────────────────────────── */
 function CreateGoalModal({ open, onClose, onCreate }: {
   open: boolean;
   onClose: () => void;
@@ -187,27 +295,28 @@ function CreateGoalModal({ open, onClose, onCreate }: {
     deadline: '', priority: 'medium' as 'low' | 'medium' | 'high',
   });
   const [milestones, setMilestones] = useState<{ title: string; weight: number }[]>([]);
-  const [suggesting, setSuggesting] = useState(false);
+  const [newHito, setNewHito] = useState('');
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  async function handleSuggest() {
-    if (!form.title.trim()) { toast.error('Escribe el título primero'); return; }
-    setSuggesting(true);
-    try {
-      // Llamamos suggest con id temporal "new" — el backend usa el body
-      const res = await goalsApi.suggestMilestones('new', {
-        title: form.title,
-        category: form.category,
-        deadline: form.deadline || undefined,
-      });
-      setMilestones(res.data.milestones);
-      toast.success('Hitos generados');
-    } catch {
-      toast.error('Error generando hitos');
-    } finally {
-      setSuggesting(false);
-    }
+  function addHito() {
+    const title = newHito.trim();
+    if (!title) return;
+    const next = [...milestones, { title, weight: 0 }];
+    // Redistribute weights equally
+    const per = Math.floor(100 / next.length);
+    const rem = 100 - per * next.length;
+    const reweighted = next.map((m, i) => ({ ...m, weight: per + (i === next.length - 1 ? rem : 0) }));
+    setMilestones(reweighted);
+    setNewHito('');
+  }
+
+  function removeHito(idx: number) {
+    const next = milestones.filter((_, i) => i !== idx);
+    if (next.length === 0) { setMilestones([]); return; }
+    const per = Math.floor(100 / next.length);
+    const rem = 100 - per * next.length;
+    setMilestones(next.map((m, i) => ({ ...m, weight: per + (i === next.length - 1 ? rem : 0) })));
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -216,6 +325,7 @@ function CreateGoalModal({ open, onClose, onCreate }: {
     onCreate({ ...form, milestones: milestones.length > 0 ? milestones : undefined });
     setForm({ title: '', category: 'fitness', deadline: '', priority: 'medium' });
     setMilestones([]);
+    setNewHito('');
     onClose();
   }
 
@@ -298,50 +408,52 @@ function CreateGoalModal({ open, onClose, onCreate }: {
               </div>
             </div>
 
-            {/* Sección hitos */}
+            {/* Hitos manuales */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Hitos</label>
-                <motion.button
+              <label className="text-xs text-gray-500 font-semibold uppercase tracking-wider block">
+                Hitos <span className="text-gray-700 normal-case">(opcional)</span>
+              </label>
+
+              {/* Input agregar hito */}
+              <div className="flex gap-2">
+                <input
+                  value={newHito}
+                  onChange={(e) => setNewHito(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addHito(); } }}
+                  placeholder="Describe un hito de tu meta..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#DC143C]/50 transition-all"
+                />
+                <button
                   type="button"
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handleSuggest}
-                  disabled={suggesting || !form.title.trim()}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    form.title.trim()
-                      ? 'bg-[#DC143C]/10 border border-[#DC143C]/30 text-[#DC143C] hover:bg-[#DC143C]/20'
-                      : 'bg-white/5 border border-white/10 text-gray-600 cursor-not-allowed'
-                  }`}
+                  onClick={addHito}
+                  disabled={!newHito.trim()}
+                  className="px-3 py-2.5 rounded-xl bg-[#DC143C]/10 border border-[#DC143C]/30 text-[#DC143C] hover:bg-[#DC143C]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
-                  {suggesting
-                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Generando...</>
-                    : <><Sparkles className="w-3.5 h-3.5" />Generar con IA</>
-                  }
-                </motion.button>
+                  <Plus className="w-4 h-4" />
+                </button>
               </div>
 
+              {/* Lista de hitos */}
               {milestones.length > 0 ? (
                 <div className="space-y-1.5">
                   {milestones.map((m, i) => (
                     <div key={i} className="flex items-center gap-2 bg-white/3 border border-white/8 rounded-xl px-3 py-2">
                       <div className="w-5 h-5 rounded-full border-2 border-white/20 flex-shrink-0" />
                       <span className="text-sm text-gray-300 flex-1">{m.title}</span>
-                      <span className="text-xs text-gray-600">+{m.weight}%</span>
-                      <button type="button" onClick={() => setMilestones((ms) => ms.filter((_, j) => j !== i))}
-                        className="text-gray-700 hover:text-red-400 transition-colors">
+                      <span className="text-xs text-gray-600 flex-shrink-0">+{m.weight}%</span>
+                      <button type="button" onClick={() => removeHito(i)} className="text-gray-700 hover:text-red-400 transition-colors">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                   <p className="text-xs text-gray-600 text-right">
-                    Total: {milestones.reduce((s, m) => s + m.weight, 0)}%
+                    {milestones.length} hito{milestones.length !== 1 ? 's' : ''} · pesos distribuidos automáticamente
                   </p>
                 </div>
               ) : (
-                <div className="text-center py-4 border border-dashed border-white/10 rounded-xl text-gray-600 text-xs">
-                  Escribe el título y pulsa "Generar con IA"
-                </div>
+                <p className="text-xs text-gray-700 text-center py-2">
+                  Sin hitos — la meta avanzará con progreso manual
+                </p>
               )}
             </div>
 
@@ -390,7 +502,10 @@ export default function GoalsPage() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ goalId, mid }: { goalId: string; mid: string }) => goalsApi.toggleMilestone(goalId, mid),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['goals'] }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['goals'] });
+      if (res.data?.justCompleted) toast.success('¡Meta completada! +100 XP', { icon: '🏆' });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -429,6 +544,9 @@ export default function GoalsPage() {
         </motion.button>
       </div>
 
+      {/* Micro-misiones diarias */}
+      <QuickMissionsPanel />
+
       {/* Filtros */}
       <div className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 w-fit flex-wrap">
         {FILTER_TABS.map((tab) => (
@@ -442,7 +560,7 @@ export default function GoalsPage() {
         ))}
       </div>
 
-      {/* Grid */}
+      {/* Grid de metas */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => <div key={i} className="h-56 rounded-2xl bg-white/5 animate-pulse" />)}

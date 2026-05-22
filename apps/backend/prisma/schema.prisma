@@ -61,6 +61,7 @@ model User {
   dailyCombos     DailyCombo[]
   seasonResults   SeasonResult[]
   nutritionGoal   NutritionGoal?
+  quickMissionLogs QuickMissionLog[]
 
   // Season bonus fields (reset each season)
   seasonMultiplier Float @default(1.0)
@@ -135,12 +136,26 @@ model DailyCombo {
   habitsXP     Int @default(0)
   learningXP   Int @default(0)
   financeXP    Int @default(0)
+  quickXP      Int @default(0)
   totalXP      Int @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@map("daily_combos")
+}
+
+model QuickMissionLog {
+  id        String   @id @default(uuid())
+  userId    String
+  missionId String
+  date      DateTime @db.Date
+  xpAwarded Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId, date])
+  @@map("quick_mission_logs")
 }
 
 model DailyLog {

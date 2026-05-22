@@ -415,4 +415,104 @@ router.get('/leaderboard', authenticate, async (req, res, next) => {
   }
 });
 
+// ─── GET /api/rpg/quick-missions ──────────────────────────────────────────────
+// Returns all quick missions with today's completion status per user.
+router.get('/quick-missions', authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const today = startOfToday();
+
+    const [completedToday, todayCombo] = await Promise.all([
+      prisma.quickMissionLog.findMany({
+        where: { userId, date: today },
+        select: { missionId: true, xpAwarded: true },
+      }),
+      prisma.dailyCombo.findUnique({
+        where: { userId_date: { userId, date: today } },
+        select: { quickXP: true, totalXP: true },
+      }),
+    ]);
+
+    const completedSet = new Set(completedToday.map((l) => l.missionId));
+
+    const missions = rpg.QUICK_MISSIONS.map((m) => ({
+      ...m,
+      completedToday: completedSet.has(m.id),
+    }));
+
+    res.json({
+      missions,
+      earnedToday: todayCombo?.quickXP ?? 0,
+      dailyCap: rpg.ANTI_CHEAT.QUICK_DAILY_CAP,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── POST /api/rpg/quick-missions/:id/complete ────────────────────────────────
+// Marks a quick mission as done for today and awards its XP.
+router.post('/quick-missions/:id/complete', authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const missionId = req.params.id;
+    const today = startOfToday();
+
+    const mission = rpg.QUICK_MISSIONS.find((m) => m.id === missionId);
+    if (!mission) return res.status(404).json({ error: 'Misión no encontrada' });
+
+    // Already completed today?
+    const existing = await prisma.quickMissionLog.findUnique({
+      where: { userId_missionId_date: { userId, missionId, date: today } },
+    });
+    if (existing) {
+      return res.status(409).json({ error: 'Ya completaste esta misión hoy' });
+    }
+
+    // Daily quick XP cap check
+    const todayCombo = await prisma.dailyCombo.findUnique({
+      where: { userId_date: { userId, date: today } },
+      select: { quickXP: true, totalXP: true },
+    });
+    const currentQuickXP = todayCombo?.quickXP ?? 0;
+    const currentTotalXP = todayCombo?.totalXP ?? 0;
+
+    if (currentQuickXP >= rpg.ANTI_CHEAT.QUICK_DAILY_CAP) {
+      return res.status(429).json({ error: 'Límite diario de micro-misiones alcanzado (30 XP)' });
+    }
+    if (currentTotalXP >= rpg.ANTI_CHEAT.GLOBAL_DAILY_CAP) {
+      return res.status(429).json({ error: 'Límite diario total de XP alcanzado' });
+    }
+
+    // Probation multiplier
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { createdAt: true },
+    });
+    const probation = rpg.getProbationInfo(user.createdAt);
+    const xpAwarded = Math.max(1, Math.round(mission.xp * probation.xpMultiplier));
+
+    // Persist: log + user XP + DailyCombo quickXP
+    await Promise.all([
+      prisma.quickMissionLog.create({
+        data: { userId, missionId, date: today, xpAwarded },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { xp: { increment: xpAwarded } },
+      }),
+    ]);
+
+    await prisma.dailyCombo.upsert({
+      where: { userId_date: { userId, date: today } },
+      create: { userId, date: today, quickXP: xpAwarded, totalXP: xpAwarded },
+      update: { quickXP: { increment: xpAwarded }, totalXP: { increment: xpAwarded } },
+    });
+
+    res.json({ xpAwarded, mission, earnedToday: currentQuickXP + xpAwarded });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

@@ -101,9 +101,16 @@ router.post(
         },
       });
 
-      const { finalXP } = await rpg.awardXP(req.user.id, 'gym', 50, prisma);
-      await rpg.updateCombo(req.user.id, 'gym', prisma);
-      res.status(201).json({ session, xpAwarded: finalXP });
+      // Anti-cheat: solo dar XP si la sesión se registra para hoy
+      const activityDate = date ? startOfDay(new Date(date)) : startOfDay(new Date());
+      const isToday = activityDate.getTime() === startOfDay(new Date()).getTime();
+      let xpAwarded = 0;
+      if (isToday) {
+        const { finalXP } = await rpg.awardXP(req.user.id, 'gym', 50, prisma);
+        xpAwarded = finalXP;
+        await rpg.updateCombo(req.user.id, 'gym', prisma);
+      }
+      res.status(201).json({ session, xpAwarded });
     } catch (err) {
       next(err);
     }

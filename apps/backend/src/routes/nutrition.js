@@ -257,9 +257,13 @@ router.post(
         },
       });
 
-      await rpg.awardXP(req.user.id, 'nutrition', 20, prisma);
-      await rpg.updateCombo(req.user.id, 'nutrition', prisma);
-      await rpg.checkAndUpdateStreak(req.user.id, prisma);
+      const mealDate = date ? startOfDay(new Date(date)) : startOfDay(new Date());
+      const isToday = mealDate.getTime() === startOfDay(new Date()).getTime();
+      if (isToday) {
+        await rpg.awardXP(req.user.id, 'nutrition', 20, prisma);
+        await rpg.updateCombo(req.user.id, 'nutrition', prisma);
+        await rpg.checkAndUpdateStreak(req.user.id, prisma);
+      }
       res.status(201).json({ meal });
     } catch (err) {
       next(err);

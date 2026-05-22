@@ -32,10 +32,31 @@ const DEBUFF_TEMPLATES = {
 // All limits are enforced server-side in awardXP — the frontend cannot bypass them.
 const ANTI_CHEAT = {
   HABITS_DAILY_CAP: 100,   // hábitos + metas combinados (XP, no # de actividades)
+  QUICK_DAILY_CAP:  30,    // micro-misiones rápidas (XP independiente del pool de hábitos)
   GLOBAL_DAILY_CAP: 500,   // tope absoluto diario de XP por usuario
   PROBATION_DAYS:   30,    // días desde registro donde aplica multiplicador reducido
   PROBATION_MULT:   0.6,   // multiplicador de XP durante probación
 };
+
+// ─── Micro-misiones diarias (hardcoded, inviolables) ─────────────────────────
+// Solo 1 completación por misión por día, tope 30 XP/día total entre todas.
+const QUICK_MISSIONS = [
+  { id: 'water',      title: 'Toma un vaso de agua',            icon: '💧', xp: 1, category: 'Salud' },
+  { id: 'breakfast',  title: 'Desayuna bien',                   icon: '🍳', xp: 1, category: 'Salud' },
+  { id: 'fruit',      title: 'Come una fruta',                  icon: '🍎', xp: 1, category: 'Salud' },
+  { id: 'vitamins',   title: 'Toma tus vitaminas',              icon: '💊', xp: 1, category: 'Salud' },
+  { id: 'bed',        title: 'Haz tu cama',                     icon: '🛏️',  xp: 1, category: 'Orden' },
+  { id: 'pushups',    title: 'Haz 10 flexiones',                icon: '💪', xp: 2, category: 'Fitness' },
+  { id: 'stretch',    title: 'Estira 5 minutos',                icon: '🤸', xp: 2, category: 'Fitness' },
+  { id: 'read',       title: 'Lee 10 páginas',                  icon: '📖', xp: 2, category: 'Mente' },
+  { id: 'journal',    title: 'Escribe en tu diario',            icon: '📝', xp: 2, category: 'Mente' },
+  { id: 'sunlight',   title: 'Exponte al sol 10 minutos',       icon: '☀️', xp: 2, category: 'Salud' },
+  { id: 'walk',       title: 'Camina 10 minutos',               icon: '🚶', xp: 3, category: 'Fitness' },
+  { id: 'meditate',   title: 'Medita 5 minutos',                icon: '🧘', xp: 3, category: 'Mente' },
+  { id: 'gratitude',  title: 'Escribe 3 cosas positivas',       icon: '🙏', xp: 3, category: 'Mente' },
+  { id: 'cold',       title: 'Ducha de agua fría',              icon: '🧊', xp: 5, category: 'Disciplina' },
+  { id: 'nophone',    title: 'Sin celular 30 minutos',          icon: '📵', xp: 5, category: 'Disciplina' },
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -413,10 +434,12 @@ module.exports = {
   STAT_GAINS,
   DEBUFF_TEMPLATES,
   ANTI_CHEAT,
+  QUICK_MISSIONS,
   awardXP,
   checkAndApplyDebuffs,
   checkDeath,
   updateCombo,
   checkAndUpdateStreak,
   getProbationInfo,
+  isSameCalendarDay: isSameDay,
 };

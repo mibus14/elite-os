@@ -57,9 +57,15 @@ router.post(
         },
       });
 
-      const { finalXP } = await rpg.awardXP(req.user.id, 'cardio', 40, prisma);
-      await rpg.updateCombo(req.user.id, 'cardio', prisma);
-      res.status(201).json({ session, xpAwarded: finalXP });
+      const activityDate = date ? startOfDay(new Date(date)) : startOfDay(new Date());
+      const isToday = activityDate.getTime() === startOfDay(new Date()).getTime();
+      let xpAwarded = 0;
+      if (isToday) {
+        const { finalXP } = await rpg.awardXP(req.user.id, 'cardio', 40, prisma);
+        xpAwarded = finalXP;
+        await rpg.updateCombo(req.user.id, 'cardio', prisma);
+      }
+      res.status(201).json({ session, xpAwarded });
     } catch (err) {
       next(err);
     }
