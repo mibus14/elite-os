@@ -89,6 +89,7 @@ export default function QuickNutritionModal({ open, onClose }: QuickNutritionMod
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['nutrition', 'today'] });
       qc.invalidateQueries({ queryKey: ['rpg-character'] });
+      qc.invalidateQueries({ queryKey: ['rpg-combo'] });
       toast.success('¡Comida registrada!');
       handleClose();
     },

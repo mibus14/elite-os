@@ -161,6 +161,7 @@ export default function CardioPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cardio-sessions'] })
       qc.invalidateQueries({ queryKey: ['rpg-character'] })
+      qc.invalidateQueries({ queryKey: ['rpg-combo'] })
       toast.success('¡Sesión guardada!')
     },
     onError: () => toast.error('Error al guardar'),

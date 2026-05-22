@@ -372,7 +372,7 @@ router.get('/leaderboard', authenticate, async (req, res, next) => {
           id: true, username: true, avatar: true, level: true, xp: true,
           rank: true, streak: true, class: true, statStr: true, statInt: true,
           statVit: true, statDis: true, statWis: true, statGol: true,
-          comboStreak: true, deathCount: true,
+          comboStreak: true, deathCount: true, createdAt: true,
           _count: { select: { gymSessions: true } },
         },
       }),
@@ -380,9 +380,10 @@ router.get('/leaderboard', authenticate, async (req, res, next) => {
         by: ['userId'],
         _sum: { distance: true },
       }),
-      prisma.learningSession.groupBy({
+      prisma.learningItem.groupBy({
         by: ['userId'],
-        _sum: { duration: true },
+        where: { completed: true },
+        _count: { id: true },
       }),
       prisma.goal.groupBy({
         by: ['userId'],
@@ -391,24 +392,29 @@ router.get('/leaderboard', authenticate, async (req, res, next) => {
       }),
     ]);
 
-    const cardioKmMap = Object.fromEntries(cardioAgg.map(r => [r.userId, Math.round(r._sum.distance || 0)]));
-    const studyHrMap  = Object.fromEntries(learningAgg.map(r => [r.userId, Math.round((r._sum.duration || 0) / 60)]));
-    const goalsMap    = Object.fromEntries(goalsAgg.map(r => [r.userId, r._count.id || 0]));
+    const cardioKmMap   = Object.fromEntries(cardioAgg.map(r => [r.userId, Math.round(r._sum.distance || 0)]));
+    const studyItemsMap = Object.fromEntries(learningAgg.map(r => [r.userId, r._count.id || 0]));
+    const goalsMap      = Object.fromEntries(goalsAgg.map(r => [r.userId, r._count.id || 0]));
 
-    const leaderboard = users.map((user, index) => ({
-      id: user.id, username: user.username, avatar: user.avatar,
-      level: user.level, xp: user.xp, rank: user.rank, streak: user.streak,
-      class: user.class, statStr: user.statStr, statInt: user.statInt,
-      statVit: user.statVit, statDis: user.statDis, statWis: user.statWis,
-      statGol: user.statGol, comboStreak: user.comboStreak, deathCount: user.deathCount,
-      gymSessions:    user._count.gymSessions,
-      cardioKm:       cardioKmMap[user.id] ?? 0,
-      habitsStreak:   user.streak,
-      goalsCompleted: goalsMap[user.id] ?? 0,
-      studyHours:     studyHrMap[user.id] ?? 0,
-      position:       index + 1,
-      isCurrentUser:  user.id === req.user.id,
-    }));
+    const leaderboard = users.map((user, index) => {
+      const probation = rpg.getProbationInfo(user.createdAt);
+      return {
+        id: user.id, username: user.username, avatar: user.avatar,
+        level: user.level, xp: user.xp, rank: user.rank, streak: user.streak,
+        class: user.class, statStr: user.statStr, statInt: user.statInt,
+        statVit: user.statVit, statDis: user.statDis, statWis: user.statWis,
+        statGol: user.statGol, comboStreak: user.comboStreak, deathCount: user.deathCount,
+        gymSessions:    user._count.gymSessions,
+        cardioKm:       cardioKmMap[user.id] ?? 0,
+        habitsStreak:   user.streak,
+        goalsCompleted: goalsMap[user.id] ?? 0,
+        studyHours:     studyItemsMap[user.id] ?? 0,
+        position:       index + 1,
+        isCurrentUser:  user.id === req.user.id,
+        isProbation:         probation.isProbation,
+        probationDaysLeft:   probation.daysLeft,
+      };
+    });
 
     res.json({ leaderboard });
   } catch (err) {

@@ -427,6 +427,7 @@ export default function ColiseumPage() {
       qc.invalidateQueries({ queryKey: ['bets-all'] })
       qc.invalidateQueries({ queryKey: ['bets-my'] })
       qc.invalidateQueries({ queryKey: ['rpg-character'] })
+      qc.invalidateQueries({ queryKey: ['rpg-combo'] })
       const d = res.data
       if (d.won) toast.success(`👑 ¡Victoria! +${d.xpAwarded} XP`)
       else toast.error('💀 Caíste en combate')
