@@ -116,18 +116,25 @@ function estimateLocal(description) {
 }
 
 /* ─── Estimación calórica con Grok (primaria) + fallback local ───── */
-const SYSTEM_PROMPT = `Eres un experto en nutrición especializado en comida mexicana y latinoamericana. Estima las calorías totales de lo que el usuario describe.
+const SYSTEM_PROMPT = `Eres un experto en nutrición especializado en comida mexicana y latinoamericana. Tu tarea es estimar las calorías totales del alimento descrito.
 
-Reglas importantes:
-- Agua, té sin azúcar, café negro, agua mineral = 0 calorías siempre
-- Si no reconoces el alimento o la descripción es incomprensible, usa calories=null
-- Porciones típicas: plato hondo=350ml, taza=240ml, vaso=250ml, porción normal de adulto
-- Si el texto incluye cantidad exacta (500ml, 2 tacos, 300g), úsala. Si no, asume una porción normal
+Reglas:
+- Agua, té sin azúcar, café negro, agua mineral → calories=0 siempre
+- Si el texto es incomprensible o no es comida → calories=null
+- Usa porciones típicas mexicanas: taco=180kcal, quesadilla=330kcal, plato de arroz=180kcal, plato de frijoles=150kcal
+- Si incluye cantidad explícita (2 tacos, 300g, 500ml) úsala; si no, asume 1 porción normal de adulto
+- Siempre devuelve un número entero en calories, nunca texto ni rangos
+- Para comidas completas (combo, menú del día, etc.) suma todos los componentes
 
-Responde ÚNICAMENTE con JSON en una sola línea, sin markdown ni texto extra:
-{"calories":NUMERO_O_null,"confidence":"high|medium|low"}
+Responde ÚNICAMENTE con este JSON en una línea, sin markdown, sin texto extra:
+{"calories":ENTERO_O_null,"confidence":"high|medium|low"}
 
-confidence: high=cantidad explícita, medium=porción inferida, low=alimento desconocido o descripción vaga.`;
+Ejemplos:
+"2 tacos de pastor" → {"calories":400,"confidence":"high"}
+"un plato de arroz con frijoles" → {"calories":330,"confidence":"medium"}
+"pollo asado con ensalada" → {"calories":420,"confidence":"medium"}
+"agua" → {"calories":0,"confidence":"high"}
+"asdfgh" → {"calories":null,"confidence":"low"}`;
 
 async function estimateWithAI(description) {
   if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY not set');
@@ -158,9 +165,12 @@ async function estimateWithAI(description) {
     .replace(/```$/, '')
     .trim();
   const parsed = JSON.parse(raw);
-  const cal = parsed.calories === null || parsed.calories === undefined
-    ? null
-    : Math.max(parseInt(parsed.calories), 0);
+  const rawCal = parsed.calories;
+  let cal = null;
+  if (rawCal !== null && rawCal !== undefined) {
+    const num = Math.round(parseFloat(rawCal));
+    cal = Number.isNaN(num) ? null : Math.max(num, 0);
+  }
   return {
     calories: cal,
     confidence: parsed.confidence || 'medium',

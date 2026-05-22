@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target, Plus, X, Dumbbell, BookOpen, DollarSign, Star,
-  Check, Calendar, ChevronDown, ChevronUp, Trash2, Zap,
+  Check, Calendar, ChevronDown, ChevronUp, Trash2, Zap, RotateCcw,
 } from 'lucide-react';
 import { goalsApi, rpgApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -168,10 +168,11 @@ function QuickMissionsPanel() {
 }
 
 /* ─── Goal Card ──────────────────────────────────────────────────── */
-function GoalCard({ goal, onToggle, onDelete }: {
+function GoalCard({ goal, onToggle, onDelete, onReactivate }: {
   goal: Goal;
   onToggle: (goalId: string, milestoneId: string) => void;
   onDelete: (goalId: string) => void;
+  onReactivate: (goalId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const cat = CAT[goal.category];
@@ -191,7 +192,7 @@ function GoalCard({ goal, onToggle, onDelete }: {
       {/* Header */}
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className={`p-2 rounded-xl ${cat.bg}`}>
               <Icon className="w-4 h-4" style={{ color: cat.color }} />
             </div>
@@ -199,10 +200,17 @@ function GoalCard({ goal, onToggle, onDelete }: {
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PRIORITY_COLORS[goal.priority]}`}>
               {{ low: 'Baja', medium: 'Media', high: 'Alta' }[goal.priority]}
             </span>
+            {isCompleted && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full border border-green-500/40 bg-green-500/10 text-green-400">
+                ✓ Completada
+              </span>
+            )}
           </div>
-          <button onClick={() => onDelete(goal.id)} className="text-gray-700 hover:text-red-400 transition-colors p-1">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {!isCompleted && (
+            <button onClick={() => onDelete(goal.id)} className="text-gray-700 hover:text-red-400 transition-colors p-1 flex-shrink-0">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         <h3 className="text-white font-bold text-base mb-3">{goal.title}</h3>
@@ -232,6 +240,26 @@ function GoalCard({ goal, onToggle, onDelete }: {
             <span>{new Date(goal.deadline).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
         )}
+
+        {/* Completed goal actions */}
+        {isCompleted && (
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => onReactivate(goal.id)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-all"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reactivar
+            </button>
+            <button
+              onClick={() => onDelete(goal.id)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-xs font-semibold hover:bg-red-500/20 transition-all"
+            >
+              <Trash2 className="w-3 h-3" />
+              Eliminar
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Milestones */}
@@ -258,8 +286,9 @@ function GoalCard({ goal, onToggle, onDelete }: {
                     <motion.button
                       key={m.id}
                       layout
-                      onClick={() => onToggle(goal.id, m.id)}
-                      className="w-full flex items-center gap-3 group text-left"
+                      onClick={() => !isCompleted && onToggle(goal.id, m.id)}
+                      disabled={isCompleted}
+                      className={`w-full flex items-center gap-3 text-left ${isCompleted ? 'cursor-default opacity-60' : 'group'}`}
                     >
                       <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
                         m.completed
@@ -517,6 +546,12 @@ export default function GoalsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['goals'] }); toast.success('Meta eliminada'); },
   });
 
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) => goalsApi.reactivate(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['goals'] }); toast.success('¡Misión reactivada! Sigue adelante.'); },
+    onError: () => toast.error('Error al reactivar'),
+  });
+
   const filtered = goals.filter((g) => {
     if (filter === 'Todas') return true;
     if (filter === 'Completadas') return g.status === 'completed';
@@ -583,6 +618,7 @@ export default function GoalsPage() {
               goal={goal}
               onToggle={(goalId, mid) => toggleMutation.mutate({ goalId, mid })}
               onDelete={(id) => deleteMutation.mutate(id)}
+              onReactivate={(id) => reactivateMutation.mutate(id)}
             />
           ))}
         </div>

@@ -95,6 +95,7 @@ export const goalsApi = {
   suggestMilestones: (id: string, data: object) => api.post(`/goals/${id}/milestones/suggest`, data),
   toggleMilestone:   (goalId: string, mid: string) => api.patch(`/goals/${goalId}/milestones/${mid}`, {}),
   addMilestone:      (goalId: string, data: object) => api.post(`/goals/${goalId}/milestones`, data),
+  reactivate:        (id: string) => api.patch(`/goals/${id}/reactivate`, {}),
 }
 
 // ─── Learning ─────────────────────────────────────────────────────

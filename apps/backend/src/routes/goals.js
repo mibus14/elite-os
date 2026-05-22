@@ -268,6 +268,29 @@ Reglas:
   }
 });
 
+/* ─── PATCH /api/goals/:id/reactivate ───────────────────────────── */
+router.patch('/:id/reactivate', authenticate, async (req, res, next) => {
+  try {
+    const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!goal) return res.status(404).json({ error: 'Goal not found' });
+
+    await prisma.milestone.updateMany({
+      where: { goalId: req.params.id },
+      data: { completed: false, completedAt: null },
+    });
+
+    const updated = await prisma.goal.update({
+      where: { id: req.params.id },
+      data: { status: 'active', currentValue: 0 },
+      include: { milestones: { orderBy: { order: 'asc' } } },
+    });
+
+    res.json({ goal: { ...updated, progressPercent: 0 } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* ─── POST /api/goals/:id/milestones ─────────────────────────────── */
 router.post('/:id/milestones', authenticate, async (req, res, next) => {
   try {
