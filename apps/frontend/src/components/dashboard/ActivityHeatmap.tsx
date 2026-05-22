@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { format, subDays, startOfWeek, addDays, parseISO } from 'date-fns';
 import type { HeatmapData } from '@/types';
@@ -89,10 +90,15 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                       transition={{ delay: (wIdx * 7 + dIdx) * 0.001, duration: 0.2 }}
                       className={`w-4 h-4 rounded-sm cursor-pointer transition-all duration-150 hover:ring-1 hover:ring-white/40 ${getCellColor(count)} ${isFuture ? 'opacity-20' : ''}`}
                       onMouseEnter={(e) => {
-                        const rect = (e.target as HTMLElement).getBoundingClientRect();
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                         setTooltip({ date: dateStr, count, x: rect.left, y: rect.top });
                       }}
                       onMouseLeave={() => setTooltip(null)}
+                      onTouchStart={(e) => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setTooltip({ date: dateStr, count, x: rect.left, y: rect.top });
+                      }}
+                      onTouchEnd={() => setTimeout(() => setTooltip(null), 1200)}
                     />
                   );
                 })}
@@ -111,17 +117,17 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
         </div>
       </div>
 
-      {/* Tooltip */}
-      {tooltip && (
+      {tooltip && typeof document !== 'undefined' && createPortal(
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed z-50 pointer-events-none bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white shadow-xl"
-          style={{ left: tooltip.x, top: tooltip.y - 40 }}
+          className="fixed pointer-events-none bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white shadow-xl"
+          style={{ left: tooltip.x, top: tooltip.y - 44, zIndex: 99999 }}
         >
           <div className="font-semibold">{format(parseISO(tooltip.date), 'MMMM d, yyyy')}</div>
           <div className="text-gray-400">{tooltip.count} activities</div>
-        </motion.div>
+        </motion.div>,
+        document.body
       )}
     </div>
   );
