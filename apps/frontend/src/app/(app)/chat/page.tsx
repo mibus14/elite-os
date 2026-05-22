@@ -71,14 +71,19 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const socketRef = useRef<Socket | null>(null)
 
-  // Socket.io connection using the same backend URL as the API
+  // Socket.io connection — fail fast on Vercel (no persistent WebSockets)
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+    if (!token) return
+    const backendUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
     const socket = io(backendUrl, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 1,
+      timeout: 6000,
     })
     socketRef.current = socket
+
+    socket.on('connect_error', () => { /* non-fatal on Vercel */ })
 
     socket.on('message:received', (msg: Message) => {
       setLocalMessages((prev) => ({
