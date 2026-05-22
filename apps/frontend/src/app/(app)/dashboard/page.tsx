@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -21,16 +22,19 @@ import {
 import { dashboardApi, rpgApi, dailyLogApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import type { DashboardStats, RPGCharacter } from '@/types';
-import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
-import RadarChart from '@/components/dashboard/RadarChart';
-import WeeklyXPChart from '@/components/dashboard/WeeklyXPChart';
 import GoalProgressCard from '@/components/dashboard/GoalProgressCard';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
-import MacroDonut from '@/components/dashboard/MacroDonut';
 import YouDiedScreen from '@/components/rpg/YouDiedScreen';
 import ComboCard from '@/components/rpg/ComboCard';
 import MissionsPanel from '@/components/rpg/MissionsPanel';
 import RewardsPanel from '@/components/rpg/RewardsPanel';
+
+// Lazy-load heavy Recharts components — avoids freezing mobile on initial render
+const ChartPlaceholder = () => <div className="h-full w-full rounded-2xl bg-white/5 animate-pulse min-h-[200px]" />;
+const RadarChart    = dynamic(() => import('@/components/dashboard/RadarChart'),    { ssr: false, loading: ChartPlaceholder });
+const WeeklyXPChart = dynamic(() => import('@/components/dashboard/WeeklyXPChart'), { ssr: false, loading: ChartPlaceholder });
+const MacroDonut    = dynamic(() => import('@/components/dashboard/MacroDonut'),    { ssr: false, loading: ChartPlaceholder });
+const ActivityHeatmap = dynamic(() => import('@/components/dashboard/ActivityHeatmap'), { ssr: false, loading: ChartPlaceholder });
 
 /* ─── Stat Card ──────────────────────────────────────────────────────── */
 interface StatCardProps {
@@ -46,26 +50,18 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, icon, trend, trendValue, glowColor = '#DC143C', delay = 0 }: StatCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      whileHover={{ scale: 1.02, boxShadow: `0 0 24px 2px ${glowColor}33` }}
+    <div
       className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-5 cursor-default transition-shadow"
+      style={{ animationDelay: `${delay}s` }}
     >
       <div className="flex items-start justify-between mb-3">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">{label}</span>
         <div className="p-2 rounded-xl bg-white/5">{icon}</div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: delay + 0.2 }}
-        className="text-3xl font-bold text-white leading-none mb-1"
-      >
+      <div className="text-3xl font-bold text-white leading-none mb-1">
         {value}
-      </motion.div>
+      </div>
 
       <div className="flex items-center gap-2 mt-2">
         <span className="text-xs text-gray-500">{sub}</span>
@@ -78,7 +74,7 @@ function StatCard({ label, value, sub, icon, trend, trendValue, glowColor = '#DC
           </span>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -262,8 +258,8 @@ export default function DashboardPage() {
       const res = await dashboardApi.stats();
       return res.data as DashboardStats;
     },
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
   });
 
   const { data: character } = useQuery<RPGCharacter>({

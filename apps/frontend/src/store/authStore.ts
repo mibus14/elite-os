@@ -47,9 +47,12 @@ export const useAuthStore = create<AuthState>()(
           return true
         } catch (err: any) {
           set({ isLoading: false })
-          const msg = err?.response?.data?.error || 'Login failed'
-          toast.error(msg)
-          return false
+          const msg =
+            err?.response?.data?.error ||
+            err?.response?.data?.errors?.[0]?.msg ||
+            (err?.code === 'ERR_NETWORK' ? 'No se puede conectar al servidor. Verifica tu conexión.' : null) ||
+            'Email o contraseña incorrectos.'
+          throw new Error(msg)
         }
       },
 
@@ -64,9 +67,12 @@ export const useAuthStore = create<AuthState>()(
           return true
         } catch (err: any) {
           set({ isLoading: false })
-          const msg = err?.response?.data?.error || 'Registration failed'
-          toast.error(msg)
-          return false
+          const msg =
+            err?.response?.data?.error ||
+            err?.response?.data?.errors?.[0]?.msg ||
+            (err?.code === 'ERR_NETWORK' ? 'No se puede conectar al servidor. Verifica tu conexión.' : null) ||
+            'Error al registrarse. Intenta de nuevo.'
+          throw new Error(msg)
         }
       },
 

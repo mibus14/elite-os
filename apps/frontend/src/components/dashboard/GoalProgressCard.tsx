@@ -33,7 +33,7 @@ export default function GoalProgressCard({ goals }: GoalProgressCardProps) {
 
       <div className="space-y-5">
         {goals.slice(0, 3).map((goal, idx) => {
-          const config = categoryConfig[goal.category];
+          const config = categoryConfig[goal.category as keyof typeof categoryConfig] ?? categoryConfig.personal;
           const Icon = config.icon;
           const progress = Math.min((goal.currentValue / goal.targetValue) * 100, 100);
           const daysLeft = formatDistanceToNow(new Date(goal.deadline), { addSuffix: true });

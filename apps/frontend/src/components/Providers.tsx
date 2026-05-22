@@ -13,10 +13,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
             retry: 1,
+            retryDelay: 2000,
             throwOnError: false,
+            networkMode: 'offlineFirst', // don't block on network check — mobile networks lie
           },
           mutations: {
             throwOnError: false,
+            networkMode: 'offlineFirst',
           },
         },
       })

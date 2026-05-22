@@ -17,13 +17,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
+    const url: string = err.config?.url || ''
+    const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/register')
+    if (err.response?.status === 401 && typeof window !== 'undefined' && !isAuthRoute) {
       localStorage.removeItem('elite_token')
       localStorage.removeItem('elite_user')
-      localStorage.removeItem('elite-auth') // clear zustand persisted auth
-      // Also clear the cookie set by js-cookie in lib/auth.ts
+      localStorage.removeItem('elite-auth')
       document.cookie = 'elite_token=; Max-Age=0; path=/'
-      window.location.href = '/login'
+      window.location.replace('/login')
     }
     return Promise.reject(err)
   }

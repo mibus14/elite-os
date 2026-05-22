@@ -227,11 +227,10 @@ function SidebarContent({
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
-            <Link key={href} href={href} onClick={onNavClick}>
-              <motion.div
-                whileTap={{ scale: 0.97 }}
+            <Link key={href} href={href} prefetch={false} onClick={onNavClick}>
+              <div
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group active:scale-[0.97]',
                   active
                     ? 'bg-elite-600/15 text-white border border-elite-600/25 shadow-[0_0_12px_rgba(220,20,60,0.1)]'
                     : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
@@ -244,25 +243,15 @@ function SidebarContent({
                     active ? 'text-elite-600' : 'text-gray-400 group-hover:text-gray-200'
                   )}
                 />
-                <AnimatePresence>
-                  {!collapsed && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-sm font-medium whitespace-nowrap"
-                    >
-                      {label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-                {active && !collapsed && (
-                  <motion.div
-                    layoutId="nav-active"
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-elite-600"
-                  />
+                {!collapsed && (
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {label}
+                  </span>
                 )}
-              </motion.div>
+                {active && !collapsed && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-elite-600" />
+                )}
+              </div>
             </Link>
           )
         })}

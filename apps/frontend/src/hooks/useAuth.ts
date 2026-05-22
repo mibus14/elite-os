@@ -28,12 +28,8 @@ export function useAuth() {
       setIsLoading(true)
       setError(null)
       try {
-        const success = await store.login(credentials.email, credentials.password)
-        if (success) {
-          router.replace('/dashboard')
-        } else {
-          setError('Invalid email or password.')
-        }
+        await store.login(credentials.email, credentials.password)
+        router.replace('/dashboard')
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Login failed. Please try again.'
         setError(msg)
@@ -49,12 +45,8 @@ export function useAuth() {
       setIsLoading(true)
       setError(null)
       try {
-        const success = await store.register(data)
-        if (success) {
-          router.replace('/dashboard')
-        } else {
-          setError('Registration failed. Please try again.')
-        }
+        await store.register(data)
+        router.replace('/dashboard')
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.'
         setError(msg)

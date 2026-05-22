@@ -31,7 +31,7 @@ export default function ActivityFeed({ activities }: ActivityFeedProps) {
 
       <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
         {activities.slice(0, 10).map((item, idx) => {
-          const config = activityConfig[item.type];
+          const config = activityConfig[item.type as keyof typeof activityConfig] ?? activityConfig.habit;
           const Icon = config.icon;
 
           return (
