@@ -504,7 +504,11 @@ export default function GoalsPage() {
     mutationFn: ({ goalId, mid }: { goalId: string; mid: string }) => goalsApi.toggleMilestone(goalId, mid),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['goals'] });
-      if (res.data?.justCompleted) toast.success('¡Meta completada! +100 XP', { icon: '🏆' });
+      if (res.data?.justCompleted) {
+        qc.invalidateQueries({ queryKey: ['rpg-character'] });
+        qc.invalidateQueries({ queryKey: ['rpg-combo'] });
+        toast.success('¡Meta completada! +100 XP', { icon: '🏆' });
+      }
     },
   });
 

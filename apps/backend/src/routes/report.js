@@ -20,10 +20,12 @@ router.get('/summary', authenticate, async (req, res, next) => {
       totalHabitLogs,
       totalGoals,
       completedGoals,
-      totalLearning,
+      completedLearningItems,
+      learningXPAgg,
       sleepLogs,
       savingsEntries,
       earnedSavings,
+      totalSavingsTarget,
       createdBets,
       acceptedBets,
     ] = await Promise.all([
@@ -44,23 +46,18 @@ router.get('/summary', authenticate, async (req, res, next) => {
       prisma.habitLog.count({ where: { userId, completed: true } }),
       prisma.goal.count({ where: { userId } }),
       prisma.goal.count({ where: { userId, status: 'completed' } }),
-      prisma.learningSession.aggregate({
-        where: { userId },
-        _count: { id: true },
-        _sum: { duration: true, xpEarned: true },
-      }),
+      // Learning: count completed items + sum actual XP from DailyCombo
+      prisma.learningItem.count({ where: { userId, completed: true } }),
+      prisma.dailyCombo.aggregate({ where: { userId }, _sum: { learningXP: true } }),
       prisma.dailyLog.aggregate({
         where: { userId },
         _avg: { sleepHours: true, energyLevel: true, mood: true },
         _count: { id: true },
       }),
-      // Total savings entries count
+      // Savings: entries count, earned total, and total expected
       prisma.savingsEntry.count({ where: { userId } }),
-      // Sum of earned savings
-      prisma.savingsEntry.aggregate({
-        where: { userId, earned: true },
-        _sum: { weeklyAmount: true },
-      }),
+      prisma.savingsEntry.aggregate({ where: { userId, earned: true }, _sum: { weeklyAmount: true } }),
+      prisma.savingsEntry.aggregate({ where: { userId }, _sum: { weeklyAmount: true } }),
       // Bets created by user (to determine creator win/loss)
       prisma.bet.findMany({
         where: { creatorId: userId, status: { in: ['won', 'lost', 'completed'] } },
@@ -119,9 +116,9 @@ router.get('/summary', authenticate, async (req, res, next) => {
         completed: completedGoals,
       },
       learning: {
-        totalSessions: totalLearning._count.id || 0,
-        totalMinutes: totalLearning._sum.duration || 0,
-        totalXP: totalLearning._sum.xpEarned || 0,
+        totalSessions: completedLearningItems || 0,
+        totalMinutes: 0,
+        totalXP: learningXPAgg._sum.learningXP || 0,
       },
       sleep: {
         totalLogs: sleepLogs._count.id || 0,
@@ -132,7 +129,7 @@ router.get('/summary', authenticate, async (req, res, next) => {
       savings: {
         totalGoals: savingsEntries,
         totalSaved,
-        totalTarget: totalSaved,
+        totalTarget: parseFloat((totalSavingsTarget._sum.weeklyAmount || 0).toFixed(2)),
       },
       bets: { won: wonBets, lost: Math.max(0, lostBets) },
     });

@@ -195,7 +195,11 @@ export default function FinancePage() {
 
   const createMutation = useMutation({
     mutationFn: (data: object) => financeApi.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['finance-entries'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-entries'] })
+      queryClient.invalidateQueries({ queryKey: ['rpg-character'] })
+      queryClient.invalidateQueries({ queryKey: ['rpg-combo'] })
+    },
   })
 
   const removeMutation = useMutation({

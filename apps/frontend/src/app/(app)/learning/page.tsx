@@ -65,7 +65,11 @@ export default function LearningPage() {
       return { prev }
     },
     onError: (_err, _id, ctx) => qc.setQueryData(['learning-items'], ctx?.prev),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['learning-items'] }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['learning-items'] })
+      qc.invalidateQueries({ queryKey: ['rpg-character'] })
+      qc.invalidateQueries({ queryKey: ['rpg-combo'] })
+    },
   })
 
   /* ── Handlers ── */

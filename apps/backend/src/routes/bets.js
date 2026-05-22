@@ -219,12 +219,16 @@ router.post('/:id/settle', authenticate, async (req, res, next) => {
     if (won) {
       const bonusXP = bet.xpReward + (bet.acceptances.length * 25);
       await rpg.awardXP(bet.creatorId, 'habits', bonusXP, prisma);
+      await rpg.updateCombo(bet.creatorId, 'habits', prisma);
+      await rpg.checkAndUpdateStreak(bet.creatorId, prisma);
     }
 
     // XP a aceptadores que ganaron (creador falló)
     if (!won) {
       for (const a of bet.acceptances) {
         await rpg.awardXP(a.userId, 'habits', 50, prisma);
+        await rpg.updateCombo(a.userId, 'habits', prisma);
+        await rpg.checkAndUpdateStreak(a.userId, prisma);
       }
     }
 
