@@ -128,6 +128,15 @@ model DailyCombo {
   comboMultiplier  Float    @default(1.0)
   updatedAt        DateTime @updatedAt
 
+  // Anti-cheat: XP awarded per module today (enforced in rpg.awardXP)
+  gymXP        Int @default(0)
+  cardioXP     Int @default(0)
+  nutritionXP  Int @default(0)
+  habitsXP     Int @default(0)
+  learningXP   Int @default(0)
+  financeXP    Int @default(0)
+  totalXP      Int @default(0)
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])

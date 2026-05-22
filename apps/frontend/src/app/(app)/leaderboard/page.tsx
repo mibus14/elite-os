@@ -29,6 +29,8 @@ interface LeaderboardUser {
   statGol?: number
   deathCount?: number
   comboStreak?: number
+  isProbation?: boolean
+  probationDaysLeft?: number
 }
 
 /* ─── RPG Maps ───────────────────────────────────────────────────── */
@@ -359,7 +361,17 @@ export default function LeaderboardPage() {
                           <img src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
                         </div>
                         <div>
-                          <span className="text-white font-semibold block">{user.username}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-semibold">{user.username}</span>
+                            {user.isProbation && (
+                              <span
+                                title={`En probación — ${user.probationDaysLeft}d restantes. XP al 60%.`}
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 leading-none"
+                              >
+                                ROOKIE
+                              </span>
+                            )}
+                          </div>
                           <TitleBadge user={{
                             streak: user.streak,
                             level: user.level,

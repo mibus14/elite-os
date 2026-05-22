@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/auth');
+const rpg = require('../lib/rpg');
 
 const prisma = new PrismaClient();
 
@@ -53,12 +54,16 @@ router.get('/', authenticate, async (req, res, next) => {
           weeklyHabits * 10 +
           weeklyLearning.reduce((s, l) => s + l.xpEarned, 0);
 
+        const probation = rpg.getProbationInfo(user.createdAt);
+
         return {
           ...user,
           position: index + 1,
           weeklyXP,
           weeklySessions: weeklyGym + weeklyCardio,
           isCurrentUser: user.id === req.user.id,
+          isProbation:   probation.isProbation,
+          probationDaysLeft: probation.daysLeft,
         };
       })
     );

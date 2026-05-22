@@ -43,6 +43,7 @@ router.get('/character', authenticate, async (req, res, next) => {
         comboStreak: true,
         deathCount: true,
         lastActiveDate: true,
+        createdAt: true,
       },
     });
 
@@ -69,6 +70,22 @@ router.get('/character', authenticate, async (req, res, next) => {
     ];
     const comboModulesCompleted = comboModules.filter(m => m.completed).length;
 
+    const probation = rpg.getProbationInfo(user.createdAt);
+
+    const dailyXP = {
+      gym:       todayCombo?.gymXP       ?? 0,
+      cardio:    todayCombo?.cardioXP    ?? 0,
+      nutrition: todayCombo?.nutritionXP ?? 0,
+      habits:    todayCombo?.habitsXP    ?? 0,
+      learning:  todayCombo?.learningXP  ?? 0,
+      finance:   todayCombo?.financeXP   ?? 0,
+      total:     todayCombo?.totalXP     ?? 0,
+      caps: {
+        habits: rpg.ANTI_CHEAT.HABITS_DAILY_CAP,
+        total:  rpg.ANTI_CHEAT.GLOBAL_DAILY_CAP,
+      },
+    };
+
     res.json({
       character: {
         ...user,
@@ -87,6 +104,8 @@ router.get('/character', authenticate, async (req, res, next) => {
         comboModulesRequired:  3,
         comboModules,
         classConfig: rpg.CLASS_BONUSES[user.class] || rpg.CLASS_BONUSES.Warrior,
+        probation,
+        dailyXP,
       },
     });
   } catch (err) {
