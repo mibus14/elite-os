@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,7 +18,7 @@ import {
   BookOpen,
   Apple,
 } from 'lucide-react';
-import { dashboardApi, rpgApi } from '@/lib/api';
+import { dashboardApi, rpgApi, dailyLogApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import type { DashboardStats, RPGCharacter } from '@/types';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
@@ -82,8 +82,27 @@ function StatCard({ label, value, sub, icon, trend, trendValue, glowColor = '#DC
   );
 }
 
-/* ─── Water Tracker (read-only — edita en Santuario) ────────────────── */
+/* ─── Water Tracker (interactive) ───────────────────────────────────── */
 function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
+  const qc = useQueryClient();
+  const [localCups, setLocalCups] = useState(cups);
+
+  useEffect(() => { setLocalCups(cups); }, [cups]);
+
+  const saveMutation = useMutation({
+    mutationFn: (n: number) => dailyLogApi.save({ waterGlasses: n }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['daily-log'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+
+  const set = (n: number) => {
+    const next = Math.max(0, Math.min(goal, n));
+    setLocalCups(next);
+    saveMutation.mutate(next);
+  };
+
   return (
     <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6">
       <div className="flex items-center justify-between mb-4">
@@ -91,25 +110,39 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
           <Droplets className="w-4 h-4 text-blue-400" />
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Agua</h3>
         </div>
-        <span className="text-xs text-blue-400 font-medium">{cups}/{goal} vasos</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => set(localCups - 1)}
+            disabled={localCups === 0 || saveMutation.isPending}
+            className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-sm flex items-center justify-center hover:bg-white/10 disabled:opacity-30 transition-all"
+          >−</button>
+          <span className="text-xs text-blue-400 font-medium w-16 text-center">{localCups}/{goal} vasos</span>
+          <button
+            onClick={() => set(localCups + 1)}
+            disabled={localCups === goal || saveMutation.isPending}
+            className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-sm flex items-center justify-center hover:bg-white/10 disabled:opacity-30 transition-all"
+          >+</button>
+        </div>
       </div>
       <div className="grid grid-cols-4 gap-2">
         {Array.from({ length: goal }).map((_, i) => (
-          <div
+          <motion.button
             key={i}
-            className={`h-11 rounded-xl border-2 flex items-center justify-center ${
-              i < cups
+            whileTap={{ scale: 0.92 }}
+            onClick={() => set(i < localCups ? i : i + 1)}
+            className={`h-11 rounded-xl border-2 flex items-center justify-center transition-all ${
+              i < localCups
                 ? 'bg-blue-500/80 border-blue-400 text-white'
-                : 'bg-transparent border-gray-700/50 text-gray-700'
+                : 'bg-transparent border-gray-700/50 text-gray-700 hover:border-gray-600'
             }`}
           >
             <Droplets className="w-4 h-4" />
-          </div>
+          </motion.button>
         ))}
       </div>
       <p className="text-xs text-gray-500 mt-3">
-        {(cups * 250) / 1000}L de {(goal * 250) / 1000}L ·{' '}
-        <span className="text-blue-500/50">Registra en Santuario</span>
+        {(localCups * 250) / 1000}L de {(goal * 250) / 1000}L
+        {saveMutation.isPending && <span className="ml-2 text-blue-500/50">guardando…</span>}
       </p>
     </div>
   );
@@ -229,7 +262,8 @@ export default function DashboardPage() {
       const res = await dashboardApi.stats();
       return res.data as DashboardStats;
     },
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const { data: character } = useQuery<RPGCharacter>({
