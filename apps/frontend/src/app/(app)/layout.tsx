@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import DebuffBar from '@/components/rpg/DebuffBar'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router          = useRouter()
@@ -34,7 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setMobileSidebarOpen(false)
   }, [pathname, setMobileSidebarOpen])
 
-  // Socket.io connection
+  // Socket.io connection — gracefully handles Vercel serverless (no WS)
   useEffect(() => {
     if (!user) return
 
@@ -43,15 +44,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001', {
       auth: { token },
-      transports: ['websocket'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 3,
+      reconnectionDelay: 3000,
+      timeout: 10000,
     })
 
     socketRef.current = socket
 
     socket.on('connect', () => {
       console.log('[Socket] Connected:', socket.id)
+    })
+
+    socket.on('connect_error', (err) => {
+      console.warn('[Socket] Connection error (non-fatal):', err.message)
     })
 
     socket.on('notification', (data: { title: string; message: string; type?: 'success' | 'info' | 'warning' | 'error' }) => {
@@ -90,10 +96,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Topbar */}
         <Topbar />
 
-        {/* Debuff bar — only renders when character has active debuffs */}
+        {/* Debuff bar */}
         <DebuffBar />
 
-        {/* Content */}
+        {/* Content — ErrorBoundary resets on every navigation */}
         <main
           ref={mainRef}
           className="flex-1 overflow-y-auto"
@@ -106,7 +112,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.18 }}
           >
-            {children}
+            <ErrorBoundary key={pathname}>
+              {children}
+            </ErrorBoundary>
           </motion.div>
         </main>
       </div>

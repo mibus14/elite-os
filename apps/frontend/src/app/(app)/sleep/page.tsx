@@ -4,7 +4,14 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Moon, Droplets, Zap, Smile, Check, Pencil, Lock } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, isValid } from 'date-fns'
+
+function safeFormat(dateVal: unknown, fmt: string, fallback = '—'): string {
+  try {
+    const d = new Date(dateVal as string)
+    return isValid(d) ? format(d, fmt) : fallback
+  } catch { return fallback }
+}
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -179,7 +186,7 @@ export default function SleepPage() {
   const SLEEP_PRESETS = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
   const weekChart = (weekData ?? []).map((l) => ({
-    day: format(new Date(l.date), 'EEE'),
+    day: safeFormat(l.date, 'EEE'),
     horas: l.sleepHours,
   }))
 

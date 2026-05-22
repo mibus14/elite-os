@@ -8,7 +8,14 @@ import {
   ShieldAlert, Home, Leaf,
   Sun, Sunset, Moon, Cookie, Settings2, ChevronDown,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+function safeFormat(dateVal: unknown, fmt: string, fallback = '—'): string {
+  try {
+    const d = new Date(dateVal as string)
+    return isValid(d) ? format(d, fmt) : fallback
+  } catch { return fallback }
+}
 import { nutritionApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import QuickNutritionModal from '@/components/nutrition/QuickNutritionModal';
@@ -164,7 +171,7 @@ export default function NutritionPage() {
     if (weeklyData?.stats) {
       setWeekStats(weeklyData.stats.map((d: any) => ({
         ...d,
-        day: format(new Date(d.date + 'T12:00:00'), 'EEE'),
+        day: safeFormat(d.date ? d.date + 'T12:00:00' : null, 'EEE'),
       })));
     }
   }, [weeklyData]);

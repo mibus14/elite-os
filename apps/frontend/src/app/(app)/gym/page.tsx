@@ -15,7 +15,14 @@ import {
   Weight,
   TrendingUp,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+function safeFormat(dateVal: unknown, fmt: string, fallback = '—'): string {
+  try {
+    const d = new Date(dateVal as string)
+    return isValid(d) ? format(d, fmt) : fallback
+  } catch { return fallback }
+}
 import {
   LineChart,
   Line,
@@ -199,7 +206,7 @@ export default function GymPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <h3 className="text-white font-bold text-lg">{session.name}</h3>
-                      <p className="text-gray-500 text-sm">{format(new Date(session.date), 'EEEE, MMM d')}</p>
+                      <p className="text-gray-500 text-sm">{safeFormat(session.date, 'EEEE, MMM d')}</p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-gray-400 text-sm">
@@ -279,7 +286,7 @@ export default function GymPage() {
                     </td>
                     <td className="px-6 py-4 text-right text-gray-300">{rec.reps}</td>
                     <td className="px-6 py-4 text-right text-gray-500 text-sm">
-                      {format(new Date(rec.date), 'MMM d, yyyy')}
+                      {safeFormat(rec.date, 'MMM d, yyyy')}
                     </td>
                   </motion.tr>
                 ))}
