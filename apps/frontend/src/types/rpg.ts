@@ -3,6 +3,8 @@ export interface RPGCharacter {
   level: number
   xp: number
   rank: string
+  streak: number
+  longestStreak: number
   statStr: number
   statInt: number
   statVit: number

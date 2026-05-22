@@ -32,19 +32,11 @@ router.get('/stats', authenticate, async (req, res, next) => {
       }),
     ]);
 
-    // ── Weekly XP (estimate from activity this week) ──────────────────────────
-    const [gymThisWeek, cardioThisWeek, habitLogsThisWeek, learningThisWeek] = await Promise.all([
+    // ── Weekly session counts (for sessionsThisWeek stat card) ───────────────
+    const [gymThisWeek, cardioThisWeek] = await Promise.all([
       prisma.gymSession.count({ where: { userId, date: { gte: weekStart } } }),
       prisma.cardioSession.count({ where: { userId, date: { gte: weekStart } } }),
-      prisma.habitLog.count({ where: { userId, date: { gte: weekStart }, completed: true } }),
-      prisma.learningSession.findMany({ where: { userId, date: { gte: weekStart } }, select: { xpEarned: true } }),
     ]);
-
-    const weeklyXP =
-      gymThisWeek * 50 +
-      cardioThisWeek * 30 +
-      habitLogsThisWeek * 10 +
-      learningThisWeek.reduce((sum, s) => sum + s.xpEarned, 0);
 
     // ── Calories today ────────────────────────────────────────────────────────
     const todayMeals = await prisma.meal.aggregate({
@@ -122,28 +114,14 @@ router.get('/stats', authenticate, async (req, res, next) => {
 
     const weeklyHeatmap = Object.entries(heatmapMap).map(([date, count]) => ({ date, count }));
 
-    // ── Yesterday XP estimate ─────────────────────────────────────────────
+    // ── Today + Yesterday XP (actual, from DailyCombo) ───────────────────
     const yesterday = startOfDay(addDays(today, -1));
-    const [gymYesterday, cardioYesterday, habitYesterday, learningYesterday] = await Promise.all([
-      prisma.gymSession.count({ where: { userId, date: yesterday } }),
-      prisma.cardioSession.count({ where: { userId, date: yesterday } }),
-      prisma.habitLog.count({ where: { userId, date: yesterday, completed: true } }),
-      prisma.learningSession.findMany({ where: { userId, date: yesterday }, select: { xpEarned: true } }),
+    const [todayCombo, yesterdayCombo] = await Promise.all([
+      prisma.dailyCombo.findFirst({ where: { userId, date: today }, select: { totalXP: true } }),
+      prisma.dailyCombo.findFirst({ where: { userId, date: yesterday }, select: { totalXP: true } }),
     ]);
-    const yesterdayXP =
-      gymYesterday * 50 + cardioYesterday * 30 + habitYesterday * 10 +
-      learningYesterday.reduce((s, l) => s + l.xpEarned, 0);
-
-    // ── Today XP ──────────────────────────────────────────────────────────
-    const [gymToday, cardioToday, habitToday, learningToday] = await Promise.all([
-      prisma.gymSession.count({ where: { userId, date: today } }),
-      prisma.cardioSession.count({ where: { userId, date: today } }),
-      prisma.habitLog.count({ where: { userId, date: today, completed: true } }),
-      prisma.learningSession.findMany({ where: { userId, date: today }, select: { xpEarned: true } }),
-    ]);
-    const todayXP =
-      gymToday * 50 + cardioToday * 30 + habitToday * 10 +
-      learningToday.reduce((s, l) => s + l.xpEarned, 0);
+    const todayXP     = todayCombo?.totalXP     ?? 0;
+    const yesterdayXP = yesterdayCombo?.totalXP ?? 0;
 
     // ── Macros today ──────────────────────────────────────────────────────
     const macroAgg = await prisma.meal.aggregate({
@@ -174,20 +152,18 @@ router.get('/stats', authenticate, async (req, res, next) => {
       { subject: 'Goals',     value: Math.min(100, totalGoalsCompleted * 12), fullMark: 100 },
     ];
 
-    // ── Weekly XP per day ─────────────────────────────────────────────────
+    // ── Weekly XP per day (actual, from DailyCombo) ──────────────────────
     const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const weeklyXPPerDay = await Promise.all(
       Array.from({ length: 7 }, async (_, i) => {
         const day = startOfDay(addDays(today, -(6 - i)));
-        const [g, c, h, l] = await Promise.all([
-          prisma.gymSession.count({ where: { userId, date: day } }),
-          prisma.cardioSession.count({ where: { userId, date: day } }),
-          prisma.habitLog.count({ where: { userId, date: day, completed: true } }),
-          prisma.learningSession.findMany({ where: { userId, date: day }, select: { xpEarned: true } }),
-        ]);
+        const combo = await prisma.dailyCombo.findFirst({
+          where: { userId, date: day },
+          select: { totalXP: true },
+        });
         return {
           day: DAYS[day.getDay()],
-          xp: g * 50 + c * 30 + h * 10 + l.reduce((s, x) => s + x.xpEarned, 0),
+          xp: combo?.totalXP ?? 0,
         };
       })
     );

@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/auth');
 const axios = require('axios');
+const rpg = require('../lib/rpg');
 
 const prisma = new PrismaClient();
 
@@ -75,7 +76,14 @@ router.patch('/items/:id', authenticate, async (req, res, next) => {
       where: { id: req.params.id },
       data: { completed: nowDone, completedAt: nowDone ? new Date() : null },
     });
-    res.json({ item: updated });
+    let xpAwarded = 0;
+    if (nowDone) {
+      const { finalXP } = await rpg.awardXP(req.user.id, 'learning', 30, prisma);
+      xpAwarded = finalXP;
+      await rpg.updateCombo(req.user.id, 'learning', prisma);
+      await rpg.checkAndUpdateStreak(req.user.id, prisma);
+    }
+    res.json({ item: updated, xpAwarded });
   } catch (err) { next(err); }
 });
 

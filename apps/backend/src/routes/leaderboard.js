@@ -38,21 +38,17 @@ router.get('/', authenticate, async (req, res, next) => {
 
     const enriched = await Promise.all(
       users.map(async (user, index) => {
-        const [weeklyGym, weeklyCardio, weeklyHabits, weeklyLearning] = await Promise.all([
+        const [weeklyCombos, weeklyGym, weeklyCardio] = await Promise.all([
+          // Use actual XP earned from DailyCombo (respects anti-cheat + debuffs)
+          prisma.dailyCombo.aggregate({
+            where: { userId: user.id, date: { gte: weekStart } },
+            _sum: { totalXP: true },
+          }),
           prisma.gymSession.count({ where: { userId: user.id, date: { gte: weekStart } } }),
           prisma.cardioSession.count({ where: { userId: user.id, date: { gte: weekStart } } }),
-          prisma.habitLog.count({ where: { userId: user.id, date: { gte: weekStart }, completed: true } }),
-          prisma.learningSession.findMany({
-            where: { userId: user.id, date: { gte: weekStart } },
-            select: { xpEarned: true },
-          }),
         ]);
 
-        const weeklyXP =
-          weeklyGym * 50 +
-          weeklyCardio * 30 +
-          weeklyHabits * 10 +
-          weeklyLearning.reduce((s, l) => s + l.xpEarned, 0);
+        const weeklyXP = weeklyCombos._sum.totalXP ?? 0;
 
         const probation = rpg.getProbationInfo(user.createdAt);
 

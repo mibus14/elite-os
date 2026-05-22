@@ -171,6 +171,7 @@ router.post(
       if (justCompleted) {
         await rpg.awardXP(req.user.id, 'habits', 100, prisma);
         await rpg.updateCombo(req.user.id, 'habits', prisma);
+        await rpg.checkAndUpdateStreak(req.user.id, prisma);
       }
 
       res.json({
@@ -310,6 +311,7 @@ router.patch('/:id/milestones/:mid', authenticate, async (req, res, next) => {
     if (justCompleted) {
       await rpg.awardXP(req.user.id, 'habits', 100, prisma);
       await rpg.updateCombo(req.user.id, 'habits', prisma);
+      await rpg.checkAndUpdateStreak(req.user.id, prisma);
     }
 
     res.json({ goal: updatedGoal, justCompleted });

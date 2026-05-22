@@ -143,8 +143,8 @@ async function awardXP(userId, module, baseXP, prisma) {
   const today = startOfToday();
 
   // ── Anti-cheat layer 1 & 2: per-module + global daily caps ───────────────
-  const todayCombo = await prisma.dailyCombo.findUnique({
-    where: { userId_date: { userId, date: today } },
+  const todayCombo = await prisma.dailyCombo.findFirst({
+    where: { userId, date: today },
   });
 
   const field = moduleXPField(module);
@@ -336,8 +336,8 @@ async function updateCombo(userId, module, prisma) {
     update: { [moduleField]: true },
   });
 
-  const updated = await prisma.dailyCombo.findUnique({
-    where: { userId_date: { userId, date: today } },
+  const updated = await prisma.dailyCombo.findFirst({
+    where: { userId, date: today },
   });
 
   const doneCount = [
@@ -389,11 +389,17 @@ async function checkAndUpdateStreak(userId, prisma) {
   let newFailStreak = user.failStreak;
   let newComboStreak = user.comboStreak;
 
-  if (user.lastActiveDate && isYesterday(user.lastActiveDate)) {
+  if (!user.lastActiveDate) {
+    // First ever activity — start streak at 1, no penalty for new users
+    newStreak      = 1;
+    newFailStreak  = 0;
+    newComboStreak = 0;
+  } else if (isYesterday(user.lastActiveDate)) {
     newStreak      = user.streak + 1;
     newFailStreak  = 0;
     newComboStreak = user.comboStreak + 1;
   } else {
+    // Missed one or more days
     newStreak      = 1;
     newFailStreak  = user.failStreak + 1;
     newComboStreak = 0;

@@ -277,11 +277,6 @@ function MiniPanel({
   const { user } = useAuthStore()
   const meta = CLASS_META[char.class] ?? { emoji: '⚔️', label: char.class }
 
-  const xpPct = Math.min(
-    100,
-    ((char.xp - (char.level - 1) * 500) / (char.level * 500 - (char.level - 1) * 500)) * 100
-  )
-
   return (
     <button
       onClick={onExpand}
@@ -320,17 +315,8 @@ function MiniPanel({
           </span>
         </div>
 
-        {/* XP bar */}
-        <div className="w-full h-1 bg-white/[0.06] rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-[#B91C1C] to-[#DC143C]"
-            initial={{ width: 0 }}
-            animate={{ width: `${xpPct}%` }}
-            transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-          />
-        </div>
-        <p className="text-[9px] text-gray-600 mt-1 text-right">
-          {char.xp.toLocaleString()} XP
+        <p className="text-[10px] text-gray-600 mt-0.5">
+          Toca para ver atributos y debuffs
         </p>
       </div>
     </button>

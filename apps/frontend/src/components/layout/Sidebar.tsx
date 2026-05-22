@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { Progress } from '@/components/ui/Progress'
 import { CharacterPanel } from '@/components/rpg/CharacterPanel'
 import { rpgApi, seasonsApi } from '@/lib/api'
+import type { RPGCharacter } from '@/types/rpg'
 
 const navItems = [
   { href: '/dashboard',   label: 'Cuartel',         icon: LayoutDashboard },
@@ -137,9 +138,21 @@ function SidebarContent({
   const { user } = useAuthStore()
   const { toggleSidebar } = useUIStore()
 
-  const currentLevelXp = getXpForCurrentLevel(user?.level ?? 1)
-  const nextLevelXp    = getXpForNextLevel(user?.level ?? 1)
-  const xpInLevel      = (user?.xp ?? 0) - currentLevelXp
+  // Live XP from server so it matches what missions award
+  const { data: charData } = useQuery<RPGCharacter>({
+    queryKey: ['rpg-character'],
+    queryFn: () => rpgApi.character().then(r => r.data.character as RPGCharacter),
+    staleTime: 30_000,
+    retry: false,
+  })
+  const liveXp    = charData?.xp    ?? user?.xp    ?? 0
+  const liveLevel = charData?.level ?? user?.level ?? 1
+  const liveRank  = charData?.rank  ?? user?.rank  ?? 'Bronze'
+  const liveStreak = charData?.streak ?? user?.streak ?? 0
+
+  const currentLevelXp = getXpForCurrentLevel(liveLevel)
+  const nextLevelXp    = getXpForNextLevel(liveLevel)
+  const xpInLevel      = liveXp - currentLevelXp
   const xpNeeded       = nextLevelXp - currentLevelXp
   const xpPct          = Math.min(100, (xpInLevel / xpNeeded) * 100)
 
@@ -190,8 +203,8 @@ function SidebarContent({
               />
               <div className="overflow-hidden">
                 <p className="text-sm font-semibold text-white truncate">{user.username}</p>
-                <p className={cn('text-xs font-medium', rankColors[user.rank] ?? 'text-gray-400')}>
-                  {user.rank} · Lv.{user.level}
+                <p className={cn('text-xs font-medium', rankColors[liveRank] ?? 'text-gray-400')}>
+                  {liveRank} · Lv.{liveLevel}
                 </p>
               </div>
             </div>
@@ -199,11 +212,11 @@ function SidebarContent({
             <div className="flex items-center justify-between mt-1">
               <span className="text-[10px] text-gray-600 flex items-center gap-1">
                 <Zap size={9} className="text-yellow-400" />
-                {user.xp.toLocaleString()} XP
+                {liveXp.toLocaleString()} XP
               </span>
               <span className="text-[10px] text-gray-600 flex items-center gap-1">
                 <Flame size={9} className="text-orange-400" />
-                {user.streak}d
+                {liveStreak}d
               </span>
             </div>
             {seasonData?.season && (

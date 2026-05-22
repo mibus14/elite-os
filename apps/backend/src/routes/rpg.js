@@ -54,8 +54,8 @@ router.get('/character', authenticate, async (req, res, next) => {
         where: { userId, active: true, expiresAt: { gt: now } },
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.dailyCombo.findUnique({
-        where: { userId_date: { userId, date: today } },
+      prisma.dailyCombo.findFirst({
+        where: { userId, date: today },
       }),
     ]);
 
@@ -99,6 +99,7 @@ router.get('/character', authenticate, async (req, res, next) => {
         },
         debuffs,
         todayCombo: todayCombo || null,
+        combo:      todayCombo || null,
         comboActive:           todayCombo?.comboActive      ?? false,
         comboModulesCompleted,
         comboModulesRequired:  3,
@@ -168,8 +169,8 @@ router.get('/combo', authenticate, async (req, res, next) => {
     const userId = req.user.id;
     const today = startOfToday();
 
-    const combo = await prisma.dailyCombo.findUnique({
-      where: { userId_date: { userId, date: today } },
+    const combo = await prisma.dailyCombo.findFirst({
+      where: { userId, date: today },
     });
 
     res.json({
@@ -427,8 +428,8 @@ router.get('/quick-missions', authenticate, async (req, res, next) => {
         where: { userId, date: today },
         select: { missionId: true, xpAwarded: true },
       }),
-      prisma.dailyCombo.findUnique({
-        where: { userId_date: { userId, date: today } },
+      prisma.dailyCombo.findFirst({
+        where: { userId, date: today },
         select: { quickXP: true, totalXP: true },
       }),
     ]);
@@ -470,8 +471,8 @@ router.post('/quick-missions/:id/complete', authenticate, async (req, res, next)
     }
 
     // Daily quick XP cap check
-    const todayCombo = await prisma.dailyCombo.findUnique({
-      where: { userId_date: { userId, date: today } },
+    const todayCombo = await prisma.dailyCombo.findFirst({
+      where: { userId, date: today },
       select: { quickXP: true, totalXP: true },
     });
     const currentQuickXP = todayCombo?.quickXP ?? 0;

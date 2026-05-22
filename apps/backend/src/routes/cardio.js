@@ -64,6 +64,7 @@ router.post(
         const { finalXP } = await rpg.awardXP(req.user.id, 'cardio', 40, prisma);
         xpAwarded = finalXP;
         await rpg.updateCombo(req.user.id, 'cardio', prisma);
+        await rpg.checkAndUpdateStreak(req.user.id, prisma);
       }
       res.status(201).json({ session, xpAwarded });
     } catch (err) {
