@@ -192,8 +192,11 @@ router.get('/stats', authenticate, async (req, res, next) => {
       })
     );
 
-    // ── Water today ───────────────────────────────────────────────────────
-    const dailyLogToday = await prisma.dailyLog.findUnique({ where: { userId_date: { userId, date: today } } });
+    // ── Water today + nutrition goal ─────────────────────────────────────
+    const [dailyLogToday, nutritionGoal] = await Promise.all([
+      prisma.dailyLog.findUnique({ where: { userId_date: { userId, date: today } } }),
+      prisma.nutritionGoal.findUnique({ where: { userId } }),
+    ]);
 
     // ── Format activity feed ──────────────────────────────────────────────
     const formattedFeed = activityFeed.map((a) => ({
@@ -216,7 +219,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
       habitsCompleted:  completedHabitsToday,
       habitsTotal:      totalHabits,
       caloriesConsumed: todayMeals._sum.calories || 0,
-      caloriesGoal:     2200,
+      caloriesGoal:     nutritionGoal?.calories ?? 2200,
       sessionsThisWeek: gymThisWeek + cardioThisWeek,
       avgSleep:         parseFloat(avgSleep.toFixed(1)),
       sleepHours:       dailyLogToday?.sleepHours ?? 0,
