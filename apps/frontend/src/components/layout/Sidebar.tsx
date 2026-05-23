@@ -12,7 +12,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { cn } from '@/lib/utils'
+import { cn, getAvatarUrl } from '@/lib/utils'
 import { Progress } from '@/components/ui/Progress'
 import { CharacterPanel } from '@/components/rpg/CharacterPanel'
 import { rpgApi, seasonsApi } from '@/lib/api'
@@ -199,7 +199,7 @@ function SidebarContent({
           >
             <div className="flex items-center gap-3 mb-3">
               <img
-                src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                src={getAvatarUrl(user.avatar, user.username)}
                 alt={user.username}
                 className="w-9 h-9 rounded-full border border-elite-600/30 flex-shrink-0"
               />

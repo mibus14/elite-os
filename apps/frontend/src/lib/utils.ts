@@ -48,3 +48,17 @@ export function getXpProgress(xp: number, level: number) {
 export function getMacroColor(macro: 'protein' | 'carbs' | 'fat'): string {
   return { protein: '#3B82F6', carbs: '#F59E0B', fat: '#EF4444' }[macro]
 }
+
+const AVATAR_SLUG_STYLE: Record<string, string> = {
+  avatar_pixel: 'pixel-art',
+  avatar_robot: 'bottts',
+  avatar_dark:  'fun-emoji',
+}
+
+export function getAvatarUrl(avatar: string | null | undefined, username: string): string {
+  if (!avatar) return `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
+  if (avatar.startsWith('http')) return avatar
+  const style = AVATAR_SLUG_STYLE[avatar]
+  if (style) return `https://api.dicebear.com/7.x/${style}/svg?seed=${username}`
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
+}

@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { useRouter, usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { cn, getAvatarUrl } from '@/lib/utils'
 import { format } from 'date-fns'
 import type { RPGCharacter } from '@/types'
 import { rpgApi, dashboardApi } from '@/lib/api'
@@ -195,7 +195,7 @@ export function Topbar({ title }: { title?: string }) {
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 transition-all"
           >
             <img
-              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`}
+              src={getAvatarUrl(user?.avatar, user?.username ?? '')}
               alt={user?.username}
               className="w-7 h-7 rounded-full border border-elite-600/30"
             />

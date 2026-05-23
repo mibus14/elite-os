@@ -74,9 +74,11 @@ export default function LearningPage() {
 
   /* ── Handlers ── */
   function handleAddInterest() {
-    const name = newInterest.trim()
-    if (!name) return
-    addInterestMutation.mutate(name)
+    const raw = newInterest.trim()
+    if (!raw) return
+    // Split by comma so "Python, ML, inglés" creates 3 chips
+    const names = raw.split(',').map((s) => s.trim()).filter(Boolean)
+    names.forEach((name) => addInterestMutation.mutate(name))
     setNewInterest('')
   }
 

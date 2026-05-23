@@ -17,7 +17,7 @@ const config: Config = {
           300: '#fda4af',
           400: '#fb7185',
           500: '#FF6B6B',
-          600: '#DC143C',
+          600: 'rgb(var(--accent-rgb) / <alpha-value>)',
           700: '#B91C1C',
           800: '#991b1b',
           900: '#7f1d1d',

@@ -12,6 +12,9 @@
   --bg-border:  #1A1A1A;
   --bg-elevated:#141414;
 
+  /* Accent (dynamic — updated by AccentApplier) */
+  --accent-rgb:      220 20 60;
+
   /* Elite / Crimson scale */
   --elite-primary:   #DC143C;
   --elite-neon:      #FF003C;

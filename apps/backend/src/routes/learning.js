@@ -87,29 +87,70 @@ router.patch('/items/:id', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-/* ─── Fallback suggestion pool (varied, random) ──────────────────── */
-const FALLBACK_TEMPLATES = [
-  (i) => `Fundamentos esenciales de ${i}`,
-  (i) => `Proyecto práctico desde cero con ${i}`,
-  (i) => `${i} avanzado: patrones y mejores prácticas`,
-  (i) => `Guía paso a paso para aprender ${i}`,
-  (i) => `Los 10 conceptos clave de ${i}`,
-  (i) => `Cómo aplicar ${i} en proyectos reales`,
-  (i) => `Errores comunes en ${i} y cómo evitarlos`,
-  (i) => `De cero a intermedio en ${i}: hoja de ruta`,
-  (i) => `${i} en la práctica: ejercicios y retos`,
-  (i) => `Recursos esenciales para dominar ${i}`,
-  (i) => `${i} para principiantes: primer proyecto real`,
-  (i) => `Teoría que todo experto en ${i} conoce`,
-  (i) => `${i}: comparativa de herramientas y enfoques`,
-  (i) => `30 días de ${i}: plan de estudio intensivo`,
-  (i) => `Casos de uso reales donde brilla ${i}`,
-];
+/* ─── Fallback suggestion pool ───────────────────────────────────── */
+// Varied, topic-specific fallbacks when AI is unavailable
+const FALLBACK_SPECIFIC = {
+  // Dev / tech
+  python:        ['Automatización de tareas con Python: scripts para tu día a día', 'Análisis de datos con pandas y matplotlib desde cero', 'Construye una API REST con FastAPI y despliégala'],
+  javascript:    ['Event loop y asincronía en JS: Promises, async/await', 'Construye una SPA con Vanilla JS sin frameworks', 'Patrones de diseño en JavaScript: module, observer, factory'],
+  react:         ['Estado global con Zustand vs Redux: cuándo usar cada uno', 'React Query para manejo de datos remotos en apps reales', 'Optimización de renders: memo, useMemo, useCallback'],
+  typescript:    ['Tipos genéricos en TypeScript: guía práctica', 'Migrando un proyecto JS a TS: estrategia paso a paso', 'Utility types avanzados: Partial, Required, Pick, Omit'],
+  sql:           ['JOINs explicados: INNER, LEFT, RIGHT, FULL con ejemplos reales', 'Optimización de queries: índices, EXPLAIN y performance', 'Diseño de esquemas: normalización y sus excepciones'],
+  docker:        ['Construye tu primer Dockerfile y docker-compose', 'Orquestación con Docker Swarm vs Kubernetes: diferencias', 'Redes y volúmenes en Docker: guía de supervivencia'],
+  git:           ['Git avanzado: rebase interactivo, cherry-pick y bisect', 'Estrategias de branching: Git Flow vs Trunk Based', 'Resuelve conflictos de merge como un profesional'],
+  // Fitness / salud
+  gym:           ['Periodización de entrenamiento: cómo planear mesociclos', 'Los 5 patrones de movimiento que debes dominar', 'Técnica del peso muerto rumano desde cero'],
+  nutricion:     ['Cálculo de macros para tu objetivo: corte o volumen', 'Meal prep efectivo: 5 recetas altas en proteína', 'Suplementación basada en evidencia: qué sí y qué no'],
+  meditacion:    ['Meditación Vipassana: 10 minutos diarios durante 30 días', 'Body scan para reducir estrés: técnica paso a paso', 'Diferencias entre mindfulness, meditación y concentración'],
+  // Negocios / finanzas
+  finanzas:      ['Presupuesto personal con el método 50/30/20', 'Inversión indexada: ETFs y fondos para principiantes', 'Cómo leer un estado financiero en 30 minutos'],
+  marketing:     ['Embudo de conversión: TOFU, MOFU y BOFU explicados', 'Google Ads desde cero: campaña de búsqueda con presupuesto bajo', 'Copywriting persuasivo: las 6 fórmulas que funcionan'],
+  ventas:        ['SPIN Selling: cómo hacer preguntas que cierran ventas', 'Manejo de objeciones: las 5 más comunes y cómo responderlas', 'CRM en la práctica: Pipeline y seguimiento de leads'],
+  // Idiomas
+  ingles:        ['Phrasal verbs esenciales para contextos de trabajo', 'Técnica de shadowing para mejorar pronunciación', 'Business English: emails, reuniones y presentaciones'],
+  japones:       ['Hiragana y Katakana en 2 semanas: método de trazos', 'Las 100 palabras más usadas en japonés cotidiano', 'Genki I: estructura de estudio capítulo a capítulo'],
+};
 
 function pickFallback(interest) {
-  const shuffled = [...FALLBACK_TEMPLATES].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 3).map((fn) => ({ tag: interest, title: fn(interest) }));
+  const key = interest.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g,'');
+  const match = Object.entries(FALLBACK_SPECIFIC).find(([k]) => key.includes(k));
+  if (match) {
+    const titles = match[1].sort(() => Math.random() - 0.5).slice(0, 3);
+    return titles.map((title) => ({ tag: interest, title }));
+  }
+  // Generic fallback with varied types
+  const generic = [
+    `${interest}: proyecto práctico de nivel principiante a intermedio`,
+    `Los conceptos que más se usan en ${interest} en el mundo real`,
+    `Hoja de ruta para dominar ${interest} en 3 meses`,
+    `${interest} explicado con ejemplos aplicados`,
+    `Los errores más comunes aprendiendo ${interest} y cómo evitarlos`,
+    `Recursos y comunidades top para aprender ${interest}`,
+  ].sort(() => Math.random() - 0.5).slice(0, 3);
+  return generic.map((title) => ({ tag: interest, title }));
 }
+
+const GENERATE_SYSTEM = `Eres un tutor experto en aprendizaje. Tu trabajo es generar sugerencias de estudio MUY ESPECÍFICAS y concretas, nunca genéricas.
+
+REGLAS ESTRICTAS:
+1. Cada sugerencia debe nombrar conceptos, herramientas, técnicas o proyectos CONCRETOS del tema
+2. NO generes frases genéricas como "Fundamentos de X", "Aprende X desde cero", "Guía de X" sin especificar QUÉ exactamente
+3. Varía los tipos: un proyecto práctico, un concepto técnico específico, una técnica/método con nombre propio
+4. Usa nombres reales de libros, frameworks, métodos o autores cuando aplique
+5. El título debe ser tan específico que alguien sepa EXACTAMENTE qué va a aprender
+
+EJEMPLOS DE BUENAS sugerencias para "Python":
+- "Automatización de archivos Excel con openpyxl y pandas: script para reportes"
+- "Decoradores en Python: @staticmethod, @classmethod y creación de decoradores propios"
+- "Construye un bot de Telegram con python-telegram-bot para recordatorios"
+
+EJEMPLOS DE MALAS sugerencias (NUNCA hagas esto):
+- "Aprende Python desde cero"
+- "Fundamentos de Python"
+- "Python avanzado: mejores prácticas"
+
+Responde ÚNICAMENTE con JSON válido en una sola línea, sin markdown, sin explicaciones:
+[{"tag":"nombre del interés","title":"sugerencia específica"},...]`;
 
 /* ─── POST /api/learning/generate — devuelve preview sin guardar ─── */
 router.post('/generate', authenticate, async (req, res, next) => {
@@ -118,12 +159,19 @@ router.post('/generate', authenticate, async (req, res, next) => {
     if (!Array.isArray(interests) || interests.length === 0)
       return res.status(400).json({ error: 'interests required' });
 
-    const prompt = `Tengo estos intereses de aprendizaje: ${interests.join(', ')}.
-Genera exactamente 3 sugerencias concretas y diferentes de cosas para aprender por cada interés.
-Cada sugerencia debe ser específica y accionable (no genérica). Varía el tipo: tutoriales, proyectos, conceptos teóricos, etc.
-Responde SOLO JSON válido, sin markdown:
-[{"tag":"interés","title":"sugerencia"},...]
-Genera ${interests.length * 3} objetos en total.`;
+    // Expand comma-separated interests (e.g. "Python, ML" → ["Python", "ML"])
+    const expanded = interests.flatMap((i) =>
+      i.split(',').map((s) => s.trim()).filter(Boolean)
+    );
+    const unique = [...new Set(expanded)];
+
+    const prompt = `Tengo estos temas de aprendizaje: ${unique.map((i) => `"${i}"`).join(', ')}.
+
+Para CADA tema genera exactamente 3 sugerencias MUY ESPECÍFICAS. Cada una debe nombrar conceptos, herramientas o proyectos concretos del tema.
+Varía el tipo: 1 proyecto práctico con nombre específico, 1 concepto técnico puntual, 1 técnica/método con nombre real.
+Total de objetos: ${unique.length * 3}.
+
+Responde ÚNICAMENTE con el array JSON, sin texto extra ni markdown.`;
 
     let suggestions;
     try {
@@ -132,14 +180,11 @@ Genera ${interests.length * 3} objetos en total.`;
         'https://api.groq.com/openai/v1/chat/completions',
         {
           model: 'llama-3.3-70b-versatile',
-          max_tokens: 800,
-          temperature: 0.9,
+          max_tokens: unique.length * 300,
+          temperature: 0.85,
           messages: [
-            {
-              role: 'system',
-              content: 'Eres un asistente que responde ÚNICAMENTE con JSON válido. Nunca agregues markdown, explicaciones ni texto fuera del JSON.',
-            },
-            { role: 'user', content: prompt },
+            { role: 'system', content: GENERATE_SYSTEM },
+            { role: 'user',   content: prompt },
           ],
         },
         {
@@ -147,7 +192,7 @@ Genera ${interests.length * 3} objetos en total.`;
             Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
             'Content-Type': 'application/json',
           },
-          timeout: 15000,
+          timeout: 20000,
         }
       );
 
@@ -157,12 +202,17 @@ Genera ${interests.length * 3} objetos en total.`;
       suggestions = JSON.parse(match[0]);
       if (!Array.isArray(suggestions) || suggestions.length === 0)
         throw new Error('Empty suggestions array');
+
+      // Ensure tags exist
+      suggestions = suggestions.map((s) => ({
+        tag:   s.tag   || unique[0],
+        title: s.title || String(s),
+      }));
     } catch (aiErr) {
       console.error('[Learning] Groq AI error:', aiErr.message);
-      suggestions = interests.flatMap((interest) => pickFallback(interest));
+      suggestions = unique.flatMap((interest) => pickFallback(interest));
     }
 
-    // Return suggestions as preview — NOT saved to DB yet
     res.json({ suggestions });
   } catch (err) {
     next(err);
