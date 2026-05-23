@@ -122,26 +122,34 @@ function estimateLocal(description) {
   return { calories: total, confidence: qty > 1 ? 'high' : 'medium', unknown: false };
 }
 
-/* ─── Estimación calórica con Grok (primaria) + fallback local ───── */
-const SYSTEM_PROMPT = `Eres un experto en nutrición especializado en comida mexicana y latinoamericana. Tu tarea es estimar las calorías totales del alimento descrito.
+/* ─── Estimación nutricional con Groq (primaria) + fallback local ─── */
+const SYSTEM_PROMPT = `Eres un nutriólogo experto en comida mexicana y latinoamericana. Estima los macronutrientes del alimento descrito.
 
 Reglas:
-- Agua, té sin azúcar, café negro, agua mineral → calories=0 siempre
+- Agua, té sin azúcar, café negro, agua mineral → todos los valores en 0
 - Si el texto es incomprensible o no es comida → calories=null
-- Usa porciones típicas mexicanas: taco=180kcal, quesadilla=330kcal, plato de arroz=180kcal, plato de frijoles=150kcal
-- Si incluye cantidad explícita (2 tacos, 300g, 500ml) úsala; si no, asume 1 porción normal de adulto
-- Siempre devuelve un número entero en calories, nunca texto ni rangos
-- Para comidas completas (combo, menú del día, etc.) suma todos los componentes
+- Usa porciones típicas mexicanas (taco≈180kcal/10g prot/20g carbs/7g grasa, quesadilla≈330kcal/18g/35g/14g, etc.)
+- Si incluye cantidad explícita (2 tacos, 300g) multiplica; si no, asume 1 porción adulto
+- Para comidas combinadas suma todos los componentes
+- Devuelve solo enteros, nunca rangos ni texto dentro de los números
+- Si algún macro es desconocido pero las calorías sí se conocen, estima con proporciones típicas del alimento
 
 Responde ÚNICAMENTE con este JSON en una línea, sin markdown, sin texto extra:
-{"calories":ENTERO_O_null,"confidence":"high|medium|low"}
+{"calories":INT_O_null,"protein":INT,"carbs":INT,"fat":INT,"fiber":INT,"confidence":"high|medium|low"}
 
 Ejemplos:
-"2 tacos de pastor" → {"calories":400,"confidence":"high"}
-"un plato de arroz con frijoles" → {"calories":330,"confidence":"medium"}
-"pollo asado con ensalada" → {"calories":420,"confidence":"medium"}
-"agua" → {"calories":0,"confidence":"high"}
-"asdfgh" → {"calories":null,"confidence":"low"}`;
+"2 tacos de pastor" → {"calories":400,"protein":22,"carbs":38,"fat":14,"fiber":3,"confidence":"high"}
+"un plato de arroz con frijoles" → {"calories":330,"protein":12,"carbs":58,"fat":4,"fiber":8,"confidence":"medium"}
+"pechuga de pollo a la plancha 200g" → {"calories":330,"protein":62,"carbs":0,"fat":7,"fiber":0,"confidence":"high"}
+"hamburguesa doble" → {"calories":620,"protein":35,"carbs":45,"fat":32,"fiber":2,"confidence":"medium"}
+"agua" → {"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"confidence":"high"}
+"asdfgh" → {"calories":null,"protein":0,"carbs":0,"fat":0,"fiber":0,"confidence":"low"}`;
+
+function safeInt(val, fallback = 0) {
+  if (val === null || val === undefined) return fallback;
+  const n = Math.round(parseFloat(val));
+  return Number.isNaN(n) ? fallback : Math.max(0, n);
+}
 
 async function estimateWithAI(description) {
   if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY not set');
@@ -150,7 +158,7 @@ async function estimateWithAI(description) {
     'https://api.groq.com/openai/v1/chat/completions',
     {
       model: 'llama-3.3-70b-versatile',
-      max_tokens: 60,
+      max_tokens: 120,
       temperature: 0.1,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -162,7 +170,7 @@ async function estimateWithAI(description) {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      timeout: 8000,
+      timeout: 10000,
     }
   );
 
@@ -170,6 +178,7 @@ async function estimateWithAI(description) {
   const match = content.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('No JSON object in response');
   const parsed = JSON.parse(match[0]);
+
   const rawCal = parsed.calories;
   let cal = null;
   if (rawCal !== null && rawCal !== undefined) {
@@ -178,6 +187,10 @@ async function estimateWithAI(description) {
   }
   return {
     calories: cal,
+    protein:  safeInt(parsed.protein),
+    carbs:    safeInt(parsed.carbs),
+    fat:      safeInt(parsed.fat),
+    fiber:    safeInt(parsed.fiber),
     confidence: parsed.confidence || 'medium',
     unknown: cal === null,
   };

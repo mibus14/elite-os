@@ -16,7 +16,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
-import { dailyLogApi } from '@/lib/api'
+import { dailyLogApi, getLocalDate } from '@/lib/api'
 import toast from 'react-hot-toast'
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
@@ -142,7 +142,7 @@ export default function SleepPage() {
   const [waterGlasses, setWaterGlasses] = useState(0)
   const [editing, setEditing] = useState(false)
 
-  const todayKey = new Date().toLocaleDateString('sv')
+  const todayKey = getLocalDate()
   const { data: todayData, isLoading } = useQuery({
     queryKey: ['daily-log', 'today', todayKey],
     queryFn: async () => {

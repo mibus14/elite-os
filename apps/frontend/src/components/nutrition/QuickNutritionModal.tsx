@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Utensils, Flame, Loader2, Pencil } from 'lucide-react';
+import { X, Utensils, Flame, Loader2, Pencil, Beef, Wheat, Droplet } from 'lucide-react';
 import { nutritionApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -32,6 +32,7 @@ export default function QuickNutritionModal({ open, onClose }: Props) {
   const [category,      setCategory]      = useState<Category | null>(null);
   const [mealTime,      setMealTime]      = useState<MealTime | null>(null);
   const [aiCalories,    setAiCalories]    = useState<number | null>(null);
+  const [aiMacros,      setAiMacros]      = useState<{ protein: number; carbs: number; fat: number; fiber: number } | null>(null);
   const [manualCalories, setManualCalories] = useState<string>('');
   const [unknown,       setUnknown]       = useState(false);
   const [estimating,    setEstimating]    = useState(false);
@@ -57,13 +58,18 @@ export default function QuickNutritionModal({ open, onClose }: Props) {
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await nutritionApi.estimate(description.trim());
-        const cal = res.data.calories;
-        const isUnknown = res.data.unknown === true || cal === null;
+        const { calories: cal, protein, carbs, fat, fiber, unknown: unk } = res.data;
+        const isUnknown = unk === true || cal === null;
         setAiCalories(isUnknown ? null : cal);
         setUnknown(isUnknown);
-        if (!isUnknown && !editingCal) setManualCalories(String(cal));
+        if (!isUnknown) {
+          if (!editingCal) setManualCalories(String(cal));
+          setAiMacros({ protein: protein ?? 0, carbs: carbs ?? 0, fat: fat ?? 0, fiber: fiber ?? 0 });
+        } else {
+          setAiMacros(null);
+        }
       } catch {
-        setAiCalories(null); setUnknown(false);
+        setAiCalories(null); setUnknown(false); setAiMacros(null);
       } finally {
         setEstimating(false);
       }
@@ -85,14 +91,23 @@ export default function QuickNutritionModal({ open, onClose }: Props) {
 
   function handleClose() {
     setDescription(''); setCategory(null); setMealTime(null);
-    setAiCalories(null); setManualCalories(''); setUnknown(false); setEditingCal(false);
+    setAiCalories(null); setAiMacros(null); setManualCalories(''); setUnknown(false); setEditingCal(false);
     onClose();
   }
 
   function handleSubmit() {
     if (!description.trim() || !category || !mealTime) return;
     const cal = effectiveCalories ?? 0;
-    saveMutation.mutate({ name: description.trim(), mealType: mealTime, category, calories: cal });
+    saveMutation.mutate({
+      name: description.trim(),
+      mealType: mealTime,
+      category,
+      calories: cal,
+      protein: aiMacros?.protein ?? 0,
+      carbs:   aiMacros?.carbs   ?? 0,
+      fat:     aiMacros?.fat     ?? 0,
+      fiber:   aiMacros?.fiber   ?? 0,
+    });
   }
 
   // Ready: just need description + category + mealTime (calories can be 0)
@@ -220,14 +235,35 @@ export default function QuickNutritionModal({ open, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Resumen de calorías */}
+              {/* Resumen de calorías + macros */}
               {effectiveCalories !== null && (
-                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                  <span className="text-xs text-gray-500">Calorías a registrar</span>
-                  <span className="text-sm font-bold text-white flex items-center gap-1">
-                    <Flame className="w-3.5 h-3.5 text-orange-400" />
-                    {effectiveCalories} kcal
-                  </span>
+                <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Calorías</span>
+                    <span className="text-sm font-bold text-white flex items-center gap-1">
+                      <Flame className="w-3.5 h-3.5 text-orange-400" />
+                      {effectiveCalories} kcal
+                    </span>
+                  </div>
+                  {aiMacros && (
+                    <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                      <div className="flex items-center gap-1 text-blue-400">
+                        <Beef className="w-3 h-3 flex-shrink-0" />
+                        <span className="font-bold">{aiMacros.protein}g</span>
+                        <span className="text-gray-600">prot</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-yellow-400">
+                        <Wheat className="w-3 h-3 flex-shrink-0" />
+                        <span className="font-bold">{aiMacros.carbs}g</span>
+                        <span className="text-gray-600">carbs</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-red-400">
+                        <Droplet className="w-3 h-3 flex-shrink-0" />
+                        <span className="font-bold">{aiMacros.fat}g</span>
+                        <span className="text-gray-600">grasa</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

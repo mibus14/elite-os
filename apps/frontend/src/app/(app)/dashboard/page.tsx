@@ -19,7 +19,7 @@ import {
   BookOpen,
   Apple,
 } from 'lucide-react';
-import { dashboardApi, rpgApi, dailyLogApi } from '@/lib/api';
+import { dashboardApi, rpgApi, dailyLogApi, getLocalDate } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import type { DashboardStats, RPGCharacter } from '@/types';
 import GoalProgressCard from '@/components/dashboard/GoalProgressCard';
@@ -253,7 +253,7 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const { user: authUser } = useAuthStore()
   const { data, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', getLocalDate()],
     queryFn: async () => {
       const res = await dashboardApi.stats();
       return res.data as DashboardStats;

@@ -101,10 +101,14 @@ router.get('/stats', authenticate, async (req, res, next) => {
       }),
     ]);
 
+    const localDateStr = req.query.localDate || today.toISOString().slice(0, 10);
     const heatmapMap = {};
     const addToHeatmap = (items, weight) => {
       for (const item of items) {
-        const key = new Date(item.date).toISOString().slice(0, 10);
+        let key = new Date(item.date).toISOString().slice(0, 10);
+        // Old data stored as UTC-midnight may be 1 day ahead of local date for UTC- users;
+        // cap to today so evening activities don't fall into invisible future cells.
+        if (key > localDateStr) key = localDateStr;
         heatmapMap[key] = (heatmapMap[key] || 0) + weight;
       }
     };

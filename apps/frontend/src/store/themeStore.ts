@@ -26,7 +26,20 @@ export const useThemeStore = create<ThemeState>()(
       setAccent: (id) => set({ accentId: id }),
       setColorMode: (mode) => set({ colorMode: mode }),
     }),
-    { name: 'elite-theme' }
+    {
+      name: 'elite-theme',
+      storage: {
+        getItem: (key) => {
+          try { return JSON.parse(localStorage.getItem(key) ?? 'null') } catch { return null }
+        },
+        setItem: (key, value) => {
+          try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+        },
+        removeItem: (key) => {
+          try { localStorage.removeItem(key) } catch {}
+        },
+      },
+    }
   )
 )
 

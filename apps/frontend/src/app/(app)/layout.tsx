@@ -42,7 +42,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('elite_token') : null
+    let token: string | null = null
+    try { token = typeof window !== 'undefined' ? localStorage.getItem('elite_token') : null } catch {}
     if (!token) return
 
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001', {

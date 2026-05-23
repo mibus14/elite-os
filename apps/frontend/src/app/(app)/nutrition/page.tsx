@@ -16,7 +16,7 @@ function safeFormat(dateVal: unknown, fmt: string, fallback = '—'): string {
     return isValid(d) ? format(d, fmt) : fallback
   } catch { return fallback }
 }
-import { nutritionApi } from '@/lib/api';
+import { nutritionApi, getLocalDate } from '@/lib/api';
 import toast from 'react-hot-toast';
 import QuickNutritionModal from '@/components/nutrition/QuickNutritionModal';
 import {
@@ -122,7 +122,7 @@ export default function NutritionPage() {
   const [weekStats, setWeekStats] = useState<any[]>([]);
   const [goalsForm, setGoalsForm] = useState(DEFAULT_GOALS);
 
-  const todayKey = new Date().toLocaleDateString('sv')
+  const todayKey = getLocalDate()
   const { data: todayData } = useQuery({
     queryKey: ['nutrition', 'today', todayKey],
     queryFn: async () => {

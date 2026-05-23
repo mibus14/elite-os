@@ -6,19 +6,22 @@ const USER_KEY  = 'elite_user'
 // ─── Token helpers ─────────────────────────────────────────────
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem(TOKEN_KEY) ?? Cookies.get(TOKEN_KEY) ?? null
+  try {
+    return localStorage.getItem(TOKEN_KEY) ?? Cookies.get(TOKEN_KEY) ?? null
+  } catch {
+    return Cookies.get(TOKEN_KEY) ?? null
+  }
 }
 
 export function setToken(token: string): void {
   if (typeof window === 'undefined') return
-  localStorage.setItem(TOKEN_KEY, token)
-  // Also set as httpOnly-like cookie (30 day expiry)
+  try { localStorage.setItem(TOKEN_KEY, token) } catch {}
   Cookies.set(TOKEN_KEY, token, { expires: 30, sameSite: 'strict' })
 }
 
 export function removeToken(): void {
   if (typeof window === 'undefined') return
-  localStorage.removeItem(TOKEN_KEY)
+  try { localStorage.removeItem(TOKEN_KEY) } catch {}
   Cookies.remove(TOKEN_KEY)
 }
 
@@ -64,12 +67,12 @@ export function getCurrentUser(): CachedUser | null {
 
 export function setCurrentUser(user: CachedUser): void {
   if (typeof window === 'undefined') return
-  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  try { localStorage.setItem(USER_KEY, JSON.stringify(user)) } catch {}
 }
 
 export function removeCurrentUser(): void {
   if (typeof window === 'undefined') return
-  localStorage.removeItem(USER_KEY)
+  try { localStorage.removeItem(USER_KEY) } catch {}
 }
 
 // ─── Full logout (clears both token and user) ──────────────────

@@ -10,7 +10,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { cn, getAvatarUrl } from '@/lib/utils'
 import { format } from 'date-fns'
 import type { RPGCharacter } from '@/types'
-import { rpgApi, dashboardApi } from '@/lib/api'
+import { rpgApi, dashboardApi, getLocalDate } from '@/lib/api'
 
 interface DerivedNotif {
   id: string
@@ -45,7 +45,7 @@ export function Topbar({ title }: { title?: string }) {
 
   // Fetch today's XP from dashboard stats (shares cache with dashboard page)
   const { data: dashStats } = useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', getLocalDate()],
     queryFn: () => dashboardApi.stats().then(r => r.data),
     staleTime: 60_000,
     retry: false,
