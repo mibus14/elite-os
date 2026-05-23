@@ -217,13 +217,21 @@ Reglas:
 - Responde SOLO JSON válido, sin markdown:
 [{"title":"...","weight":25},{"title":"...","weight":25},{"title":"...","weight":25},{"title":"...","weight":25}]`;
 
+    if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY not set');
+
     const response = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
         model: 'llama-3.3-70b-versatile',
         max_tokens: 400,
         temperature: 0.4,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un asistente que responde ÚNICAMENTE con JSON válido. Nunca agregues markdown, explicaciones ni texto fuera del JSON.',
+          },
+          { role: 'user', content: prompt },
+        ],
       },
       {
         headers: {
@@ -234,13 +242,11 @@ Reglas:
       }
     );
 
-    const raw = response.data.choices[0].message.content
-      .trim()
-      .replace(/^```[a-z]*\n?/i, '')
-      .replace(/```$/, '')
-      .trim();
-
-    const milestones = JSON.parse(raw);
+    const content = response.data.choices[0].message.content.trim();
+    const match = content.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No JSON array in response');
+    const milestones = JSON.parse(match[0]);
+    if (!Array.isArray(milestones) || milestones.length === 0) throw new Error('Empty milestones array');
 
     // Normalizar pesos para que sumen exactamente 100
     const totalWeight = milestones.reduce((s, m) => s + (m.weight || 0), 0);

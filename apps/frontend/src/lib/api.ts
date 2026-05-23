@@ -154,6 +154,7 @@ export const usersApi = {
   all:           () => api.get('/users'),
   profile:       (id: string) => api.get(`/users/${id}/profile`),
   updateProfile: (data: object) => api.put('/users/profile', data),
+  deleteAccount: (password: string) => api.delete('/users/account', { data: { password } }),
 }
 
 // ─── RPG ─────────────────────────────────────────────────────────

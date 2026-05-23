@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Settings, User, Bell, Monitor, Shield, Check, Eye, EyeOff } from 'lucide-react'
+import { Settings, User, Bell, Monitor, Shield, Check, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
+import { usersApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -59,6 +60,7 @@ function NotifRow({ label, description, value, onChange }: {
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const updateUser = useAuthStore((s) => s.updateUser)
+  const logout = useAuthStore((s) => s.logout)
   const queryClient = useQueryClient()
 
   // Profile state
@@ -80,6 +82,29 @@ export default function SettingsPage() {
   const [showPw, setShowPw] = useState({ current: false, newPw: false, confirm: false })
   const [pwError, setPwError] = useState('')
   const [pwSaved, setPwSaved] = useState(false)
+
+  // Delete account modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: (password: string) => usersApi.deleteAccount(password),
+    onSuccess: () => {
+      toast.success('Cuenta eliminada')
+      logout()
+    },
+    onError: (err: any) => {
+      setDeleteError(err?.response?.data?.error || 'Error al eliminar la cuenta')
+    },
+  })
+
+  const handleDeleteAccount = (e: React.FormEvent) => {
+    e.preventDefault()
+    setDeleteError('')
+    if (!deletePassword) { setDeleteError('Ingresa tu contraseña para confirmar'); return }
+    deleteAccountMutation.mutate(deletePassword)
+  }
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: { username?: string; avatar?: string; bio?: string }) =>
@@ -498,12 +523,76 @@ export default function SettingsPage() {
               <h3 className="text-sm font-semibold text-red-400 mb-3">Zona de Peligro</h3>
               <div className="p-4 rounded-xl border border-red-900/30 bg-red-950/20">
                 <p className="text-sm text-gray-400 mb-3">Elimina permanentemente tu cuenta y todos los datos asociados. Esta acción no se puede deshacer.</p>
-                <Button variant="danger" size="sm">Eliminar Cuenta</Button>
+                <Button variant="danger" size="sm" onClick={() => setShowDeleteModal(true)}>Eliminar Cuenta</Button>
               </div>
             </div>
           </motion.div>
         </Tabs.Content>
       </Tabs.Root>
+
+      {/* ── Delete Account Modal ─────────────────────────────────── */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteModal(false) }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#111111] border border-red-900/40 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-950 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold">Eliminar Cuenta</h3>
+                  <p className="text-gray-500 text-xs">Esta acción es permanente e irreversible</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-red-950/30 border border-red-900/30 mb-5">
+                <p className="text-red-300 text-sm">Se eliminarán permanentemente todos tus datos: hábitos, sesiones, metas, finanzas, aprendizaje, logros y estadísticas.</p>
+              </div>
+
+              <form onSubmit={handleDeleteAccount} className="space-y-4">
+                <Input
+                  label="Confirma tu contraseña"
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Ingresa tu contraseña actual"
+                  error={deleteError}
+                />
+
+                <div className="flex gap-3 pt-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex-1"
+                    onClick={() => { setShowDeleteModal(false); setDeletePassword(''); setDeleteError('') }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="danger"
+                    className="flex-1"
+                    loading={deleteAccountMutation.isPending}
+                  >
+                    Eliminar para siempre
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

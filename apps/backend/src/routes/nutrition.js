@@ -159,12 +159,10 @@ async function estimateWithAI(description) {
     }
   );
 
-  const raw = response.data.choices[0].message.content
-    .trim()
-    .replace(/^```[a-z]*\n?/i, '')
-    .replace(/```$/, '')
-    .trim();
-  const parsed = JSON.parse(raw);
+  const content = response.data.choices[0].message.content.trim();
+  const match = content.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON object in response');
+  const parsed = JSON.parse(match[0]);
   const rawCal = parsed.calories;
   let cal = null;
   if (rawCal !== null && rawCal !== undefined) {

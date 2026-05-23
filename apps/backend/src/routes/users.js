@@ -110,6 +110,29 @@ router.put(
   }
 );
 
+// DELETE /api/users/account — permanently delete authenticated user and all data
+router.delete(
+  '/account',
+  authenticate,
+  [body('password').notEmpty().withMessage('La contraseña es obligatoria')],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const bcrypt = require('bcryptjs');
+      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+      const valid = await bcrypt.compare(req.body.password, user.password);
+      if (!valid) return res.status(400).json({ error: 'Contraseña incorrecta' });
+
+      await prisma.user.delete({ where: { id: req.user.id } });
+      res.json({ message: 'Cuenta eliminada permanentemente' });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // GET /api/users/:id/profile - Public profile
 router.get('/:id/profile', authenticate, async (req, res, next) => {
   try {

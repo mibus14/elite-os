@@ -236,27 +236,17 @@ router.post(
         return res.status(400).json({ error: 'You are not in penitence.' });
       }
 
-      // Clear penitence and failStreak
-      await prisma.user.update({
-        where: { id: userId },
-        data: { inPenitence: false, failStreak: 0 },
-      });
+      // Clear penitence, reset failStreak, award 50 XP, deactivate debuffs — all in parallel
+      const [{ xp }] = await Promise.all([
+        prisma.user.update({
+          where: { id: userId },
+          data: { inPenitence: false, failStreak: 0, xp: { increment: 50 } },
+          select: { xp: true },
+        }),
+        prisma.debuff.updateMany({ where: { userId, active: true }, data: { active: false } }),
+      ]);
 
-      // Deactivate all active debuffs
-      await prisma.debuff.updateMany({
-        where: { userId, active: true },
-        data: { active: false },
-      });
-
-      // Award flat 50 XP (bypass RPG multipliers — this is a resurrection bonus)
-      await prisma.user.update({
-        where: { id: userId },
-        data: { xp: { increment: 50 } },
-      });
-
-      // Recalc level/rank manually (can't use awardXP as user was in penitence)
-      const fresh = await prisma.user.findUnique({ where: { id: userId }, select: { xp: true } });
-      const xp = fresh.xp;
+      // Recalc level/rank using the XP already returned above (no extra query)
       const level = Math.floor(xp / 500) + 1;
       let rank = 'Bronze';
       if (xp >= 10001)      rank = 'Diamond';
@@ -515,25 +505,35 @@ router.post('/quick-missions/:id/complete', authenticate, async (req, res, next)
       mission.xp * probation.xpMultiplier * debuffMultiplier * seasonMultiplier
     ));
 
-    // Persist: log + user XP + DailyCombo quickXP
-    await Promise.all([
-      prisma.quickMissionLog.create({
-        data: { userId, missionId, date: today, xpAwarded },
-      }),
+    // Persist: log + user XP (get new XP back to avoid extra query for level/rank)
+    const [{ xp: newXP }] = await Promise.all([
       prisma.user.update({
         where: { id: userId },
         data: { xp: { increment: xpAwarded } },
+        select: { xp: true },
+      }),
+      prisma.quickMissionLog.create({
+        data: { userId, missionId, date: today, xpAwarded },
       }),
     ]);
 
-    await prisma.dailyCombo.upsert({
-      where: { userId_date: { userId, date: today } },
-      create: { userId, date: today, quickXP: xpAwarded, totalXP: xpAwarded },
-      update: { quickXP: { increment: xpAwarded }, totalXP: { increment: xpAwarded } },
-    });
+    // DailyCombo + level/rank update in parallel (independent of each other)
+    const newLevel = Math.floor(newXP / 500) + 1;
+    let newRank = 'Bronze';
+    if (newXP >= 10001)     newRank = 'Diamond';
+    else if (newXP >= 5001) newRank = 'Platinum';
+    else if (newXP >= 2001) newRank = 'Gold';
+    else if (newXP >= 501)  newRank = 'Silver';
 
-    // Recalculate level/rank + update streak
-    await rpg.recalcRankLevel(userId, prisma);
+    await Promise.all([
+      prisma.dailyCombo.upsert({
+        where: { userId_date: { userId, date: today } },
+        create: { userId, date: today, quickXP: xpAwarded, totalXP: xpAwarded },
+        update: { quickXP: { increment: xpAwarded }, totalXP: { increment: xpAwarded } },
+      }),
+      prisma.user.update({ where: { id: userId }, data: { level: newLevel, rank: newRank } }),
+    ]);
+
     await rpg.checkAndUpdateStreak(userId, prisma);
 
     res.json({ xpAwarded, mission, earnedToday: currentQuickXP + xpAwarded });
