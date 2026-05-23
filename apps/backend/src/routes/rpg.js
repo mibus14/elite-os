@@ -495,12 +495,17 @@ router.post('/quick-missions/:id/complete', authenticate, async (req, res, next)
     const [user, activeDebuffs] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { createdAt: true, seasonMultiplier: true },
+        select: { createdAt: true, seasonMultiplier: true, inPenitence: true },
       }),
       prisma.debuff.findMany({
         where: { userId, active: true, expiresAt: { gt: new Date() } },
       }),
     ]);
+
+    if (user.inPenitence) {
+      return res.status(403).json({ error: 'Estás en penitencia. Completa tu tarea de penitencia primero.' });
+    }
+
     const probation = rpg.getProbationInfo(user.createdAt);
     const debuffMultiplier = activeDebuffs.length > 0
       ? Math.min(...activeDebuffs.map((d) => d.xpMultiplier))
