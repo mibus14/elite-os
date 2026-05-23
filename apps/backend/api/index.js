@@ -52,6 +52,7 @@ app.use('/api/rpg',        require('../src/routes/rpg'));
 app.use('/api/daily-log',  require('../src/routes/daily-log'));
 app.use('/api/report',     require('../src/routes/report'));
 app.use('/api/seasons',    require('../src/routes/seasons').router);
+app.use('/api/shop',       require('../src/routes/shop').router);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
