@@ -300,35 +300,35 @@ router.delete('/meals/:id', authenticate, async (req, res, next) => {
 router.get('/stats/weekly', authenticate, async (req, res, next) => {
   try {
     const today = startOfDay(new Date());
-    const days = [];
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 6);
 
+    const [allMeals, goals] = await Promise.all([
+      prisma.meal.findMany({
+        where: { userId: req.user.id, date: { gte: weekAgo } },
+        select: { date: true, calories: true, category: true },
+      }),
+      getUserGoals(req.user.id),
+    ]);
+
+    const byDate = {};
+    for (const m of allMeals) {
+      const key = m.date.toISOString().slice(0, 10);
+      if (!byDate[key]) byDate[key] = { calories: 0, bad: 0, home: 0, good: 0 };
+      byDate[key].calories += m.calories;
+      if (m.category === 'BAD')          byDate[key].bad  += m.calories;
+      else if (m.category === 'HOMEMADE_CAL') byDate[key].home += m.calories;
+      else                               byDate[key].good += m.calories;
+    }
+
+    const stats = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      days.push(d);
+      const key = d.toISOString().slice(0, 10);
+      stats.push({ date: key, ...(byDate[key] ?? { calories: 0, bad: 0, home: 0, good: 0 }) });
     }
 
-    const stats = await Promise.all(
-      days.map(async (day) => {
-        const meals = await prisma.meal.findMany({
-          where: { userId: req.user.id, date: day },
-          select: { calories: true, category: true },
-        });
-        const total = meals.reduce((s, m) => s + m.calories, 0);
-        const bad   = meals.filter((m) => m.category === 'BAD').reduce((s, m) => s + m.calories, 0);
-        const home  = meals.filter((m) => m.category === 'HOMEMADE_CAL').reduce((s, m) => s + m.calories, 0);
-        const good  = meals.filter((m) => m.category === 'HEALTHY').reduce((s, m) => s + m.calories, 0);
-        return {
-          date: day.toISOString().slice(0, 10),
-          calories: total,
-          bad,
-          home,
-          good,
-        };
-      })
-    );
-
-    const goals = await getUserGoals(req.user.id);
     res.json({ stats, goals });
   } catch (err) {
     next(err);

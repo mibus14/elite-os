@@ -75,27 +75,26 @@ router.post('/sync', authenticate, async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     const unlocked = getUnlockedAchievements(user);
 
-    const newRewards = [];
-    for (const achievementId of unlocked) {
-      const def = ACHIEVEMENT_REWARDS[achievementId];
-      if (!def) continue;
+    const existingUnredeemed = await prisma.earnedReward.findMany({
+      where: { userId: req.user.id, achievementId: { in: unlocked }, redeemedAt: null },
+      select: { achievementId: true },
+    });
+    const alreadyGranted = new Set(existingUnredeemed.map((r) => r.achievementId));
 
-      // Only grant if there's no pending (unredeemed) reward for this achievement
-      const existing = await prisma.earnedReward.findFirst({
-        where: { userId: req.user.id, achievementId, redeemedAt: null },
-      });
-      if (!existing) {
-        const reward = await prisma.earnedReward.create({
-          data: {
-            userId: req.user.id,
-            achievementId,
-            rewardLabel: def.label,
-            rewardEmoji: def.emoji,
-            rewardDesc:  def.desc,
-          },
-        });
-        newRewards.push(reward);
-      }
+    const toCreate = unlocked
+      .filter((id) => !alreadyGranted.has(id) && ACHIEVEMENT_REWARDS[id])
+      .map((id) => ({
+        userId:        req.user.id,
+        achievementId: id,
+        rewardLabel:   ACHIEVEMENT_REWARDS[id].label,
+        rewardEmoji:   ACHIEVEMENT_REWARDS[id].emoji,
+        rewardDesc:    ACHIEVEMENT_REWARDS[id].desc,
+      }));
+
+    const newRewards = [];
+    for (const data of toCreate) {
+      const reward = await prisma.earnedReward.create({ data });
+      newRewards.push(reward);
     }
 
     res.json({ newRewards, count: newRewards.length });

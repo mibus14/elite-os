@@ -39,41 +39,6 @@ router.get('/unread/count', authenticate, async (req, res, next) => {
   }
 });
 
-// GET /api/messages/conversation/:userId — alias for conversation with a specific user
-router.get('/conversation/:userId', authenticate, async (req, res, next) => {
-  try {
-    const otherUserId = req.params.userId;
-    const { limit = 50, before } = req.query;
-
-    const where = {
-      OR: [
-        { senderId: req.user.id, receiverId: otherUserId },
-        { senderId: otherUserId, receiverId: req.user.id },
-      ],
-      ...(before && { createdAt: { lt: new Date(before) } }),
-    };
-
-    const messages = await prisma.message.findMany({
-      where,
-      orderBy: { createdAt: 'asc' },
-      take: parseInt(limit),
-      include: {
-        sender: { select: { id: true, username: true, avatar: true } },
-        receiver: { select: { id: true, username: true, avatar: true } },
-      },
-    });
-
-    await prisma.message.updateMany({
-      where: { senderId: otherUserId, receiverId: req.user.id, read: false },
-      data: { read: true },
-    });
-
-    res.json({ messages });
-  } catch (err) {
-    next(err);
-  }
-});
-
 // GET /api/messages/:userId - Get conversation with a specific user
 router.get('/:userId', authenticate, async (req, res, next) => {
   try {

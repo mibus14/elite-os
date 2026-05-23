@@ -36,33 +36,42 @@ router.get('/', authenticate, async (req, res, next) => {
     weekStart.setDate(weekStart.getDate() - 6);
     weekStart.setHours(0, 0, 0, 0);
 
-    const enriched = await Promise.all(
-      users.map(async (user, index) => {
-        const [weeklyCombos, weeklyGym, weeklyCardio] = await Promise.all([
-          // Use actual XP earned from DailyCombo (respects anti-cheat + debuffs)
-          prisma.dailyCombo.aggregate({
-            where: { userId: user.id, date: { gte: weekStart } },
-            _sum: { totalXP: true },
-          }),
-          prisma.gymSession.count({ where: { userId: user.id, date: { gte: weekStart } } }),
-          prisma.cardioSession.count({ where: { userId: user.id, date: { gte: weekStart } } }),
-        ]);
+    const userIds = users.map((u) => u.id);
 
-        const weeklyXP = weeklyCombos._sum.totalXP ?? 0;
+    const [weeklyComboRows, weeklyGymRows, weeklyCardioRows] = await Promise.all([
+      prisma.dailyCombo.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds }, date: { gte: weekStart } },
+        _sum: { totalXP: true },
+      }),
+      prisma.gymSession.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds }, date: { gte: weekStart } },
+        _count: { _all: true },
+      }),
+      prisma.cardioSession.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds }, date: { gte: weekStart } },
+        _count: { _all: true },
+      }),
+    ]);
 
-        const probation = rpg.getProbationInfo(user.createdAt);
+    const weeklyXPMap      = Object.fromEntries(weeklyComboRows.map((r) => [r.userId, r._sum.totalXP ?? 0]));
+    const weeklyGymMap     = Object.fromEntries(weeklyGymRows.map((r) => [r.userId, r._count._all]));
+    const weeklyCardioMap  = Object.fromEntries(weeklyCardioRows.map((r) => [r.userId, r._count._all]));
 
-        return {
-          ...user,
-          position: index + 1,
-          weeklyXP,
-          weeklySessions: weeklyGym + weeklyCardio,
-          isCurrentUser: user.id === req.user.id,
-          isProbation:   probation.isProbation,
-          probationDaysLeft: probation.daysLeft,
-        };
-      })
-    );
+    const enriched = users.map((user, index) => {
+      const probation = rpg.getProbationInfo(user.createdAt);
+      return {
+        ...user,
+        position: index + 1,
+        weeklyXP: weeklyXPMap[user.id] ?? 0,
+        weeklySessions: (weeklyGymMap[user.id] ?? 0) + (weeklyCardioMap[user.id] ?? 0),
+        isCurrentUser: user.id === req.user.id,
+        isProbation:   probation.isProbation,
+        probationDaysLeft: probation.daysLeft,
+      };
+    });
 
     res.json({ leaderboard: enriched });
   } catch (err) {
@@ -77,32 +86,33 @@ router.get('/stats', authenticate, async (req, res, next) => {
       select: { id: true, username: true, avatar: true, rank: true, level: true, xp: true },
     });
 
-    const stats = await Promise.all(
-      users.map(async (user) => {
-        const [gymCount, cardioCount, gymVolume, totalLearning, goalsCompleted, habitsCompleted] =
-          await Promise.all([
-            prisma.gymSession.count({ where: { userId: user.id } }),
-            prisma.cardioSession.count({ where: { userId: user.id } }),
-            prisma.gymSession.aggregate({
-              where: { userId: user.id },
-              _sum: { totalVolume: true },
-            }),
-            prisma.learningItem.count({ where: { userId: user.id, completed: true } }),
-            prisma.goal.count({ where: { userId: user.id, status: 'completed' } }),
-            prisma.habitLog.count({ where: { userId: user.id, completed: true } }),
-          ]);
+    const allIds = users.map((u) => u.id);
 
-        return {
-          user,
-          gymSessions: gymCount,
-          cardioSessions: cardioCount,
-          totalVolumeLifted: gymVolume._sum.totalVolume || 0,
-          totalLearningItems: totalLearning,
-          goalsCompleted,
-          habitsCompleted,
-        };
-      })
-    );
+    const [gymRows, cardioRows, volumeRows, learningRows, goalRows, habitRows] = await Promise.all([
+      prisma.gymSession.groupBy({ by: ['userId'], where: { userId: { in: allIds } }, _count: { _all: true } }),
+      prisma.cardioSession.groupBy({ by: ['userId'], where: { userId: { in: allIds } }, _count: { _all: true } }),
+      prisma.gymSession.groupBy({ by: ['userId'], where: { userId: { in: allIds } }, _sum: { totalVolume: true } }),
+      prisma.learningItem.groupBy({ by: ['userId'], where: { userId: { in: allIds }, completed: true }, _count: { _all: true } }),
+      prisma.goal.groupBy({ by: ['userId'], where: { userId: { in: allIds }, status: 'completed' }, _count: { _all: true } }),
+      prisma.habitLog.groupBy({ by: ['userId'], where: { userId: { in: allIds }, completed: true }, _count: { _all: true } }),
+    ]);
+
+    const gymMap      = Object.fromEntries(gymRows.map((r) => [r.userId, r._count._all]));
+    const cardioMap   = Object.fromEntries(cardioRows.map((r) => [r.userId, r._count._all]));
+    const volumeMap   = Object.fromEntries(volumeRows.map((r) => [r.userId, r._sum.totalVolume ?? 0]));
+    const learningMap = Object.fromEntries(learningRows.map((r) => [r.userId, r._count._all]));
+    const goalMap     = Object.fromEntries(goalRows.map((r) => [r.userId, r._count._all]));
+    const habitMap    = Object.fromEntries(habitRows.map((r) => [r.userId, r._count._all]));
+
+    const stats = users.map((user) => ({
+      user,
+      gymSessions:        gymMap[user.id]      ?? 0,
+      cardioSessions:     cardioMap[user.id]   ?? 0,
+      totalVolumeLifted:  volumeMap[user.id]   ?? 0,
+      totalLearningItems: learningMap[user.id] ?? 0,
+      goalsCompleted:     goalMap[user.id]     ?? 0,
+      habitsCompleted:    habitMap[user.id]    ?? 0,
+    }));
 
     res.json({ stats });
   } catch (err) {

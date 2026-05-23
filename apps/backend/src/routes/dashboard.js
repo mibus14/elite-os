@@ -22,7 +22,6 @@ router.get('/stats', authenticate, async (req, res, next) => {
     const userId = req.user.id;
     const today = startOfDay(new Date());
     const weekStart = startOfDay(addDays(today, -6));
-    const sevenDaysAgo = startOfDay(addDays(today, -6));
 
     // ── Today's habits ────────────────────────────────────────────────────────
     const [totalHabits, completedHabitsToday] = await Promise.all([
@@ -38,15 +37,9 @@ router.get('/stats', authenticate, async (req, res, next) => {
       prisma.cardioSession.count({ where: { userId, date: { gte: weekStart } } }),
     ]);
 
-    // ── Calories today ────────────────────────────────────────────────────────
-    const todayMeals = await prisma.meal.aggregate({
-      where: { userId, date: today },
-      _sum: { calories: true },
-    });
-
     // ── Sleep average (7 days) ────────────────────────────────────────────────
     const sleepLogs = await prisma.dailyLog.findMany({
-      where: { userId, date: { gte: sevenDaysAgo } },
+      where: { userId, date: { gte: weekStart } },
       select: { sleepHours: true },
     });
     const avgSleep =
@@ -123,11 +116,12 @@ router.get('/stats', authenticate, async (req, res, next) => {
     const todayXP     = todayCombo?.totalXP     ?? 0;
     const yesterdayXP = yesterdayCombo?.totalXP ?? 0;
 
-    // ── Macros today ──────────────────────────────────────────────────────
+    // ── Macros + calories today (single query) ────────────────────────────
     const macroAgg = await prisma.meal.aggregate({
       where: { userId, date: today },
       _sum: { calories: true, protein: true, carbs: true, fat: true },
     });
+    const todayCalories = macroAgg._sum.calories || 0;
 
     // ── Top goals ─────────────────────────────────────────────────────────
     const topGoals = await prisma.goal.findMany({
@@ -145,7 +139,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
     ]);
     const radarData = [
       { subject: 'Gym',       value: Math.min(100, totalGym * 3),             fullMark: 100 },
-      { subject: 'Nutrition', value: Math.min(100, (todayMeals._sum.calories || 0) > 0 ? 80 : 0), fullMark: 100 },
+      { subject: 'Nutrition', value: Math.min(100, todayCalories > 0 ? 80 : 0), fullMark: 100 },
       { subject: 'Cardio',    value: Math.min(100, totalCardio * 4),          fullMark: 100 },
       { subject: 'Learning',  value: Math.min(100, totalLearning * 8),        fullMark: 100 },
       { subject: 'Habits',    value: totalHabits > 0 ? Math.round((completedHabitsToday / totalHabits) * 100) : 0, fullMark: 100 },
@@ -154,19 +148,18 @@ router.get('/stats', authenticate, async (req, res, next) => {
 
     // ── Weekly XP per day (actual, from DailyCombo) ──────────────────────
     const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const weeklyXPPerDay = await Promise.all(
-      Array.from({ length: 7 }, async (_, i) => {
-        const day = startOfDay(addDays(today, -(6 - i)));
-        const combo = await prisma.dailyCombo.findFirst({
-          where: { userId, date: day },
-          select: { totalXP: true },
-        });
-        return {
-          day: DAYS[day.getDay()],
-          xp: combo?.totalXP ?? 0,
-        };
-      })
+    const weekDays = Array.from({ length: 7 }, (_, i) => startOfDay(addDays(today, -(6 - i))));
+    const weekCombos = await prisma.dailyCombo.findMany({
+      where: { userId, date: { gte: weekDays[0] } },
+      select: { date: true, totalXP: true },
+    });
+    const comboByDate = Object.fromEntries(
+      weekCombos.map((c) => [c.date.toISOString().slice(0, 10), c.totalXP])
     );
+    const weeklyXPPerDay = weekDays.map((day) => ({
+      day: DAYS[day.getDay()],
+      xp: comboByDate[day.toISOString().slice(0, 10)] ?? 0,
+    }));
 
     // ── Water today + nutrition goal ─────────────────────────────────────
     const [dailyLogToday, nutritionGoal] = await Promise.all([
@@ -194,7 +187,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
       rank:             req.user.rank,
       habitsCompleted:  completedHabitsToday,
       habitsTotal:      totalHabits,
-      caloriesConsumed: todayMeals._sum.calories || 0,
+      caloriesConsumed: todayCalories,
       caloriesGoal:     nutritionGoal?.calories ?? 2200,
       sessionsThisWeek: gymThisWeek + cardioThisWeek,
       avgSleep:         parseFloat(avgSleep.toFixed(1)),

@@ -10,11 +10,11 @@ import { RPGCharacter } from '@/types/rpg'
 
 // ─── Class metadata ────────────────────────────────────────────────────────────
 const CLASS_META: Record<string, { emoji: string; label: string }> = {
-  Guerrero: { emoji: '⚔️',  label: 'Guerrero' },
-  Monje:    { emoji: '🧘',  label: 'Monje'    },
-  Sabio:    { emoji: '📚',  label: 'Sabio'    },
-  Asesino:  { emoji: '🗡️', label: 'Asesino'  },
-  Mercader: { emoji: '💰',  label: 'Mercader' },
+  Warrior:  { emoji: '⚔️',  label: 'Guerrero' },
+  Monk:     { emoji: '🧘',  label: 'Monje'    },
+  Sage:     { emoji: '📚',  label: 'Sabio'    },
+  Assassin: { emoji: '🗡️', label: 'Asesino'  },
+  Merchant: { emoji: '💰',  label: 'Mercader' },
 }
 
 const RANK_COLORS: Record<string, string> = {

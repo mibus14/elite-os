@@ -290,7 +290,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
       weeklyVolume[weekKey].sessions += 1;
     }
 
-    // Most used exercises (via sessionExercises)
+    // Most used exercises (via sessionExercises) — single grouped query + one bulk fetch
     const allSessionIds = await prisma.gymSession.findMany({
       where: { userId },
       select: { id: true },
@@ -305,12 +305,12 @@ router.get('/stats', authenticate, async (req, res, next) => {
       take: 10,
     });
 
-    const exerciseDetails = await Promise.all(
-      exerciseUsage.map(async (e) => {
-        const ex = await prisma.exercise.findUnique({ where: { id: e.exerciseId } });
-        return { exercise: ex, count: e._count.exerciseId };
-      })
-    );
+    const exerciseIds = exerciseUsage.map((e) => e.exerciseId);
+    const exercises = await prisma.exercise.findMany({ where: { id: { in: exerciseIds } } });
+    const exerciseMap = Object.fromEntries(exercises.map((e) => [e.id, e]));
+    const exerciseDetails = exerciseUsage
+      .map((e) => ({ exercise: exerciseMap[e.exerciseId] ?? null, count: e._count.exerciseId }))
+      .filter((e) => e.exercise);
 
     // This week summary
     const thisWeekSessions = await prisma.gymSession.aggregate({

@@ -105,36 +105,45 @@ router.get('/summary', authenticate, async (req, res, next) => {
       months.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
     }
 
-    const monthlySummary = await Promise.all(
-      months.map(async ({ year, month }) => {
-        const start = new Date(year, month - 1, 1);
-        const end = new Date(year, month, 0);
-        end.setHours(23, 59, 59, 999);
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const sixMonthsEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    sixMonthsEnd.setHours(23, 59, 59, 999);
 
-        const [income, expenses] = await Promise.all([
-          prisma.financeEntry.aggregate({
-            where: { userId, type: 'income', date: { gte: start, lte: end } },
-            _sum: { amount: true },
-          }),
-          prisma.financeEntry.aggregate({
-            where: { userId, type: 'expense', date: { gte: start, lte: end } },
-            _sum: { amount: true },
-          }),
-        ]);
+    const [incomeRows, expenseRows] = await Promise.all([
+      prisma.financeEntry.findMany({
+        where: { userId, type: 'income', date: { gte: sixMonthsAgo, lte: sixMonthsEnd } },
+        select: { date: true, amount: true },
+      }),
+      prisma.financeEntry.findMany({
+        where: { userId, type: 'expense', date: { gte: sixMonthsAgo, lte: sixMonthsEnd } },
+        select: { date: true, amount: true },
+      }),
+    ]);
 
-        const totalIncome = income._sum.amount || 0;
-        const totalExpenses = expenses._sum.amount || 0;
+    const incomeByMonth = {};
+    for (const r of incomeRows) {
+      const key = `${r.date.getFullYear()}-${r.date.getMonth() + 1}`;
+      incomeByMonth[key] = (incomeByMonth[key] || 0) + r.amount;
+    }
+    const expenseByMonth = {};
+    for (const r of expenseRows) {
+      const key = `${r.date.getFullYear()}-${r.date.getMonth() + 1}`;
+      expenseByMonth[key] = (expenseByMonth[key] || 0) + r.amount;
+    }
 
-        return {
-          year,
-          month,
-          label: new Date(year, month - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' }),
-          income: totalIncome,
-          expenses: totalExpenses,
-          net: totalIncome - totalExpenses,
-        };
-      })
-    );
+    const monthlySummary = months.map(({ year, month }) => {
+      const key = `${year}-${month}`;
+      const totalIncome   = incomeByMonth[key]  || 0;
+      const totalExpenses = expenseByMonth[key] || 0;
+      return {
+        year,
+        month,
+        label: new Date(year, month - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' }),
+        income: totalIncome,
+        expenses: totalExpenses,
+        net: totalIncome - totalExpenses,
+      };
+    });
 
     // This month by category
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);

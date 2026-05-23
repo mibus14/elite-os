@@ -92,10 +92,6 @@ export default function SettingsPage() {
       toast.success('¡Perfil actualizado!')
     },
     onError: (err: any) => {
-      // Optimistic local update even if API fails
-      updateUser({ username, bio, avatar })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
       toast.error(err?.response?.data?.error || 'Error al guardar')
     },
   })

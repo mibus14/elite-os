@@ -130,7 +130,7 @@ router.get('/:id/profile', authenticate, async (req, res, next) => {
             gymSessions: true,
             cardioSessions: true,
             habitLogs: true,
-            learningSessions: true,
+            learningItems: true,
             goals: true,
           },
         },

@@ -115,7 +115,17 @@ router.post(
 
       const { email, password } = req.body;
 
-      const userRaw = await prisma.user.findUnique({ where: { email } });
+      const userRaw = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true, password: true,
+          username: true, email: true, avatar: true, level: true, xp: true,
+          rank: true, streak: true, longestStreak: true, class: true,
+          statStr: true, statInt: true, statVit: true, statDis: true,
+          statWis: true, statGol: true, inPenitence: true, failStreak: true,
+          deathCount: true, createdAt: true,
+        },
+      });
       if (!userRaw) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
@@ -126,32 +136,7 @@ router.post(
       }
 
       const token = signToken(userRaw.id);
-
-      const user = await prisma.user.findUnique({
-        where: { id: userRaw.id },
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          avatar: true,
-          level: true,
-          xp: true,
-          rank: true,
-          streak: true,
-          longestStreak: true,
-          class: true,
-          statStr: true,
-          statInt: true,
-          statVit: true,
-          statDis: true,
-          statWis: true,
-          statGol: true,
-          inPenitence: true,
-          failStreak: true,
-          deathCount: true,
-          createdAt: true,
-        },
-      });
+      const { password: _pw, ...user } = userRaw;
       res.json({ token, user });
     } catch (err) {
       next(err);
@@ -190,7 +175,7 @@ router.get('/me', authenticate, async (req, res, next) => {
             gymSessions: true,
             cardioSessions: true,
             habitLogs: true,
-            learningSessions: true,
+            learningItems: true,
             goals: true,
           },
         },

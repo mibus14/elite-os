@@ -208,22 +208,29 @@ async function awardXP(userId, module, baseXP, prisma) {
     return { finalXP: 0, blocked: 'zero_xp' };
   }
 
-  // ── Persist XP, level, rank, stats ───────────────────────────────────────
-  await prisma.user.update({
+  // ── Persist XP, level, rank, stats (2 queries instead of 4) ─────────────
+  const afterXP = await prisma.user.update({
     where: { id: userId },
     data: { xp: { increment: finalXP } },
+    select: { xp: true },
   });
 
-  await recalcRankLevel(userId, prisma);
+  const newXP  = afterXP.xp;
+  const level  = Math.floor(newXP / 500) + 1;
+  let rank = 'Bronze';
+  if (newXP >= 10001)     rank = 'Diamond';
+  else if (newXP >= 5001) rank = 'Platinum';
+  else if (newXP >= 2001) rank = 'Gold';
+  else if (newXP >= 501)  rank = 'Silver';
 
   const statGain = STAT_GAINS[module];
+  const statUpdate = {};
   if (statGain) {
-    const statUpdate = {};
     for (const [stat, gain] of Object.entries(statGain)) {
       statUpdate[stat] = { increment: gain };
     }
-    await prisma.user.update({ where: { id: userId }, data: statUpdate });
   }
+  await prisma.user.update({ where: { id: userId }, data: { level, rank, ...statUpdate } });
 
   // ── Track daily XP in DailyCombo (upsert) ────────────────────────────────
   if (field) {
@@ -330,14 +337,10 @@ async function updateCombo(userId, module, prisma) {
 
   if (!moduleField) return null;
 
-  await prisma.dailyCombo.upsert({
+  const updated = await prisma.dailyCombo.upsert({
     where: { userId_date: { userId, date: today } },
     create: { userId, date: today, [moduleField]: true },
     update: { [moduleField]: true },
-  });
-
-  const updated = await prisma.dailyCombo.findFirst({
-    where: { userId, date: today },
   });
 
   const doneCount = [

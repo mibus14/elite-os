@@ -301,7 +301,7 @@ export default function HabitsPage() {
 
   const handleComplete = (id: string) => {
     setLocalHabits((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, completedToday: true, streak: h.streak + 1 } : h))
+      prev.map((h) => (h.id === id ? { ...h, completedToday: true } : h))
     )
     logMutation.mutate(id)
   }

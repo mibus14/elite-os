@@ -219,10 +219,14 @@ export default function FinancePage() {
     removeMutation.mutate(id)
   }
 
-  // Month calculations
+  // Month calculations — filter by current month AND year
   const now = new Date()
   const currentMonth = now.getMonth()
-  const monthEntries = entries.filter((e) => new Date(e.date).getMonth() === currentMonth)
+  const currentYear = now.getFullYear()
+  const monthEntries = entries.filter((e) => {
+    const d = new Date(e.date)
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+  })
   const income = monthEntries.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0)
   const expenses = monthEntries.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0)
   const net = income - expenses
@@ -234,8 +238,8 @@ export default function FinancePage() {
     return acc
   }, [] as { name: string; value: number }[])
 
-  const PIE_COLORS = expenseByCategory.map((_, i) =>
-    Object.values(CATEGORY_META)[i % Object.values(CATEGORY_META).length]?.color ?? '#6B7280'
+  const PIE_COLORS = expenseByCategory.map((item) =>
+    CATEGORY_META[item.name.toLowerCase()]?.color ?? '#6B7280'
   )
 
   return (

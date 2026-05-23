@@ -15,23 +15,54 @@ function startOfDay(d) {
 // GET /api/habits
 router.get('/', authenticate, async (req, res, next) => {
   try {
+    const today = startOfDay(new Date());
+
     const habits = await prisma.habit.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: 'asc' },
       include: {
         habitLogs: {
-          where: { date: startOfDay(new Date()) },
-          take: 1,
+          where: { completed: true },
+          orderBy: { date: 'desc' },
+          select: { date: true, completed: true, count: true },
         },
       },
     });
 
-    const result = habits.map((h) => ({
-      ...h,
-      completedToday: h.habitLogs.length > 0 && h.habitLogs[0].completed,
-      todayCount: h.habitLogs.length > 0 ? h.habitLogs[0].count : 0,
-      habitLogs: undefined,
-    }));
+    const result = habits.map((h) => {
+      const todayLog = h.habitLogs.find(
+        (l) => new Date(l.date).toISOString().slice(0, 10) === today.toISOString().slice(0, 10)
+      );
+      const totalCompletions = h.habitLogs.length;
+      const lastCompleted = h.habitLogs.length > 0
+        ? new Date(h.habitLogs[0].date).toISOString().slice(0, 10)
+        : null;
+
+      // Compute consecutive-day streak going back from today
+      let streak = 0;
+      if (h.habitLogs.length > 0) {
+        const completedDays = new Set(
+          h.habitLogs.map((l) => new Date(l.date).toISOString().slice(0, 10))
+        );
+        const cursor = new Date(today);
+        while (true) {
+          const key = cursor.toISOString().slice(0, 10);
+          if (!completedDays.has(key)) break;
+          streak++;
+          cursor.setDate(cursor.getDate() - 1);
+        }
+      }
+
+      return {
+        ...h,
+        completedToday: !!todayLog?.completed,
+        todayCount: todayLog?.count ?? 0,
+        totalCompletions,
+        lastCompleted,
+        streak,
+        habitLogs: undefined,
+      };
+    });
 
     res.json({ habits: result });
   } catch (err) {
