@@ -9,8 +9,15 @@ const prisma = new PrismaClient();
 
 function startOfDay(d) {
   const dt = new Date(d);
-  dt.setHours(0, 0, 0, 0);
-  return dt;
+  return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()));
+}
+
+function parseLocalDate(localDate) {
+  if (localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+    return new Date(localDate + 'T00:00:00.000Z');
+  }
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 const DEFAULT_GOALS = { calories: 2200, protein: 160, carbs: 280, fat: 75, fiber: 30 };
@@ -198,7 +205,7 @@ router.post('/estimate', authenticate, async (req, res) => {
 // GET /api/nutrition/today
 router.get('/today', authenticate, async (req, res, next) => {
   try {
-    const today = startOfDay(new Date());
+    const today = parseLocalDate(req.query.localDate);
     const meals = await prisma.meal.findMany({
       where: { userId: req.user.id, date: today },
       orderBy: { mealType: 'asc' },
@@ -245,15 +252,22 @@ router.post(
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { name, mealType, calories, protein, carbs, fat, fiber, date, category } = req.body;
+      const { name, mealType, calories, protein, carbs, fat, fiber, date, localDate, category } = req.body;
 
       const VALID_CATEGORIES = ['BAD', 'HOMEMADE_CAL', 'HEALTHY'];
       const safeCategory = VALID_CATEGORIES.includes(category) ? category : 'HEALTHY';
 
+      // Use client's local date string if provided, else fall back to explicit date or UTC today
+      const mealDate = localDate
+        ? parseLocalDate(localDate)
+        : date
+        ? startOfDay(new Date(date))
+        : parseLocalDate(null);
+
       const meal = await prisma.meal.create({
         data: {
           userId: req.user.id,
-          date: date ? startOfDay(new Date(date)) : startOfDay(new Date()),
+          date: mealDate,
           mealType,
           name,
           category: safeCategory,
@@ -265,8 +279,8 @@ router.post(
         },
       });
 
-      const mealDate = date ? startOfDay(new Date(date)) : startOfDay(new Date());
-      const isToday = mealDate.getTime() === startOfDay(new Date()).getTime();
+      const todayDate = parseLocalDate(localDate);
+      const isToday = mealDate.getTime() === todayDate.getTime();
       if (isToday) {
         await rpg.awardXP(req.user.id, 'nutrition', 20, prisma);
         await rpg.updateCombo(req.user.id, 'nutrition', prisma);
@@ -297,9 +311,9 @@ router.delete('/meals/:id', authenticate, async (req, res, next) => {
 // GET /api/nutrition/stats/weekly
 router.get('/stats/weekly', authenticate, async (req, res, next) => {
   try {
-    const today = startOfDay(new Date());
+    const today = parseLocalDate(req.query.localDate);
     const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 6);
+    weekAgo.setUTCDate(weekAgo.getUTCDate() - 6);
 
     const [allMeals, goals] = await Promise.all([
       prisma.meal.findMany({

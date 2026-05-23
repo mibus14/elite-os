@@ -8,8 +8,7 @@ const prisma = new PrismaClient();
 
 function startOfDay(d) {
   const dt = new Date(d);
-  dt.setHours(0, 0, 0, 0);
-  return dt;
+  return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()));
 }
 
 // GET /api/finance/entries

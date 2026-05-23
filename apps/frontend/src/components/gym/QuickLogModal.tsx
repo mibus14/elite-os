@@ -127,6 +127,7 @@ export default function QuickLogModal({ open, onClose, onXP }: QuickLogModalProp
       qc.invalidateQueries({ queryKey: ['gym-sessions'] });
       qc.invalidateQueries({ queryKey: ['rpg-character'] });
       qc.invalidateQueries({ queryKey: ['rpg-combo'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
       const xp = res.data?.xpAwarded ?? res.data?.xp ?? 50;
       onXP?.(xp);
       toast.success('¡Sesión registrada!');

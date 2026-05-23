@@ -284,6 +284,7 @@ export default function HabitsPage() {
       queryClient.invalidateQueries({ queryKey: ['habits'] })
       queryClient.invalidateQueries({ queryKey: ['rpg-character'] })
       queryClient.invalidateQueries({ queryKey: ['rpg-combo'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       const xp = res.data?.xpAwarded ?? res.data?.xp ?? 10
       setXpFloat({ show: true, amount: xp })
     },

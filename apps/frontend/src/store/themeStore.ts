@@ -9,17 +9,22 @@ export const ACCENT_COLORS = [
 ] as const
 
 export type AccentId = typeof ACCENT_COLORS[number]['id']
+export type ColorMode = 'dark' | 'light'
 
 interface ThemeState {
   accentId: AccentId
+  colorMode: ColorMode
   setAccent: (id: AccentId) => void
+  setColorMode: (mode: ColorMode) => void
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       accentId: 'red',
+      colorMode: 'dark',
       setAccent: (id) => set({ accentId: id }),
+      setColorMode: (mode) => set({ colorMode: mode }),
     }),
     { name: 'elite-theme' }
   )

@@ -8,14 +8,21 @@ const prisma = new PrismaClient();
 
 function startOfDay(d) {
   const dt = new Date(d);
-  dt.setHours(0, 0, 0, 0);
-  return dt;
+  return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()));
+}
+
+function parseLocalDate(localDate) {
+  if (localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+    return new Date(localDate + 'T00:00:00.000Z');
+  }
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 // GET /api/habits
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const today = startOfDay(new Date());
+    const today = parseLocalDate(req.query.localDate);
 
     const habits = await prisma.habit.findMany({
       where: { userId: req.user.id },
@@ -159,7 +166,7 @@ router.post('/:id/log', authenticate, async (req, res, next) => {
     });
     if (!habit) return res.status(404).json({ error: 'Habit not found' });
 
-    const today = startOfDay(new Date());
+    const today = parseLocalDate(req.body.localDate);
     const { completed = true, count } = req.body;
 
     const existing = await prisma.habitLog.findUnique({
@@ -170,8 +177,7 @@ router.post('/:id/log', authenticate, async (req, res, next) => {
     let xpAwarded = 0;
 
     // Anti-cheat: hábito debe existir desde antes de hoy para dar XP
-    const habitCreatedDay = new Date(habit.createdAt);
-    habitCreatedDay.setHours(0, 0, 0, 0);
+    const habitCreatedDay = startOfDay(habit.createdAt);
     const canEarnXP = habitCreatedDay.getTime() < today.getTime();
 
     if (existing) {

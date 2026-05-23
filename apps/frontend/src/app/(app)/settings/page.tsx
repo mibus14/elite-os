@@ -24,11 +24,16 @@ const DEFAULT_AVATARS = [
   { url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=casey',   label: 'Casey' },
 ]
 
-const SHOP_AVATAR_SLUGS = ['avatar_pixel', 'avatar_robot', 'avatar_dark']
+const SHOP_AVATAR_SLUGS = ['avatar_pixel', 'avatar_robot', 'avatar_dark', 'avatar_warrior', 'avatar_sage', 'avatar_noble', 'avatar_phantom', 'avatar_god']
 const SHOP_AVATAR_META: Record<string, { icon: string; label: string; rarity: string }> = {
-  avatar_pixel: { icon: '👾', label: 'Pixel',  rarity: 'common' },
-  avatar_robot: { icon: '🤖', label: 'Robot',  rarity: 'rare' },
-  avatar_dark:  { icon: '😈', label: 'Oscuro', rarity: 'epic' },
+  avatar_pixel:   { icon: '👾', label: 'Pixel',    rarity: 'common' },
+  avatar_robot:   { icon: '🤖', label: 'Robot',    rarity: 'rare' },
+  avatar_dark:    { icon: '😈', label: 'Oscuro',   rarity: 'epic' },
+  avatar_warrior: { icon: '⚔️', label: 'Guerrero', rarity: 'rare' },
+  avatar_sage:    { icon: '🧙', label: 'Sabio',    rarity: 'epic' },
+  avatar_noble:   { icon: '👑', label: 'Noble',    rarity: 'legendary' },
+  avatar_phantom: { icon: '👻', label: 'Fantasma', rarity: 'legendary' },
+  avatar_god:     { icon: '✨', label: 'Dios',     rarity: 'legendary' },
 }
 const RARITY_COLOR: Record<string, string> = {
   common:    'border-gray-500/50 text-gray-400',
@@ -78,7 +83,7 @@ export default function SettingsPage() {
   const logout      = useAuthStore((s) => s.logout)
   const queryClient = useQueryClient()
 
-  const { accentId, setAccent } = useThemeStore()
+  const { accentId, setAccent, colorMode, setColorMode } = useThemeStore()
 
   // Profile state
   const [username, setUsername] = useState(user?.username ?? '')
@@ -464,29 +469,27 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Theme (dark only) */}
+            {/* Theme */}
             <div>
               <label className="text-sm font-medium text-gray-300 mb-3 block">Tema</label>
               <div className="flex gap-3 flex-wrap">
                 {[
-                  { id: 'dark', label: '🌑 Modo Oscuro', active: true },
-                  { id: 'light', label: '☀️ Modo Claro', active: false },
-                  { id: 'system', label: '💻 Sistema', active: false },
+                  { id: 'dark'  as const, label: '🌑 Modo Oscuro' },
+                  { id: 'light' as const, label: '☀️ Modo Claro' },
                 ].map((t) => (
                   <button
                     key={t.id}
-                    disabled={!t.active}
+                    onClick={() => setColorMode(t.id)}
                     className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                      t.active
+                      colorMode === t.id
                         ? 'bg-elite-600/10 border-elite-600/50 text-white'
-                        : 'border-white/10 text-gray-500 cursor-not-allowed opacity-40'
+                        : 'border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
                     }`}
                   >
                     {t.label}
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-600 mt-2">ELITE OS está optimizado para Modo Oscuro. Otros temas próximamente.</p>
             </div>
           </motion.div>
         </Tabs.Content>

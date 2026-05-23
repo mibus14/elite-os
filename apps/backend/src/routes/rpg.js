@@ -7,9 +7,8 @@ const rpg = require('../lib/rpg');
 const prisma = new PrismaClient();
 
 function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 // ─── GET /api/rpg/character ───────────────────────────────────────────────────

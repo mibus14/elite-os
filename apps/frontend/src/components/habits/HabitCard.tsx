@@ -21,6 +21,7 @@ export default function HabitCard({ habit, delay = 0 }: HabitCardProps) {
     mutationFn: () => habitsApi.log(habit.id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['habits'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setJustCompleted(true);
       toast.success(`+${habit.xpReward} XP earned!`, { icon: '⚡' });
       setTimeout(() => setJustCompleted(false), 1500);

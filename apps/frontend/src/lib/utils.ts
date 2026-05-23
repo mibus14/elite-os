@@ -50,9 +50,14 @@ export function getMacroColor(macro: 'protein' | 'carbs' | 'fat'): string {
 }
 
 const AVATAR_SLUG_STYLE: Record<string, string> = {
-  avatar_pixel: 'pixel-art',
-  avatar_robot: 'bottts',
-  avatar_dark:  'fun-emoji',
+  avatar_pixel:   'pixel-art',
+  avatar_robot:   'bottts',
+  avatar_dark:    'fun-emoji',
+  avatar_warrior: 'adventurer',
+  avatar_sage:    'micah',
+  avatar_noble:   'lorelei',
+  avatar_phantom: 'open-peeps',
+  avatar_god:     'personas',
 }
 
 export function getAvatarUrl(avatar: string | null | undefined, username: string): string {

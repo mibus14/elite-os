@@ -74,7 +74,7 @@ export default function QuickNutritionModal({ open, onClose }: Props) {
   const saveMutation = useMutation({
     mutationFn: (data: object) => nutritionApi.addMeal(data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['nutrition', 'today'] });
+      qc.invalidateQueries({ queryKey: ['nutrition', 'today'] }); // prefix match - invalidates all dates
       qc.invalidateQueries({ queryKey: ['rpg-character'] });
       qc.invalidateQueries({ queryKey: ['rpg-combo'] });
       toast.success('¡Comida registrada!');

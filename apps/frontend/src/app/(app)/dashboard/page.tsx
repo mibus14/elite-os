@@ -86,7 +86,7 @@ function WaterTracker({ cups, goal }: { cups: number; goal: number }) {
   useEffect(() => { setLocalCups(cups); }, [cups]);
 
   const saveMutation = useMutation({
-    mutationFn: (n: number) => dailyLogApi.save({ waterGlasses: n }),
+    mutationFn: (n: number) => dailyLogApi.saveWater(n),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['daily-log'] });
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });

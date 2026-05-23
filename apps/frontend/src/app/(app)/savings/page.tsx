@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sword, Plus, X, Zap, Check, Clock, Users, Shield, ChevronDown, Flame, Skull } from 'lucide-react'
+import { Sword, Plus, X, Zap, Check, Clock, Users, Shield, ChevronDown, Flame, Skull, Eye } from 'lucide-react'
 import { betsApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
@@ -258,10 +258,18 @@ function ChallengeCard({ bet, userId, onAccept, onSettle }: {
   onAccept: (bet: Bet) => void; onSettle: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const isCreator   = (bet.creator?.id ?? '') === userId
-  const hasAccepted = bet.acceptances.some(a => a.userId === userId)
-  const totalPot    = bet.stake + bet.acceptances.reduce((s, a) => s + a.amount, 0)
-  const isExpired   = new Date(bet.deadline) < new Date()
+  const isCreator     = (bet.creator?.id ?? '') === userId
+  const hasAccepted   = bet.acceptances.some(a => a.userId === userId)
+  const isParticipant = isCreator || hasAccepted
+  const totalPot      = bet.stake + bet.acceptances.reduce((s, a) => s + a.amount, 0)
+  const isExpired     = new Date(bet.deadline) < new Date()
+
+  const { data: progressData } = useQuery({
+    queryKey: ['bet-progress', bet.id],
+    queryFn: async () => (await betsApi.progress(bet.id)).data,
+    enabled: expanded && ['open', 'active'].includes(bet.status),
+    staleTime: 30000,
+  })
 
   const borderColor = {
     open:   'border-[#1A1A1A] hover:border-white/10',
@@ -272,6 +280,21 @@ function ChallengeCard({ bet, userId, onAccept, onSettle }: {
 
   const statusIcon = { open: '⚔️', active: '🔥', won: '👑', lost: '💀' }[bet.status] ?? '⚔️'
   const statusBg   = { open: 'bg-[#DC143C]/10', active: 'bg-yellow-500/10', won: 'bg-yellow-500/15', lost: 'bg-red-900/20' }[bet.status] ?? 'bg-white/5'
+
+  function getOutcome() {
+    if (bet.status === 'won') {
+      if (isCreator)    return { text: '👑 ¡Victoria! Cumpliste el desafío',  cls: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' }
+      if (hasAccepted)  return { text: '💀 El creador ganó el combate',        cls: 'bg-red-900/20 border-red-900/30 text-red-500' }
+      return              { text: '👑 Victoria del creador',                   cls: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' }
+    }
+    if (bet.status === 'lost') {
+      if (isCreator)    return { text: '💀 Caíste en combate',                cls: 'bg-red-900/20 border-red-900/30 text-red-500' }
+      if (hasAccepted)  return { text: '👑 ¡Victoria! El creador cayó',        cls: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' }
+      return              { text: '💀 El creador cayó en combate',             cls: 'bg-red-900/20 border-red-900/30 text-red-500' }
+    }
+    return null
+  }
+  const outcome = getOutcome()
 
   return (
     <div className={`bg-[#0D0D0D] border ${borderColor} rounded-2xl overflow-hidden transition-colors`}>
@@ -327,6 +350,31 @@ function ChallengeCard({ bet, userId, onAccept, onSettle }: {
                 </div>
               </div>
 
+              {/* Progreso en tiempo real */}
+              {progressData && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-gray-700 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <Eye className="w-3 h-3" /> Progreso en tiempo real
+                  </p>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2 text-xs">
+                      <span className="text-gray-400">⚔ {bet.creator.username} <span className="text-gray-700">(creador)</span></span>
+                      <span className={progressData.creator?.completed ? 'text-green-400 font-bold' : 'text-red-500'}>
+                        {progressData.creator?.completed ? '✅' : '❌'} {progressData.creator?.current ?? 0}/{progressData.creator?.target ?? bet.conditionValue}
+                      </span>
+                    </div>
+                    {progressData.acceptors?.map((a: any) => (
+                      <div key={a.userId} className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2 text-xs">
+                        <span className="text-gray-400">⚔ {a.username}</span>
+                        <span className={a.completed ? 'text-green-400 font-bold' : 'text-red-500'}>
+                          {a.completed ? '✅' : '❌'} {a.current ?? 0}/{a.target ?? bet.conditionValue}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Retadores */}
               {bet.acceptances.length > 0 && (
                 <div className="space-y-1.5">
@@ -353,23 +401,18 @@ function ChallengeCard({ bet, userId, onAccept, onSettle }: {
                     ⚔ Entrar al combate
                   </motion.button>
                 )}
-                {isCreator && ['open', 'active'].includes(bet.status) && isExpired && (
+                {isParticipant && ['open', 'active'].includes(bet.status) && isExpired && (
                   <motion.button whileTap={{ scale: 0.97 }} onClick={onSettle}
                     className="flex-1 py-2.5 rounded-xl bg-[#DC143C]/20 border border-[#DC143C]/30 text-[#DC143C] text-xs font-black uppercase tracking-wide transition-all">
                     ⚔ Cerrar combate
                   </motion.button>
                 )}
-                {bet.status === 'won' && (
-                  <div className="flex-1 py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-black text-center uppercase tracking-wide">
-                    👑 Victoria
+                {outcome && (
+                  <div className={`flex-1 py-2.5 rounded-xl border text-xs font-black text-center uppercase tracking-wide ${outcome.cls}`}>
+                    {outcome.text}
                   </div>
                 )}
-                {bet.status === 'lost' && (
-                  <div className="flex-1 py-2.5 rounded-xl bg-red-900/20 border border-red-900/30 text-red-500 text-xs font-black text-center uppercase tracking-wide">
-                    💀 Caído en combate
-                  </div>
-                )}
-                {hasAccepted && !isCreator && bet.status === 'active' && (
+                {!outcome && hasAccepted && !isCreator && bet.status === 'active' && !isExpired && (
                   <div className="flex-1 py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-black text-center">
                     🔥 En el coliseo
                   </div>
@@ -429,8 +472,12 @@ export default function ColiseumPage() {
       qc.invalidateQueries({ queryKey: ['rpg-character'] })
       qc.invalidateQueries({ queryKey: ['rpg-combo'] })
       const d = res.data
-      if (d.won) toast.success(`👑 ¡Victoria! +${d.xpAwarded} XP`)
-      else toast.error('💀 Caíste en combate')
+      if (d.outcome === 'creator_wins')   toast.success(`👑 ¡El creador venció! +${d.xpAwarded} XP`)
+      else if (d.outcome === 'acceptors_win') toast.success(`👑 ¡Los retadores vencieron! +${d.xpAwarded} XP`)
+      else if (d.outcome === 'tie')       toast(`⚖ ¡Empate! Apuestas devueltas. +${d.xpAwarded} XP`, { icon: '⚖' })
+      else if (d.outcome === 'none_completed') toast(`💀 Nadie completó el reto. Apuestas devueltas.`, { icon: '💀' })
+      else if (d.won)                     toast.success(`👑 ¡Victoria! +${d.xpAwarded} XP`)
+      else                                toast.error('💀 Caíste en combate')
     },
     onError: (e: any) => toast.error(e.response?.data?.error ?? 'Error'),
   })

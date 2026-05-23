@@ -170,9 +170,9 @@ model DailyLog {
   id           String   @id @default(uuid())
   userId       String
   date         DateTime @db.Date
-  energyLevel  Int      @default(5)
-  mood         Int      @default(5)
-  sleepHours   Float    @default(7)
+  energyLevel  Int?
+  mood         Int?
+  sleepHours   Float?
   waterGlasses Int      @default(0)
   notes        String?
 

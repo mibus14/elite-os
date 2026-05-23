@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
-import { Trophy, Zap, Flame, Target, BookOpen, Dumbbell, Map } from 'lucide-react'
-import { api } from '@/lib/api'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Trophy, Zap, Flame, Target, BookOpen, Dumbbell, Map, X, ShoppingBag, Shield } from 'lucide-react'
+import { api, leaderboardApi } from '@/lib/api'
 import TitleBadge from '@/components/rpg/TitleBadge'
+import { getAvatarUrl } from '@/lib/utils'
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface LeaderboardUser {
@@ -212,8 +214,234 @@ function MetricBars({ label, icon, users, getValue, suffix = '' }: MetricBarProp
   )
 }
 
+/* ─── Shop catalog (mirrors backend SHOP_ITEMS) ─────────────────── */
+const SHOP_CATALOG: Record<string, { name: string; icon: string; category: string; rarity: string }> = {
+  frame_silver:  { name: 'Marco Plata',         icon: '⬜', category: 'frame',      rarity: 'common' },
+  frame_gold:    { name: 'Marco Dorado',         icon: '🟡', category: 'frame',      rarity: 'rare' },
+  frame_fire:    { name: 'Marco de Fuego',       icon: '🔥', category: 'frame',      rarity: 'epic' },
+  frame_crimson: { name: 'Marco Carmesí',        icon: '❤️‍🔥', category: 'frame',     rarity: 'legendary' },
+  frame_diamond: { name: 'Marco Diamante',       icon: '💎', category: 'frame',      rarity: 'legendary' },
+  title_warrior: { name: 'Guerrero del Alba',    icon: '⚔️',  category: 'title',     rarity: 'common' },
+  title_iron:    { name: 'Voluntad de Hierro',   icon: '🔩',  category: 'title',     rarity: 'rare' },
+  title_shadow:  { name: 'Sombra Letal',         icon: '🗡️', category: 'title',      rarity: 'epic' },
+  title_legend:  { name: 'Leyenda Viviente',     icon: '👑',  category: 'title',     rarity: 'legendary' },
+  title_god:     { name: 'El Ascendido',         icon: '✨',  category: 'title',     rarity: 'legendary' },
+  bg_fire:       { name: 'Aura de Fuego',        icon: '🔥', category: 'background', rarity: 'rare' },
+  bg_ocean:      { name: 'Abismo Oceánico',      icon: '🌊', category: 'background', rarity: 'rare' },
+  bg_forest:     { name: 'Espíritu del Bosque',  icon: '🌿', category: 'background', rarity: 'rare' },
+  bg_galaxy:     { name: 'Cosmos Oscuro',        icon: '🌌', category: 'background', rarity: 'epic' },
+  bg_elite:      { name: 'Aura Élite',           icon: '⚡', category: 'background', rarity: 'legendary' },
+  avatar_pixel:   { name: 'Avatar Pixel',    icon: '👾', category: 'avatar', rarity: 'common' },
+  avatar_robot:   { name: 'Avatar Robot',    icon: '🤖', category: 'avatar', rarity: 'rare' },
+  avatar_dark:    { name: 'Avatar Oscuro',   icon: '😈', category: 'avatar', rarity: 'epic' },
+  avatar_warrior: { name: 'Guerrero Élite',  icon: '⚔️', category: 'avatar', rarity: 'rare' },
+  avatar_sage:    { name: 'Sabio Ancestral', icon: '🧙', category: 'avatar', rarity: 'epic' },
+  avatar_noble:   { name: 'Noble Carmesí',   icon: '👑', category: 'avatar', rarity: 'legendary' },
+  avatar_phantom: { name: 'El Fantasma',     icon: '👻', category: 'avatar', rarity: 'legendary' },
+  avatar_god:     { name: 'Dios Ascendido',  icon: '✨', category: 'avatar', rarity: 'legendary' },
+  boost_small:    { name: 'Impulso Menor',   icon: '⚡', category: 'boost',  rarity: 'common' },
+  boost_medium:  { name: 'Impulso Mayor',        icon: '🚀', category: 'boost',      rarity: 'rare' },
+  boost_legend:  { name: 'Impulso Legendario',   icon: '💥', category: 'boost',      rarity: 'epic' },
+}
+
+const RARITY_BADGE: Record<string, string> = {
+  common:    'border-gray-500/40 bg-gray-500/10 text-gray-400',
+  rare:      'border-blue-500/40 bg-blue-500/10 text-blue-400',
+  epic:      'border-purple-500/40 bg-purple-500/10 text-purple-400',
+  legendary: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400',
+}
+
+/* ─── User Profile Modal ─────────────────────────────────────────── */
+interface UserProfile {
+  id: string; username: string; avatar: string; bio?: string
+  level: number; xp: number; rank: string; streak: number; longestStreak: number
+  class: string; statStr: number; statInt: number; statVit: number
+  statDis: number; statWis: number; statGol: number
+  deathCount: number; comboStreak: number
+  equippedFrame?: string; equippedTitle?: string; equippedBg?: string
+  inventory: { itemSlug: string; purchasedAt: string }[]
+  goalsCompleted: number; habitsCompleted: number
+  gymSessions: number; cardioSessions: number; learningItems: number
+  isCurrentUser: boolean
+}
+
+function UserProfileModal({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const { data, isLoading } = useQuery<UserProfile>({
+    queryKey: ['user-profile', userId],
+    queryFn: () => leaderboardApi.userProfile(userId).then((r) => r.data.profile),
+    staleTime: 60_000,
+  })
+
+  const stats = data ? [
+    { key: 'STR', icon: '💪', value: data.statStr },
+    { key: 'INT', icon: '🧠', value: data.statInt },
+    { key: 'VIT', icon: '❤️', value: data.statVit },
+    { key: 'DIS', icon: '🎯', value: data.statDis },
+    { key: 'WIS', icon: '📖', value: data.statWis },
+    { key: 'GOL', icon: '💰', value: data.statGol },
+  ] : []
+
+  const equipped = data ? [
+    data.equippedFrame && SHOP_CATALOG[data.equippedFrame],
+    data.equippedTitle && SHOP_CATALOG[data.equippedTitle],
+    data.equippedBg    && SHOP_CATALOG[data.equippedBg],
+  ].filter(Boolean) : []
+
+  const inventory = data?.inventory ?? []
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative bg-[#111111] border border-[#1E1E1E] rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto shadow-2xl"
+        >
+          {/* Close */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all z-10"
+          >
+            <X size={18} />
+          </button>
+
+          {isLoading && (
+            <div className="p-10 text-center text-gray-500 animate-pulse">Cargando perfil…</div>
+          )}
+
+          {data && (
+            <div className="p-6 space-y-5">
+              {/* Header */}
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-elite-600/40 bg-[#1E1E1E] flex-shrink-0">
+                  <img src={getAvatarUrl(data.avatar, data.username)} alt={data.username} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-bold text-white">{data.username}</h2>
+                    {data.isCurrentUser && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-elite-600/40 bg-elite-600/10 text-elite-600 font-bold">TÚ</span>
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-sm">{CLASS_EMOJI[data.class]} {data.class} · Lv.{data.level}</p>
+                  <p className="text-yellow-400 text-sm font-semibold">{data.xp.toLocaleString()} XP</p>
+                  {data.bio && <p className="text-gray-500 text-xs mt-1 truncate">{data.bio}</p>}
+                </div>
+              </div>
+
+              {/* Quick stats */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: '🔥 Racha', value: `${data.streak}d` },
+                  { label: '⚡ Mejor', value: `${data.longestStreak}d` },
+                  { label: '💀 Muertes', value: data.deathCount },
+                ].map((s) => (
+                  <div key={s.label} className="bg-white/5 rounded-xl p-3 text-center border border-white/8">
+                    <p className="text-white font-bold text-lg">{s.value}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Activity stats */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: '🏋️ Gym', value: data.gymSessions },
+                  { label: '🎯 Metas', value: data.goalsCompleted },
+                  { label: '📚 Estudio', value: data.learningItems },
+                ].map((s) => (
+                  <div key={s.label} className="bg-white/5 rounded-xl p-3 text-center border border-white/8">
+                    <p className="text-white font-bold text-lg">{s.value}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* RPG Stats */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Shield size={12} /> Estadísticas RPG
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {stats.map((s) => (
+                    <div key={s.key} className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex items-center gap-2">
+                      <span className="text-base">{s.icon}</span>
+                      <div>
+                        <p className="text-[10px] text-gray-500 uppercase font-semibold">{s.key}</p>
+                        <p className="text-white font-bold text-sm">{s.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Equipped items */}
+              {equipped.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Equipado</p>
+                  <div className="flex flex-wrap gap-2">
+                    {equipped.map((item: any, i) => (
+                      <span
+                        key={i}
+                        className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-medium ${RARITY_BADGE[item.rarity]}`}
+                      >
+                        {item.icon} {item.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Inventory */}
+              {inventory.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <ShoppingBag size={12} /> Colección ({inventory.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {inventory.map((inv) => {
+                      const item = SHOP_CATALOG[inv.itemSlug]
+                      if (!item) return null
+                      return (
+                        <span
+                          key={inv.itemSlug}
+                          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-medium ${RARITY_BADGE[item.rarity]}`}
+                          title={item.name}
+                        >
+                          {item.icon} {item.name}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {inventory.length === 0 && (
+                <div className="text-center py-4 text-gray-600 text-sm">
+                  <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  Sin items en el mercado aún
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  )
+}
+
 /* ─── Page ───────────────────────────────────────────────────────── */
 export default function LeaderboardPage() {
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+
   const { data: players, isLoading } = useQuery({
     queryKey: ['rpg-leaderboard'],
     queryFn: async () => {
@@ -256,6 +484,11 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-8 pb-8">
+      {/* User profile modal */}
+      {selectedUserId && (
+        <UserProfileModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+      )}
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -265,7 +498,7 @@ export default function LeaderboardPage() {
         <Trophy className="w-8 h-8 text-yellow-400" />
         <div>
           <h1 className="text-3xl font-bold text-white">Salón de Héroes</h1>
-          <p className="text-gray-500 mt-1">Los guerreros más poderosos del reino</p>
+          <p className="text-gray-500 mt-1">Los guerreros más poderosos del reino — <span className="text-gray-600 text-xs">Toca un jugador para ver su perfil</span></p>
         </div>
       </motion.div>
 
@@ -350,7 +583,8 @@ export default function LeaderboardPage() {
                     initial={{ opacity: 0, x: -16 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.35 + idx * 0.06 }}
-                    className={`border-b border-[#1E1E1E] hover:bg-white/3 transition-colors ${idx === 0 ? 'bg-yellow-400/5' : ''}`}
+                    onClick={() => setSelectedUserId(user.id)}
+                    className={`border-b border-[#1E1E1E] hover:bg-white/5 transition-colors cursor-pointer ${idx === 0 ? 'bg-yellow-400/5' : ''}`}
                   >
                     <td className="px-6 py-4">
                       <span className="text-xl">{rankEmoji}</span>

@@ -61,25 +61,24 @@ const QUICK_MISSIONS = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 function isSameDay(a, b) {
   const da = new Date(a);
   const db = new Date(b);
   return (
-    da.getFullYear() === db.getFullYear() &&
-    da.getMonth() === db.getMonth() &&
-    da.getDate() === db.getDate()
+    da.getUTCFullYear() === db.getUTCFullYear() &&
+    da.getUTCMonth() === db.getUTCMonth() &&
+    da.getUTCDate() === db.getUTCDate()
   );
 }
 
 function isYesterday(date) {
   const d = new Date(date);
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterday = startOfToday();
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
   return isSameDay(d, yesterday);
 }
 

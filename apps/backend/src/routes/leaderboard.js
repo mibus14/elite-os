@@ -120,4 +120,66 @@ router.get('/stats', authenticate, async (req, res, next) => {
   }
 });
 
+// GET /api/leaderboard/users/:id/profile — public profile of another user
+router.get('/users/:id/profile', authenticate, async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        username: true,
+        avatar: true,
+        bio: true,
+        level: true,
+        xp: true,
+        rank: true,
+        streak: true,
+        longestStreak: true,
+        class: true,
+        statStr: true,
+        statInt: true,
+        statVit: true,
+        statDis: true,
+        statWis: true,
+        statGol: true,
+        deathCount: true,
+        comboStreak: true,
+        equippedFrame: true,
+        equippedTitle: true,
+        equippedBg: true,
+        inventory: { select: { itemSlug: true, purchasedAt: true } },
+        _count: {
+          select: {
+            gymSessions: true,
+            cardioSessions: true,
+            learningItems: true,
+            goals: true,
+          },
+        },
+      },
+    });
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const [goalsCompleted, habitsCompleted] = await Promise.all([
+      prisma.goal.count({ where: { userId: user.id, status: 'completed' } }),
+      prisma.habitLog.count({ where: { userId: user.id, completed: true } }),
+    ]);
+
+    res.json({
+      profile: {
+        ...user,
+        goalsCompleted,
+        habitsCompleted,
+        gymSessions:   user._count.gymSessions,
+        cardioSessions:user._count.cardioSessions,
+        learningItems: user._count.learningItems,
+        isCurrentUser: user.id === req.user.id,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

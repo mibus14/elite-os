@@ -2,6 +2,15 @@ import axios from 'axios'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
+// Returns YYYY-MM-DD in the user's local timezone — used for daily data queries/mutations
+export function getLocalDate(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,
   timeout: 15000,
@@ -14,17 +23,21 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+let _redirectingTo401 = false
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     const url: string = err.config?.url || ''
     const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/register')
-    if (err.response?.status === 401 && typeof window !== 'undefined' && !isAuthRoute) {
-      localStorage.removeItem('elite_token')
-      localStorage.removeItem('elite_user')
-      localStorage.removeItem('elite-auth')
-      document.cookie = 'elite_token=; Max-Age=0; path=/'
-      window.location.replace('/login')
+    if (err.response?.status === 401 && typeof window !== 'undefined' && !isAuthRoute && !_redirectingTo401) {
+      _redirectingTo401 = true
+      try {
+        localStorage.removeItem('elite_token')
+        localStorage.removeItem('elite_user')
+        localStorage.removeItem('elite-auth')
+      } catch {}
+      // Short delay so any pending toasts/renders finish before hard redirect
+      setTimeout(() => { window.location.replace('/login') }, 300)
     }
     return Promise.reject(err)
   }
@@ -40,16 +53,16 @@ export const authApi = {
 
 // ─── Dashboard ───────────────────────────────────────────────────
 export const dashboardApi = {
-  stats: () => api.get('/dashboard/stats'),
+  stats: () => api.get(`/dashboard/stats?localDate=${getLocalDate()}`),
 }
 
 // ─── Habits ──────────────────────────────────────────────────────
 export const habitsApi = {
-  list:        () => api.get('/habits'),
+  list:        () => api.get(`/habits?localDate=${getLocalDate()}`),
   create:      (data: object) => api.post('/habits', data),
   update:      (id: string, data: object) => api.put(`/habits/${id}`, data),
   remove:      (id: string) => api.delete(`/habits/${id}`),
-  log:         (id: string) => api.post(`/habits/${id}/log`),
+  log:         (id: string, data: object = {}) => api.post(`/habits/${id}/log`, { ...data, localDate: getLocalDate() }),
   heatmap:     () => api.get('/habits/logs/heatmap'),
 }
 
@@ -57,7 +70,7 @@ export const habitsApi = {
 export const gymApi = {
   sessions:      () => api.get('/gym/sessions'),
   session:       (id: string) => api.get(`/gym/sessions/${id}`),
-  createSession: (data: object) => api.post('/gym/sessions', data),
+  createSession: (data: object) => api.post('/gym/sessions', { ...data, localDate: getLocalDate() }),
   updateSession: (id: string, data: object) => api.put(`/gym/sessions/${id}`, data),
   exercises:     () => api.get('/gym/exercises'),
   createExercise:(data: object) => api.post('/gym/exercises', data),
@@ -68,11 +81,11 @@ export const gymApi = {
 
 // ─── Nutrition ───────────────────────────────────────────────────
 export const nutritionApi = {
-  today:         () => api.get('/nutrition/today'),
+  today:         () => api.get(`/nutrition/today?localDate=${getLocalDate()}`),
   estimate:      (description: string) => api.post('/nutrition/estimate', { description }),
-  addMeal:       (data: object) => api.post('/nutrition/meals', data),
+  addMeal:       (data: object) => api.post('/nutrition/meals', { ...data, localDate: getLocalDate() }),
   removeMeal:    (id: string) => api.delete(`/nutrition/meals/${id}`),
-  weeklyStats:   () => api.get('/nutrition/stats/weekly'),
+  weeklyStats:   () => api.get(`/nutrition/stats/weekly?localDate=${getLocalDate()}`),
   goals:         () => api.get('/nutrition/goals'),
   setGoals:      (data: object) => api.put('/nutrition/goals', data),
 }
@@ -80,7 +93,7 @@ export const nutritionApi = {
 // ─── Cardio ──────────────────────────────────────────────────────
 export const cardioApi = {
   sessions:      () => api.get('/cardio/sessions'),
-  create:        (data: object) => api.post('/cardio/sessions', data),
+  create:        (data: object) => api.post('/cardio/sessions', { ...data, localDate: getLocalDate() }),
   remove:        (id: string) => api.delete(`/cardio/sessions/${id}`),
   stats:         () => api.get('/cardio/stats'),
 }
@@ -120,12 +133,13 @@ export const financeApi = {
 
 // ─── Bets ─────────────────────────────────────────────────────────
 export const betsApi = {
-  list:    () => api.get('/bets'),
-  my:      () => api.get('/bets/my'),
-  create:  (data: object) => api.post('/bets', data),
-  accept:  (id: string, amount: number) => api.post(`/bets/${id}/accept`, { amount }),
-  settle:  (id: string) => api.post(`/bets/${id}/settle`),
-  cancel:  (id: string) => api.delete('/bets/' + id),
+  list:     () => api.get('/bets'),
+  my:       () => api.get('/bets/my'),
+  create:   (data: object) => api.post('/bets', data),
+  accept:   (id: string, amount: number) => api.post(`/bets/${id}/accept`, { amount }),
+  settle:   (id: string) => api.post(`/bets/${id}/settle`),
+  cancel:   (id: string) => api.delete('/bets/' + id),
+  progress: (id: string) => api.get(`/bets/${id}/progress`),
 }
 
 // ─── Shop ─────────────────────────────────────────────────────────
@@ -146,8 +160,9 @@ export const savingsApi = {
 
 // ─── Leaderboard ─────────────────────────────────────────────────
 export const leaderboardApi = {
-  rankings:      () => api.get('/leaderboard'),
-  stats:         () => api.get('/leaderboard/stats'),
+  rankings:    () => api.get('/leaderboard'),
+  stats:       () => api.get('/leaderboard/stats'),
+  userProfile: (id: string) => api.get(`/leaderboard/users/${id}/profile`),
 }
 
 // ─── Messages ────────────────────────────────────────────────────
@@ -188,9 +203,10 @@ export const rewardsApi = {
 
 // ─── Daily Log (sleep, mood, energy, water) ───────────────────────
 export const dailyLogApi = {
-  today: ()            => api.get('/daily-log/today'),
-  save:  (data: object) => api.post('/daily-log', data),
-  week:  ()            => api.get('/daily-log/week'),
+  today:       () => api.get(`/daily-log/today?localDate=${getLocalDate()}`),
+  save:        (data: object) => api.post('/daily-log', { ...data, localDate: getLocalDate() }),
+  saveWater:   (waterGlasses: number) => api.patch('/daily-log/water', { waterGlasses, localDate: getLocalDate() }),
+  week:        () => api.get(`/daily-log/week?localDate=${getLocalDate()}`),
 }
 
 // ─── Report ───────────────────────────────────────────────────────

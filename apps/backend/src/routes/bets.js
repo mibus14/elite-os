@@ -198,8 +198,48 @@ router.post('/:id/accept',
   }
 );
 
+/* ─── GET /api/bets/:id/progress ─────────────────────────────────── */
+// Check live progress of all participants without settling
+router.get('/:id/progress', authenticate, async (req, res, next) => {
+  try {
+    const bet = await prisma.bet.findUnique({
+      where: { id: req.params.id },
+      include: {
+        creator: { select: { id: true, username: true, avatar: true } },
+        acceptances: { include: { user: { select: { id: true, username: true, avatar: true } } } },
+      },
+    });
+    if (!bet) return res.status(404).json({ error: 'Bet not found' });
+
+    const from = bet.createdAt;
+    const to   = bet.deadline;
+    const now  = new Date();
+
+    const creatorDone = await verifyCondition(bet.creatorId, bet.conditionType, bet.conditionValue, from, to);
+    const acceptorResults = await Promise.all(
+      bet.acceptances.map(async (a) => ({
+        userId:   a.userId,
+        username: a.user.username,
+        avatar:   a.user.avatar,
+        amount:   a.amount,
+        done:     await verifyCondition(a.userId, bet.conditionType, bet.conditionValue, from, to),
+      }))
+    );
+
+    res.json({
+      bet,
+      progress: {
+        creator:   { id: bet.creatorId, username: bet.creator.username, avatar: bet.creator.avatar, done: creatorDone },
+        acceptors: acceptorResults,
+        deadline:  bet.deadline,
+        expired:   now > bet.deadline,
+      },
+    });
+  } catch (err) { next(err); }
+});
+
 /* ─── POST /api/bets/:id/settle ──────────────────────────────────── */
-// Settle automático — verifica los datos reales del creador
+// Settle automático — verifica condición de creador Y aceptadores; maneja empates
 router.post('/:id/settle', authenticate, async (req, res, next) => {
   try {
     const bet = await prisma.bet.findUnique({
@@ -207,76 +247,110 @@ router.post('/:id/settle', authenticate, async (req, res, next) => {
       include: { acceptances: true },
     });
     if (!bet) return res.status(404).json({ error: 'Bet not found' });
-    if (bet.creatorId !== req.user.id) return res.status(403).json({ error: 'Only creator can settle' });
+    // Creator or any acceptor can trigger settlement after deadline
+    const isCreator = bet.creatorId === req.user.id;
+    const isAcceptor = bet.acceptances.some(a => a.userId === req.user.id);
+    if (!isCreator && !isAcceptor) return res.status(403).json({ error: 'Not a participant' });
     if (!['open', 'active'].includes(bet.status)) return res.status(400).json({ error: 'Already settled' });
 
     const from = bet.createdAt;
     const to   = bet.deadline;
-    const won  = await verifyCondition(bet.creatorId, bet.conditionType, bet.conditionValue, from, to);
 
-    const acceptorStatuses = bet.acceptances.map(a => ({
-      id: a.id,
-      status: won ? 'lost' : 'won',
-    }));
-
-    await Promise.all([
-      prisma.bet.update({
-        where: { id: bet.id },
-        data: { status: won ? 'won' : 'lost', result: won, settledAt: new Date() },
-      }),
-      ...acceptorStatuses.map(a =>
-        prisma.betAcceptance.update({ where: { id: a.id }, data: { status: a.status } })
-      ),
-    ]);
-
-    // XP al creador si ganó
-    if (won) {
-      const bonusXP = bet.xpReward + (bet.acceptances.length * 25);
-      await rpg.awardXP(bet.creatorId, 'habits', bonusXP, prisma);
-      await rpg.updateCombo(bet.creatorId, 'habits', prisma);
-      await rpg.checkAndUpdateStreak(bet.creatorId, prisma);
-    }
-
-    // XP a aceptadores que ganaron (creador falló) — run in parallel per user
-    if (!won) {
-      await Promise.all(bet.acceptances.map(async (a) => {
-        await rpg.awardXP(a.userId, 'habits', 50, prisma);
-        await rpg.updateCombo(a.userId, 'habits', prisma);
-        await rpg.checkAndUpdateStreak(a.userId, prisma);
-      }));
-    }
+    // Verify condition for all participants
+    const creatorDone = await verifyCondition(bet.creatorId, bet.conditionType, bet.conditionValue, from, to);
+    const acceptorResults = await Promise.all(
+      bet.acceptances.map(async (a) => ({
+        ...a,
+        done: await verifyCondition(a.userId, bet.conditionType, bet.conditionValue, from, to),
+      }))
+    );
 
     const totalAcceptorPool = bet.acceptances.reduce((s, a) => s + a.amount, 0);
     const totalPot          = bet.stake + totalAcceptorPool;
 
-    // Creador gana: su stake + todo lo apostado por aceptadores
-    const creatorWins = won ? totalPot : 0;
+    // Determine outcome: tie if same completion status for all, else winner takes pot
+    const allAcceptorsDone  = acceptorResults.every(a => a.done);
+    const noAcceptorsDone   = acceptorResults.every(a => !a.done);
+    const isTie             = creatorDone && allAcceptorsDone;    // all completed
+    const noneCompleted     = !creatorDone && noAcceptorsDone;    // nobody completed
 
-    // Aceptadores ganan proporcional: su apuesta de vuelta + su parte del stake del creador
-    const acceptorBreakdown = !won ? bet.acceptances.map(a => ({
-      userId: a.userId,
-      gets: parseFloat((a.amount + (totalAcceptorPool > 0 ? (a.amount / totalAcceptorPool) * bet.stake : 0)).toFixed(2)),
-    })) : [];
-
-    if (won) {
-      // Creator wins: gets back stake + all acceptor amounts
-      await prisma.user.update({
-        where: { id: bet.creatorId },
-        data: { gold: { increment: totalPot } },
-      });
-    } else if (bet.acceptances.length > 0) {
-      // Acceptors win: get back their amount + proportional share of creator's stake
-      await Promise.all(acceptorBreakdown.map(({ userId, gets }) =>
-        prisma.user.update({ where: { id: userId }, data: { gold: { increment: Math.floor(gets) } } })
-      ));
+    let outcome; // 'creator_wins' | 'acceptors_win' | 'tie' | 'none_completed' | 'partial'
+    if (isTie || noneCompleted) {
+      outcome = isTie ? 'tie' : 'none_completed';
+    } else if (creatorDone && noAcceptorsDone) {
+      outcome = 'creator_wins';
+    } else if (!creatorDone && allAcceptorsDone) {
+      outcome = 'acceptors_win';
+    } else {
+      // Mixed: some acceptors done, some not — creator determines victory
+      outcome = creatorDone ? 'creator_wins' : 'partial';
     }
 
+    // Update DB status
+    const betStatus = outcome === 'creator_wins' ? 'won' : outcome === 'acceptors_win' ? 'lost' : 'won';
+    await prisma.bet.update({
+      where: { id: bet.id },
+      data: { status: betStatus, result: creatorDone, settledAt: new Date() },
+    });
+
+    // Update acceptor statuses
+    await Promise.all(acceptorResults.map(a => {
+      let aStatus;
+      if (outcome === 'tie' || outcome === 'none_completed') aStatus = 'refunded';
+      else if (outcome === 'creator_wins') aStatus = a.done ? 'refunded' : 'lost';  // partial: done acceptors get refund
+      else aStatus = 'won'; // acceptors_win or partial where creator failed
+      return prisma.betAcceptance.update({ where: { id: a.id }, data: { status: aStatus } });
+    }));
+
+    // Gold distribution
+    if (outcome === 'tie' || outcome === 'none_completed') {
+      // Return everyone's stakes
+      await prisma.user.update({ where: { id: bet.creatorId }, data: { gold: { increment: Math.floor(bet.stake) } } });
+      await Promise.all(acceptorResults.map(a =>
+        prisma.user.update({ where: { id: a.userId }, data: { gold: { increment: Math.floor(a.amount) } } })
+      ));
+    } else if (outcome === 'creator_wins') {
+      // Creator wins all — but refund acceptors who also completed
+      const losingAcceptors = acceptorResults.filter(a => !a.done);
+      const winningAcceptors = acceptorResults.filter(a => a.done);
+      const loserPool = losingAcceptors.reduce((s, a) => s + a.amount, 0);
+      // Creator gets their stake back + losers' pool
+      await prisma.user.update({ where: { id: bet.creatorId }, data: { gold: { increment: Math.floor(bet.stake + loserPool) } } });
+      // Winning acceptors get their money back
+      await Promise.all(winningAcceptors.map(a =>
+        prisma.user.update({ where: { id: a.userId }, data: { gold: { increment: Math.floor(a.amount) } } })
+      ));
+    } else {
+      // Acceptors win — creator loses stake, distributed proportionally among winning acceptors
+      const winningAcceptors = acceptorResults.filter(a => a.done);
+      const winningPool = winningAcceptors.reduce((s, a) => s + a.amount, 0);
+      await Promise.all(winningAcceptors.map(a => {
+        const share = winningPool > 0 ? (a.amount / winningPool) * bet.stake : 0;
+        return prisma.user.update({ where: { id: a.userId }, data: { gold: { increment: Math.floor(a.amount + share) } } });
+      }));
+      // Losing acceptors get nothing (rare partial case)
+    }
+
+    // XP awards
+    if (creatorDone) {
+      const bonusXP = bet.xpReward + (acceptorResults.filter(a => !a.done).length * 25);
+      await rpg.awardXP(bet.creatorId, 'habits', outcome === 'tie' ? Math.floor(bet.xpReward / 2) : bonusXP, prisma);
+      await rpg.updateCombo(bet.creatorId, 'habits', prisma);
+      await rpg.checkAndUpdateStreak(bet.creatorId, prisma);
+    }
+    await Promise.all(acceptorResults.filter(a => a.done).map(async (a) => {
+      const aXP = outcome === 'tie' ? Math.floor(bet.xpReward / 2) : outcome === 'acceptors_win' ? bet.xpReward : 25;
+      await rpg.awardXP(a.userId, 'habits', aXP, prisma);
+      await rpg.updateCombo(a.userId, 'habits', prisma);
+      await rpg.checkAndUpdateStreak(a.userId, prisma);
+    }));
+
     res.json({
-      won,
+      outcome,
+      creatorDone,
+      acceptorResults: acceptorResults.map(a => ({ userId: a.userId, done: a.done, amount: a.amount })),
       totalPot,
-      creatorWins,
-      acceptorBreakdown,
-      xpAwarded: won ? bet.xpReward + (bet.acceptances.length * 25) : 0,
+      xpAwarded: creatorDone ? bet.xpReward : 0,
     });
   } catch (err) { next(err); }
 });

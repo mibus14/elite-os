@@ -130,27 +130,46 @@ function pickFallback(interest) {
   return generic.map((title) => ({ tag: interest, title }));
 }
 
-const GENERATE_SYSTEM = `Eres un tutor experto en aprendizaje. Tu trabajo es generar sugerencias de estudio MUY ESPECÍFICAS y concretas, nunca genéricas.
+const GENERATE_SYSTEM = `Eres un tutor experto en aprendizaje. Generas sugerencias ULTRA-ESPECÍFICAS: cada título debe nombrar el subtema exacto, la técnica con nombre propio, el proyecto con herramienta real, o el ejercicio concreto.
 
-REGLAS ESTRICTAS:
-1. Cada sugerencia debe nombrar conceptos, herramientas, técnicas o proyectos CONCRETOS del tema
-2. NO generes frases genéricas como "Fundamentos de X", "Aprende X desde cero", "Guía de X" sin especificar QUÉ exactamente
-3. Varía los tipos: un proyecto práctico, un concepto técnico específico, una técnica/método con nombre propio
-4. Usa nombres reales de libros, frameworks, métodos o autores cuando aplique
-5. El título debe ser tan específico que alguien sepa EXACTAMENTE qué va a aprender
+REGLAS:
+1. Nunca digas "Fundamentos de X", "Aprende X", "Introducción a X" — SIEMPRE especifica QUÉ dentro de X
+2. Para matemáticas/ciencias: nombra el teorema, método o tipo de ejercicio exacto
+3. Para programación: nombra la librería, patrón de diseño, o proyecto con stack específico
+4. Para idiomas: nombra la estructura gramatical, tipo de vocabulario o método con nombre real
+5. Para fitness/deporte: nombra el ejercicio, protocolo, o método exacto con nombre propio
+6. Para negocios/finanzas: nombra el modelo, framework o caso de uso específico
+7. Varía el tipo: 1 ejercicio/práctica concreta, 1 concepto técnico puntual, 1 proyecto o aplicación real
 
-EJEMPLOS DE BUENAS sugerencias para "Python":
-- "Automatización de archivos Excel con openpyxl y pandas: script para reportes"
-- "Decoradores en Python: @staticmethod, @classmethod y creación de decoradores propios"
-- "Construye un bot de Telegram con python-telegram-bot para recordatorios"
+EJEMPLOS POR CATEGORÍA:
 
-EJEMPLOS DE MALAS sugerencias (NUNCA hagas esto):
-- "Aprende Python desde cero"
-- "Fundamentos de Python"
-- "Python avanzado: mejores prácticas"
+"álgebra lineal" →
+- "Multiplicación de matrices y cálculo del determinante: 20 ejercicios resueltos paso a paso"
+- "Eigenvectores y eigenvalores: interpretación geométrica y cálculo para transformaciones lineales"
+- "Eliminación Gaussiana y Gauss-Jordan: resolución de sistemas 3x3 con casos especiales"
+
+"Python" →
+- "Decoradores en Python: @property, @staticmethod, @classmethod y decoradores propios con functools.wraps"
+- "Scraping con BeautifulSoup4 y Requests: extrae datos de tablas HTML y exporta a CSV"
+- "AsyncIO en Python: event loop, coroutines, gather() y manejo de tareas concurrentes"
+
+"inglés" →
+- "Reported speech: transformación de afirmaciones, preguntas y órdenes con backshifting"
+- "Phrasal verbs para negocios: 30 verbos frasales esenciales con contexto y ejemplos reales"
+- "Método shadowing con podcasts: técnica de imitación para mejorar entonación y fluidez"
+
+"gym" →
+- "Romanian Deadlift: técnica de bisagra de cadera, posición de barra y progresión de carga"
+- "Periodización ondulante diaria (DUP): diseño de semana con días de fuerza, potencia e hipertrofia"
+- "Sentadilla búlgara con barra: setup, balance y programación para cuádriceps unilateral"
+
+"finanzas personales" →
+- "Método de la avalancha de deudas: cálculo de interés compuesto y orden óptimo de pago"
+- "ETFs vs fondos indexados: comparación de TER, tracking error y fiscalidad para inversión pasiva"
+- "Estado de flujo de caja personal: plantilla mensual con categorías y análisis de ahorro real"
 
 Responde ÚNICAMENTE con JSON válido en una sola línea, sin markdown, sin explicaciones:
-[{"tag":"nombre del interés","title":"sugerencia específica"},...]`;
+[{"tag":"nombre del interés","title":"sugerencia ultra-específica"},...]`;
 
 /* ─── POST /api/learning/generate — devuelve preview sin guardar ─── */
 router.post('/generate', authenticate, async (req, res, next) => {
@@ -165,13 +184,13 @@ router.post('/generate', authenticate, async (req, res, next) => {
     );
     const unique = [...new Set(expanded)];
 
-    const prompt = `Tengo estos temas de aprendizaje: ${unique.map((i) => `"${i}"`).join(', ')}.
+    const prompt = `Temas de aprendizaje: ${unique.map((i) => `"${i}"`).join(', ')}.
 
-Para CADA tema genera exactamente 3 sugerencias MUY ESPECÍFICAS. Cada una debe nombrar conceptos, herramientas o proyectos concretos del tema.
-Varía el tipo: 1 proyecto práctico con nombre específico, 1 concepto técnico puntual, 1 técnica/método con nombre real.
-Total de objetos: ${unique.length * 3}.
+Para CADA tema genera exactamente 3 sugerencias. Cada título debe nombrar el subtema/método/ejercicio EXACTO dentro del tema, no el tema en general.
+Varía: 1 ejercicio/práctica específica, 1 concepto técnico con nombre propio, 1 proyecto/aplicación real con herramienta nombrada.
+Total de objetos en el array: ${unique.length * 3}.
 
-Responde ÚNICAMENTE con el array JSON, sin texto extra ni markdown.`;
+Responde ÚNICAMENTE con el array JSON. Sin texto extra, sin markdown, sin explicaciones.`;
 
     let suggestions;
     try {
@@ -180,8 +199,8 @@ Responde ÚNICAMENTE con el array JSON, sin texto extra ni markdown.`;
         'https://api.groq.com/openai/v1/chat/completions',
         {
           model: 'llama-3.3-70b-versatile',
-          max_tokens: unique.length * 300,
-          temperature: 0.85,
+          max_tokens: unique.length * 400,
+          temperature: 0.7,
           messages: [
             { role: 'system', content: GENERATE_SYSTEM },
             { role: 'user',   content: prompt },

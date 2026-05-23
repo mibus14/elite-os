@@ -142,12 +142,13 @@ export default function SleepPage() {
   const [waterGlasses, setWaterGlasses] = useState(0)
   const [editing, setEditing] = useState(false)
 
+  const todayKey = new Date().toLocaleDateString('sv')
   const { data: todayData, isLoading } = useQuery({
-    queryKey: ['daily-log', 'today'],
+    queryKey: ['daily-log', 'today', todayKey],
     queryFn: async () => {
       const res = await dailyLogApi.today()
       return res.data.log as {
-        sleepHours: number; energyLevel: number; mood: number; waterGlasses: number
+        sleepHours: number | null; energyLevel: number | null; mood: number | null; waterGlasses: number
       } | null
     },
   })
@@ -172,6 +173,9 @@ export default function SleepPage() {
     }
   }, [todayData])
 
+  // Sleep is considered registered only when sleepHours has been explicitly saved (not null)
+  const sleepLogged = todayData !== null && todayData !== undefined && todayData.sleepHours !== null
+
   const saveMutation = useMutation({
     mutationFn: () => dailyLogApi.save({ sleepHours, energyLevel, mood, waterGlasses }),
     onSuccess: () => {
@@ -185,17 +189,24 @@ export default function SleepPage() {
 
   const SLEEP_PRESETS = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
-  const weekChart = (weekData ?? []).map((l) => ({
-    day: safeFormat(l.date, 'EEE'),
-    horas: l.sleepHours,
-  }))
+  const weekChart = (weekData ?? [])
+    .filter((l) => l.sleepHours !== null && l.sleepHours !== undefined)
+    .map((l) => ({
+      day: safeFormat(l.date, 'EEE'),
+      horas: l.sleepHours ?? 0,
+    }))
 
   const avgSleep = weekData && weekData.length > 0
-    ? (weekData.reduce((s, l) => s + l.sleepHours, 0) / weekData.length).toFixed(1)
+    ? (() => {
+        const validLogs = weekData.filter((l) => l.sleepHours !== null)
+        return validLogs.length > 0
+          ? (validLogs.reduce((s, l) => s + (l.sleepHours ?? 0), 0) / validLogs.length).toFixed(1)
+          : null
+      })()
     : null
 
-  // Ya registrado hoy y no está en modo edición
-  const alreadySaved = !!todayData && !editing
+  // Show summary only if sleep was explicitly registered (not just a water-only log)
+  const alreadySaved = sleepLogged && !editing
 
   return (
     <div className="space-y-6 pb-8">
@@ -242,7 +253,7 @@ export default function SleepPage() {
               </p>
               {editing && (
                 <button
-                  onClick={() => { setEditing(false); if (todayData) { setSleepHours(todayData.sleepHours); setEnergyLevel(todayData.energyLevel); setMood(todayData.mood); setWaterGlasses(todayData.waterGlasses) } }}
+                  onClick={() => { setEditing(false); if (todayData) { setSleepHours(todayData.sleepHours ?? 7); setEnergyLevel(todayData.energyLevel ?? 5); setMood(todayData.mood ?? 5); setWaterGlasses(todayData.waterGlasses) } }}
                   className="text-xs text-gray-500 hover:text-white transition-colors"
                 >
                   Cancelar

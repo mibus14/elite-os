@@ -26,9 +26,14 @@ const SHOP_ITEMS = [
   { slug: 'bg_galaxy',     name: 'Cosmos Oscuro',       category: 'background', price: 700,  icon: '🌌', rarity: 'epic',      desc: 'El universo entero como lienzo',gradient: 'from-purple-950 to-indigo-950' },
   { slug: 'bg_elite',      name: 'Aura Élite',          category: 'background', price: 1200, icon: '⚡', rarity: 'legendary', desc: 'El fondo oficial de la élite',   gradient: 'from-red-950/60 to-black' },
   // ── Avatar styles ────────────────────────────────────────────────────────────
-  { slug: 'avatar_pixel',  name: 'Avatar Pixel',        category: 'avatar',     price: 250,  icon: '👾', rarity: 'common',    desc: 'Retro 8-bit, directo de los arcades', style: 'pixel-art' },
-  { slug: 'avatar_robot',  name: 'Avatar Robot',        category: 'avatar',     price: 400,  icon: '🤖', rarity: 'rare',      desc: 'Tu versión de acero y circuitos',    style: 'bottts' },
-  { slug: 'avatar_dark',   name: 'Avatar Oscuro',       category: 'avatar',     price: 800,  icon: '😈', rarity: 'epic',      desc: 'Desata tu lado más oscuro',          style: 'fun-emoji' },
+  { slug: 'avatar_pixel',    name: 'Avatar Pixel',        category: 'avatar',  price: 250,  icon: '👾', rarity: 'common',    desc: 'Retro 8-bit, directo de los arcades',                           style: 'pixel-art' },
+  { slug: 'avatar_robot',    name: 'Avatar Robot',        category: 'avatar',  price: 400,  icon: '🤖', rarity: 'rare',      desc: 'Tu versión de acero y circuitos',                               style: 'bottts' },
+  { slug: 'avatar_dark',     name: 'Avatar Oscuro',       category: 'avatar',  price: 800,  icon: '😈', rarity: 'epic',      desc: 'Desata tu lado más oscuro',                                     style: 'fun-emoji' },
+  { slug: 'avatar_warrior',  name: 'Guerrero Élite',      category: 'avatar',  price: 600,  icon: '⚔️', rarity: 'rare',      desc: 'Aventurero de élite — lleno de accesorios y carácter',          style: 'adventurer' },
+  { slug: 'avatar_sage',     name: 'Sabio Ancestral',     category: 'avatar',  price: 900,  icon: '🧙', rarity: 'epic',      desc: 'Arte minimalista moderno — el avatar del conocimiento',         style: 'micah' },
+  { slug: 'avatar_noble',    name: 'Noble Carmesí',       category: 'avatar',  price: 1400, icon: '👑', rarity: 'legendary', desc: 'Retrato artístico digno de la realeza de élite',                style: 'lorelei' },
+  { slug: 'avatar_phantom',  name: 'El Fantasma',         category: 'avatar',  price: 1800, icon: '👻', rarity: 'legendary', desc: 'Figura misteriosa dibujada a mano — presencia inquietante',     style: 'open-peeps' },
+  { slug: 'avatar_god',      name: 'Dios Ascendido',      category: 'avatar',  price: 3000, icon: '✨', rarity: 'legendary', desc: 'Para quienes han trascendido todos los límites conocidos',      style: 'personas' },
   // ── XP Boosts ────────────────────────────────────────────────────────────────
   { slug: 'boost_small',   name: 'Impulso Menor',       category: 'boost',      price: 80,   icon: '⚡', rarity: 'common',    desc: '+25% XP durante 2 horas',  multiplier: 1.25, hours: 2 },
   { slug: 'boost_medium',  name: 'Impulso Mayor',       category: 'boost',      price: 200,  icon: '🚀', rarity: 'rare',      desc: '+50% XP durante 4 horas',  multiplier: 1.5,  hours: 4 },

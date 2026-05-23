@@ -6,13 +6,20 @@ const prisma = new PrismaClient();
 
 function startOfDay(d) {
   const dt = new Date(d);
-  dt.setHours(0, 0, 0, 0);
-  return dt;
+  return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()));
+}
+
+function parseLocalDate(localDate) {
+  if (localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+    return new Date(localDate + 'T00:00:00.000Z');
+  }
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 function addDays(d, n) {
   const dt = new Date(d);
-  dt.setDate(dt.getDate() + n);
+  dt.setUTCDate(dt.getUTCDate() + n);
   return dt;
 }
 
@@ -20,7 +27,7 @@ function addDays(d, n) {
 router.get('/stats', authenticate, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const today = startOfDay(new Date());
+    const today = parseLocalDate(req.query.localDate);
     const weekStart = startOfDay(addDays(today, -6));
 
     // ── Today's habits ────────────────────────────────────────────────────────
@@ -39,12 +46,12 @@ router.get('/stats', authenticate, async (req, res, next) => {
 
     // ── Sleep average (7 days) ────────────────────────────────────────────────
     const sleepLogs = await prisma.dailyLog.findMany({
-      where: { userId, date: { gte: weekStart } },
+      where: { userId, date: { gte: weekStart }, sleepHours: { not: null } },
       select: { sleepHours: true },
     });
     const avgSleep =
       sleepLogs.length > 0
-        ? sleepLogs.reduce((s, l) => s + l.sleepHours, 0) / sleepLogs.length
+        ? sleepLogs.reduce((s, l) => s + (l.sleepHours ?? 0), 0) / sleepLogs.length
         : 0;
 
     // ── Recent activity feed (last 10 events) ─────────────────────────────────

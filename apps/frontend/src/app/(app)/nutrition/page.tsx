@@ -122,8 +122,9 @@ export default function NutritionPage() {
   const [weekStats, setWeekStats] = useState<any[]>([]);
   const [goalsForm, setGoalsForm] = useState(DEFAULT_GOALS);
 
+  const todayKey = new Date().toLocaleDateString('sv')
   const { data: todayData } = useQuery({
-    queryKey: ['nutrition', 'today'],
+    queryKey: ['nutrition', 'today', todayKey],
     queryFn: async () => {
       const res = await nutritionApi.today();
       return res.data;
@@ -179,7 +180,7 @@ export default function NutritionPage() {
   const removeMutation = useMutation({
     mutationFn: (id: string) => nutritionApi.removeMeal(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['nutrition', 'today'] });
+      qc.invalidateQueries({ queryKey: ['nutrition', 'today'] }); // prefix match invalidates all dates
       toast.success('Eliminado');
     },
   });

@@ -41,7 +41,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data } = await authApi.login({ email, password })
           const { token, user } = data
-          localStorage.setItem('elite_token', token)
+          try { localStorage.setItem('elite_token', token) } catch {}
           set({ user, token, isAuthenticated: true, isLoading: false })
           toast.success(`Welcome back, ${user.username}!`)
           return true
@@ -61,7 +61,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data } = await authApi.register(formData)
           const { token, user } = data
-          localStorage.setItem('elite_token', token)
+          try { localStorage.setItem('elite_token', token) } catch {}
           set({ user, token, isAuthenticated: true, isLoading: false })
           toast.success(`Welcome to ELITE OS, ${user.username}!`)
           return true
@@ -77,7 +77,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('elite_token')
+        try { localStorage.removeItem('elite_token') } catch {}
         set({ user: null, token: null, isAuthenticated: false })
         toast.success('Logged out successfully')
       },

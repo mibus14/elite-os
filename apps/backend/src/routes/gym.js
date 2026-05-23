@@ -8,8 +8,15 @@ const prisma = new PrismaClient();
 
 function startOfDay(d) {
   const dt = new Date(d);
-  dt.setHours(0, 0, 0, 0);
-  return dt;
+  return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()));
+}
+
+function parseLocalDate(localDate) {
+  if (localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+    return new Date(localDate + 'T00:00:00.000Z');
+  }
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 // GET /api/gym/sessions
@@ -66,7 +73,8 @@ router.post(
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { name, date, duration, notes, exercises } = req.body;
+      const { name, date, localDate, duration, notes, exercises } = req.body;
+      const sessionDate = date ? startOfDay(new Date(date)) : parseLocalDate(localDate);
 
       let totalVolume = 0;
       if (exercises && Array.isArray(exercises)) {
@@ -83,7 +91,7 @@ router.post(
         data: {
           userId: req.user.id,
           name,
-          date: date ? startOfDay(new Date(date)) : startOfDay(new Date()),
+          date: sessionDate,
           duration: parseInt(duration),
           notes: notes || null,
           totalVolume,
@@ -102,8 +110,8 @@ router.post(
       });
 
       // Anti-cheat: solo dar XP si la sesión se registra para hoy
-      const activityDate = date ? startOfDay(new Date(date)) : startOfDay(new Date());
-      const isToday = activityDate.getTime() === startOfDay(new Date()).getTime();
+      const todayUTC = parseLocalDate(localDate);
+      const isToday = sessionDate.getTime() === todayUTC.getTime();
       let xpAwarded = 0;
       if (isToday) {
         const { finalXP } = await rpg.awardXP(req.user.id, 'gym', 50, prisma);
