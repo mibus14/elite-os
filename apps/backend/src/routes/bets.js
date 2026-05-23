@@ -223,13 +223,13 @@ router.post('/:id/settle', authenticate, async (req, res, next) => {
       await rpg.checkAndUpdateStreak(bet.creatorId, prisma);
     }
 
-    // XP a aceptadores que ganaron (creador falló)
+    // XP a aceptadores que ganaron (creador falló) — run in parallel per user
     if (!won) {
-      for (const a of bet.acceptances) {
+      await Promise.all(bet.acceptances.map(async (a) => {
         await rpg.awardXP(a.userId, 'habits', 50, prisma);
         await rpg.updateCombo(a.userId, 'habits', prisma);
         await rpg.checkAndUpdateStreak(a.userId, prisma);
-      }
+      }));
     }
 
     const totalAcceptorPool = bet.acceptances.reduce((s, a) => s + a.amount, 0);

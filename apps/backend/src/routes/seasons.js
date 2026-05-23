@@ -38,31 +38,30 @@ async function endCurrentSeason(prisma) {
     select: { id: true, xp: true, level: true, rank: true, streak: true },
   });
 
-  for (const user of users) {
-    const bonus = RANK_BONUS[user.rank] || RANK_BONUS.Bronze;
+  // Batch-create all season results in one query
+  await prisma.seasonResult.createMany({
+    data: users.map((user) => {
+      const bonus = RANK_BONUS[user.rank] || RANK_BONUS.Bronze;
+      return {
+        userId: user.id, seasonId: season.id,
+        finalRank: user.rank, finalXP: user.xp,
+        finalLevel: user.level, finalStreak: user.streak,
+        bonusXP: bonus.bonusXP, bonusMultiplier: bonus.bonusMultiplier,
+      };
+    }),
+  });
 
-    await prisma.seasonResult.create({
-      data: {
-        userId: user.id,
-        seasonId: season.id,
-        finalRank: user.rank,
-        finalXP: user.xp,
-        finalLevel: user.level,
-        finalStreak: user.streak,
-        bonusXP: bonus.bonusXP,
-        bonusMultiplier: bonus.bonusMultiplier,
-      },
-    });
-
-    const newXP = bonus.bonusXP;
+  // Reset users in parallel
+  await Promise.all(users.map((user) => {
+    const bonus  = RANK_BONUS[user.rank] || RANK_BONUS.Bronze;
+    const newXP  = bonus.bonusXP;
     const newLevel = Math.floor(newXP / 500) + 1;
     let newRank = 'Bronze';
-    if (newXP >= 10001) newRank = 'Diamond';
+    if (newXP >= 10001)     newRank = 'Diamond';
     else if (newXP >= 5001) newRank = 'Platinum';
     else if (newXP >= 2001) newRank = 'Gold';
-    else if (newXP >= 501) newRank = 'Silver';
-
-    await prisma.user.update({
+    else if (newXP >= 501)  newRank = 'Silver';
+    return prisma.user.update({
       where: { id: user.id },
       data: {
         xp: newXP, level: newLevel, rank: newRank,
@@ -73,7 +72,7 @@ async function endCurrentSeason(prisma) {
         seasonXPBonus: bonus.bonusXP,
       },
     });
-  }
+  }));
 
   await prisma.season.update({ where: { id: season.id }, data: { status: 'completed' } });
   console.log(`[SEASON] Season ${season.number} ended. ${users.length} users reset.`);
