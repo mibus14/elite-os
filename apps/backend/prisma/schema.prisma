@@ -67,6 +67,14 @@ model User {
   seasonMultiplier Float @default(1.0)
   seasonXPBonus    Int   @default(0)
 
+  gold           Int     @default(500)
+  equippedFrame  String?
+  equippedTitle  String?
+  equippedBg     String?
+
+  inventory    UserInventory[]
+  activeBoosts ActiveBoost[]
+
   @@map("users")
 }
 
@@ -516,4 +524,29 @@ model EarnedReward {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("earned_rewards")
+}
+
+model UserInventory {
+  id          String   @id @default(uuid())
+  userId      String
+  itemSlug    String
+  purchasedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemSlug])
+  @@map("user_inventory")
+}
+
+model ActiveBoost {
+  id         String   @id @default(uuid())
+  userId     String
+  itemSlug   String
+  multiplier Float
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("active_boosts")
 }

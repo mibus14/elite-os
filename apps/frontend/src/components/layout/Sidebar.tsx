@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Dumbbell, Apple, Activity, BookOpen,
   Target, CheckSquare, TrendingUp, Trophy, MessageCircle,
   Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword, X, Moon, BarChart2, Shield,
+  ShoppingBag, Coins,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
@@ -32,6 +33,7 @@ const navItems = [
   { href: '/chat',        label: 'Mensajería',      icon: MessageCircle },
   { href: '/seasons',     label: 'Temporada',       icon: Shield },
   { href: '/report',      label: 'Informe',         icon: BarChart2 },
+  { href: '/shop',        label: 'Mercado',         icon: ShoppingBag },
   { href: '/settings',    label: 'Pergamino',       icon: Settings },
 ]
 
@@ -219,6 +221,14 @@ function SidebarContent({
                 {liveStreak}d
               </span>
             </div>
+            {/* Gold balance */}
+            {charData?.gold !== undefined && (
+              <div className="flex items-center gap-1.5 mt-1.5 px-1">
+                <span className="text-xs">🪙</span>
+                <span className="text-[10px] font-bold text-yellow-400">{(charData.gold).toLocaleString()}</span>
+                <span className="text-[10px] text-gray-600">oro</span>
+              </div>
+            )}
             {seasonData?.season && (
               <div className="flex items-center justify-between mt-2 px-2 py-1 bg-elite-600/10 border border-elite-600/20 rounded-lg">
                 <span className="text-[10px] font-bold text-elite-600 flex items-center gap-1">

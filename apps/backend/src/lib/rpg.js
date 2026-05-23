@@ -143,9 +143,15 @@ async function awardXP(userId, module, baseXP, prisma) {
   const today = startOfToday();
 
   // ── Anti-cheat layer 1 & 2: per-module + global daily caps ───────────────
-  const todayCombo = await prisma.dailyCombo.findFirst({
-    where: { userId, date: today },
-  });
+  const now = new Date();
+  const [todayCombo, activeDebuffs, activeBoost] = await Promise.all([
+    prisma.dailyCombo.findFirst({ where: { userId, date: today } }),
+    prisma.debuff.findMany({ where: { userId, active: true, expiresAt: { gt: now } } }),
+    prisma.activeBoost.findFirst({
+      where: { userId, expiresAt: { gt: now } },
+      orderBy: { multiplier: 'desc' },
+    }),
+  ]);
 
   const field = moduleXPField(module);
   const existingModuleXP = field && todayCombo ? (todayCombo[field] ?? 0) : 0;
@@ -173,10 +179,6 @@ async function awardXP(userId, module, baseXP, prisma) {
     : 1.0;
 
   // ── Active debuffs → lowest multiplier wins ───────────────────────────────
-  const now = new Date();
-  const activeDebuffs = await prisma.debuff.findMany({
-    where: { userId, active: true, expiresAt: { gt: now } },
-  });
   const debuffMultiplier = activeDebuffs.length > 0
     ? Math.min(...activeDebuffs.map((d) => d.xpMultiplier))
     : 1;
@@ -194,8 +196,10 @@ async function awardXP(userId, module, baseXP, prisma) {
   const seasonMultiplier = user.seasonMultiplier ?? 1.0;
 
   // ── Compute final XP ──────────────────────────────────────────────────────
+  const boostMultiplier = activeBoost ? activeBoost.multiplier : 1.0;
+
   let finalXP = Math.round(
-    baseXP * classMultiplier * debuffMultiplier * seasonMultiplier * probationMultiplier
+    baseXP * classMultiplier * debuffMultiplier * seasonMultiplier * probationMultiplier * boostMultiplier
   );
 
   // Clamp to remaining daily budget
@@ -209,9 +213,10 @@ async function awardXP(userId, module, baseXP, prisma) {
   }
 
   // ── Persist XP, level, rank, stats (2 queries instead of 4) ─────────────
+  const goldEarned = Math.ceil(finalXP / 5);
   const afterXP = await prisma.user.update({
     where: { id: userId },
-    data: { xp: { increment: finalXP } },
+    data: { xp: { increment: finalXP }, gold: { increment: goldEarned } },
     select: { xp: true },
   });
 
@@ -251,7 +256,7 @@ async function awardXP(userId, module, baseXP, prisma) {
     });
   }
 
-  return { finalXP, debuffMultiplier, classMultiplier, probationMultiplier };
+  return { finalXP, goldEarned, debuffMultiplier, classMultiplier, probationMultiplier, boostMultiplier };
 }
 
 /**
@@ -413,6 +418,16 @@ async function checkAndUpdateStreak(userId, prisma) {
       lastActiveDate: today,
     },
   });
+
+  // Gold bonus for streak milestones
+  let goldBonus = 0;
+  if (newStreak === 7)                              goldBonus = 50;
+  if (newStreak === 30)                             goldBonus = 200;
+  if (newStreak === 100)                            goldBonus = 500;
+  if (newStreak > 7 && newStreak % 7 === 0 && newStreak !== 30 && newStreak !== 100) goldBonus += 20;
+  if (goldBonus > 0) {
+    await prisma.user.update({ where: { id: userId }, data: { gold: { increment: goldBonus } } });
+  }
 
   await checkAndApplyDebuffs(userId, prisma);
   const died = await checkDeath(userId, prisma);

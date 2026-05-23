@@ -182,6 +182,23 @@ function StatsModal({
           </div>
         </div>
 
+        {/* Gold balance */}
+        {char.gold !== undefined && (
+          <div className="px-5 py-3 border-b border-white/[0.07] flex items-center gap-3">
+            <span className="text-2xl">🪙</span>
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Oro</p>
+              <p className="text-lg font-bold text-yellow-400">{char.gold?.toLocaleString() ?? 0}</p>
+            </div>
+            {char.equippedTitle && (
+              <div className="ml-auto text-right">
+                <p className="text-[10px] text-gray-500">Título</p>
+                <p className="text-xs text-white font-medium">{char.equippedTitle.replace('title_', '').replace(/_/g, ' ')}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Attributes */}
         <div className="px-5 py-4 border-b border-white/[0.07]">
           <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-3">

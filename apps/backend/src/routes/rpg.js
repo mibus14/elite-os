@@ -44,6 +44,10 @@ router.get('/character', authenticate, async (req, res, next) => {
         deathCount: true,
         lastActiveDate: true,
         createdAt: true,
+        gold: true,
+        equippedFrame: true,
+        equippedTitle: true,
+        equippedBg: true,
       },
     });
 

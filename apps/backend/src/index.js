@@ -70,6 +70,7 @@ app.use('/api/rpg', require('./routes/rpg'));
 app.use('/api/daily-log', require('./routes/daily-log'));
 app.use('/api/report', require('./routes/report'));
 app.use('/api/seasons', require('./routes/seasons').router);
+app.use('/api/shop', require('./routes/shop').router);
 
 // ─── Season Init ──────────────────────────────────────────────────────────────
 const { ensureActiveSeason, endCurrentSeason } = require('./routes/seasons');

@@ -125,8 +125,14 @@ router.post('/',
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { title, conditionType, conditionValue, stake, currency, deadline } = req.body;
+      const { title, conditionType, conditionValue, stake, deadline } = req.body;
       const xpReward = calcXP(stake);
+      const stakeAmount = parseFloat(stake);
+
+      const creator = await prisma.user.findUnique({ where: { id: req.user.id }, select: { gold: true } });
+      if (creator.gold < stakeAmount) {
+        return res.status(400).json({ error: `Oro insuficiente para la apuesta (necesitas ${stakeAmount} 🪙)` });
+      }
 
       const bet = await prisma.bet.create({
         data: {
@@ -134,8 +140,8 @@ router.post('/',
           title,
           conditionType,
           conditionValue: parseInt(conditionValue),
-          stake: parseFloat(stake),
-          currency: currency || 'USD',
+          stake: stakeAmount,
+          currency: 'GOLD',
           deadline: new Date(deadline),
           xpReward,
         },
@@ -144,6 +150,8 @@ router.post('/',
           acceptances: [],
         },
       });
+
+      await prisma.user.update({ where: { id: req.user.id }, data: { gold: { decrement: stakeAmount } } });
 
       res.status(201).json({ bet });
     } catch (err) { next(err); }
@@ -172,11 +180,17 @@ router.post('/:id/accept',
 
       const acceptAmount = parseFloat(parseFloat(req.body.amount).toFixed(2));
 
+      const acceptor = await prisma.user.findUnique({ where: { id: req.user.id }, select: { gold: true } });
+      if (acceptor.gold < acceptAmount) {
+        return res.status(400).json({ error: `Oro insuficiente (necesitas ${acceptAmount} 🪙)` });
+      }
+
       const [acceptance] = await Promise.all([
         prisma.betAcceptance.create({
           data: { betId: bet.id, userId: req.user.id, amount: acceptAmount },
         }),
         prisma.bet.update({ where: { id: bet.id }, data: { status: 'active' } }),
+        prisma.user.update({ where: { id: req.user.id }, data: { gold: { decrement: acceptAmount } } }),
       ]);
 
       res.status(201).json({ acceptance, acceptAmount });
@@ -244,6 +258,19 @@ router.post('/:id/settle', authenticate, async (req, res, next) => {
       gets: parseFloat((a.amount + (totalAcceptorPool > 0 ? (a.amount / totalAcceptorPool) * bet.stake : 0)).toFixed(2)),
     })) : [];
 
+    if (won) {
+      // Creator wins: gets back stake + all acceptor amounts
+      await prisma.user.update({
+        where: { id: bet.creatorId },
+        data: { gold: { increment: totalPot } },
+      });
+    } else if (bet.acceptances.length > 0) {
+      // Acceptors win: get back their amount + proportional share of creator's stake
+      await Promise.all(acceptorBreakdown.map(({ userId, gets }) =>
+        prisma.user.update({ where: { id: userId }, data: { gold: { increment: Math.floor(gets) } } })
+      ));
+    }
+
     res.json({
       won,
       totalPot,
@@ -251,6 +278,24 @@ router.post('/:id/settle', authenticate, async (req, res, next) => {
       acceptorBreakdown,
       xpAwarded: won ? bet.xpReward + (bet.acceptances.length * 25) : 0,
     });
+  } catch (err) { next(err); }
+});
+
+/* ─── DELETE /api/bets/:id ────────────────────────────────────────── */
+router.delete('/:id', authenticate, async (req, res, next) => {
+  try {
+    const bet = await prisma.bet.findUnique({ where: { id: req.params.id }, include: { acceptances: true } });
+    if (!bet) return res.status(404).json({ error: 'Bet not found' });
+    if (bet.creatorId !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede cancelar' });
+    if (bet.status !== 'open') return res.status(400).json({ error: 'Solo se pueden cancelar apuestas abiertas sin aceptantes' });
+    if (bet.acceptances.length > 0) return res.status(400).json({ error: 'No se puede cancelar: ya tiene aceptantes' });
+
+    await Promise.all([
+      prisma.bet.update({ where: { id: bet.id }, data: { status: 'cancelled' } }),
+      prisma.user.update({ where: { id: req.user.id }, data: { gold: { increment: bet.stake } } }),
+    ]);
+
+    res.json({ message: 'Apuesta cancelada. Oro devuelto.', refunded: bet.stake });
   } catch (err) { next(err); }
 });
 

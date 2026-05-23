@@ -16,6 +16,12 @@ export interface RPGCharacter {
   inPenitence: boolean
   debuffs: Debuff[]
   combo: DailyCombo | null
+  gold: number
+  equippedFrame?: string | null
+  equippedTitle?: string | null
+  equippedBg?: string | null
+  avatar?: string | null
+  username?: string
 }
 
 export interface Debuff {

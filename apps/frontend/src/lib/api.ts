@@ -125,6 +125,15 @@ export const betsApi = {
   create:  (data: object) => api.post('/bets', data),
   accept:  (id: string, amount: number) => api.post(`/bets/${id}/accept`, { amount }),
   settle:  (id: string) => api.post(`/bets/${id}/settle`),
+  cancel:  (id: string) => api.delete('/bets/' + id),
+}
+
+// ─── Shop ─────────────────────────────────────────────────────────
+export const shopApi = {
+  catalog:   () => api.get('/shop/catalog'),
+  inventory: () => api.get('/shop/inventory'),
+  buy:       (slug: string) => api.post(`/shop/buy/${slug}`),
+  equip:     (slug: string) => api.post(`/shop/equip/${slug}`),
 }
 
 // ─── Savings ─────────────────────────────────────────────────────

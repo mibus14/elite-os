@@ -107,8 +107,8 @@ router.get('/current', authenticate, async (req, res, next) => {
 
     const now = new Date();
     const totalDays = Math.max(1, Math.round((new Date(season.endDate) - new Date(season.startDate)) / 86400000));
-    const daysElapsed = Math.max(0, Math.round((now - new Date(season.startDate)) / 86400000));
-    const daysLeft = Math.max(0, Math.round((new Date(season.endDate) - now) / 86400000));
+    const daysElapsed = Math.min(totalDays, Math.floor((now - new Date(season.startDate)) / 86400000));
+    const daysLeft = Math.max(0, totalDays - daysElapsed);
 
     // User rank in this season (by current XP)
     let allUsers = [];
