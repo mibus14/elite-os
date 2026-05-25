@@ -15,28 +15,28 @@ function calcXP(stake) {
   return 500;
 }
 
-/* ─── Verifica condición del bet ─────────────────────────────────── */
-async function verifyCondition(userId, conditionType, conditionValue, from, to) {
+/* ─── Progreso real de condición → { done, current, target } ─────── */
+async function getConditionProgress(userId, conditionType, conditionValue, from, to) {
+  let current = 0;
   switch (conditionType) {
-    case 'gym_sessions': {
-      const n = await prisma.gymSession.count({ where: { userId, date: { gte: from, lte: to } } });
-      return n >= conditionValue;
-    }
-    case 'cardio_sessions': {
-      const n = await prisma.cardioSession.count({ where: { userId, date: { gte: from, lte: to } } });
-      return n >= conditionValue;
-    }
+    case 'gym_sessions':
+      current = await prisma.gymSession.count({ where: { userId, date: { gte: from, lte: to } } });
+      break;
+    case 'cardio_sessions':
+      current = await prisma.cardioSession.count({ where: { userId, date: { gte: from, lte: to } } });
+      break;
     case 'habit_days': {
       const logs = await prisma.habitLog.findMany({
         where: { userId, date: { gte: from, lte: to }, completed: true },
         select: { date: true },
       });
-      const days = new Set(logs.map(l => l.date.toISOString().split('T')[0]));
-      return days.size >= conditionValue;
+      current = new Set(logs.map(l => l.date.toISOString().split('T')[0])).size;
+      break;
     }
     case 'streak_days': {
       const user = await prisma.user.findUnique({ where: { id: userId }, select: { streak: true } });
-      return (user?.streak ?? 0) >= conditionValue;
+      current = user?.streak ?? 0;
+      break;
     }
     case 'active_days': {
       const [gym, cardio, habits] = await Promise.all([
@@ -49,20 +49,26 @@ async function verifyCondition(userId, conditionType, conditionValue, from, to) 
         ...cardio.map(s => s.date.toISOString().split('T')[0]),
         ...habits.map(s => s.date.toISOString().split('T')[0]),
       ]);
-      return days.size >= conditionValue;
+      current = days.size;
+      break;
     }
     case 'nutrition_healthy': {
-      // conditionValue = % mínimo de comidas saludables (ej. 70 = 70%)
       const [healthy, total] = await Promise.all([
         prisma.meal.count({ where: { userId, date: { gte: from, lte: to }, category: 'HEALTHY' } }),
         prisma.meal.count({ where: { userId, date: { gte: from, lte: to } } }),
       ]);
-      if (total === 0) return false;
-      return Math.round((healthy / total) * 100) >= conditionValue;
+      current = total === 0 ? 0 : Math.round((healthy / total) * 100);
+      break;
     }
     default:
-      return false;
+      current = 0;
   }
+  return { done: current >= conditionValue, current, target: conditionValue };
+}
+
+async function verifyCondition(userId, conditionType, conditionValue, from, to) {
+  const { done } = await getConditionProgress(userId, conditionType, conditionValue, from, to);
+  return done;
 }
 
 /* ─── GET /api/bets ──────────────────────────────────────────────── */
@@ -85,25 +91,20 @@ router.get('/', authenticate, async (req, res, next) => {
 /* ─── GET /api/bets/my ───────────────────────────────────────────── */
 router.get('/my', authenticate, async (req, res, next) => {
   try {
+    const include = {
+      creator: { select: { id: true, username: true, avatar: true } },
+      acceptances: { include: { user: { select: { id: true, username: true } } } },
+    };
     const [created, accepted] = await Promise.all([
       prisma.bet.findMany({
         where: { creatorId: req.user.id },
         orderBy: { createdAt: 'desc' },
-        include: {
-          creator: { select: { id: true, username: true, avatar: true } },
-          acceptances: { include: { user: { select: { id: true, username: true } } } },
-        },
+        include,
       }),
       prisma.betAcceptance.findMany({
         where: { userId: req.user.id },
-        include: {
-          bet: {
-            include: {
-              creator: { select: { id: true, username: true, avatar: true } },
-              acceptances: { include: { user: { select: { id: true, username: true } } } },
-            },
-          },
-        },
+        orderBy: { createdAt: 'desc' },
+        include: { bet: { include } },
       }),
     ]);
     res.json({ created, accepted });
@@ -215,21 +216,33 @@ router.get('/:id/progress', authenticate, async (req, res, next) => {
     const to   = bet.deadline;
     const now  = new Date();
 
-    const creatorDone = await verifyCondition(bet.creatorId, bet.conditionType, bet.conditionValue, from, to);
+    const creatorProg = await getConditionProgress(bet.creatorId, bet.conditionType, bet.conditionValue, from, to);
     const acceptorResults = await Promise.all(
-      bet.acceptances.map(async (a) => ({
-        userId:   a.userId,
-        username: a.user.username,
-        avatar:   a.user.avatar,
-        amount:   a.amount,
-        done:     await verifyCondition(a.userId, bet.conditionType, bet.conditionValue, from, to),
-      }))
+      bet.acceptances.map(async (a) => {
+        const prog = await getConditionProgress(a.userId, bet.conditionType, bet.conditionValue, from, to);
+        return {
+          userId:   a.userId,
+          username: a.user.username,
+          avatar:   a.user.avatar,
+          amount:   a.amount,
+          done:     prog.done,
+          current:  prog.current,
+          target:   prog.target,
+        };
+      })
     );
 
     res.json({
       bet,
       progress: {
-        creator:   { id: bet.creatorId, username: bet.creator.username, avatar: bet.creator.avatar, done: creatorDone },
+        creator: {
+          id:       bet.creatorId,
+          username: bet.creator.username,
+          avatar:   bet.creator.avatar,
+          done:     creatorProg.done,
+          current:  creatorProg.current,
+          target:   creatorProg.target,
+        },
         acceptors: acceptorResults,
         deadline:  bet.deadline,
         expired:   now > bet.deadline,
@@ -287,7 +300,11 @@ router.post('/:id/settle', authenticate, async (req, res, next) => {
     }
 
     // Update DB status
-    const betStatus = outcome === 'creator_wins' ? 'won' : outcome === 'acceptors_win' ? 'lost' : 'won';
+    let betStatus;
+    if (outcome === 'creator_wins')  betStatus = 'won';
+    else if (outcome === 'acceptors_win') betStatus = 'lost';
+    else betStatus = 'tied'; // tie, none_completed, partial-tie
+
     await prisma.bet.update({
       where: { id: bet.id },
       data: { status: betStatus, result: creatorDone, settledAt: new Date() },
