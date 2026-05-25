@@ -271,7 +271,7 @@ router.post(
 // POST /api/gym/splits/log — quick split session (Upper/Lower/PPL)
 router.post('/splits/log', authenticate, async (req, res, next) => {
   try {
-    const { splitId, splitName, compoundLift, weight, localDate } = req.body;
+    const { splitId, splitName, compoundLift, weight, duration, localDate } = req.body;
     if (!splitId || !splitName || !weight) {
       return res.status(400).json({ error: 'splitId, splitName and weight required' });
     }
@@ -287,7 +287,7 @@ router.post('/splits/log', authenticate, async (req, res, next) => {
         userId: req.user.id,
         name: splitName,
         date: sessionDate,
-        duration: 60,
+        duration: parseInt(duration) || 60,
         totalVolume,
         notes: compoundLift ? `${compoundLift}: ${w}kg` : `${w}kg`,
       },

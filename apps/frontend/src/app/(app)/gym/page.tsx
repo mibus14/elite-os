@@ -47,7 +47,6 @@ import {
 } from 'recharts';
 import { gymApi, cardioApi, getLocalDate } from '@/lib/api';
 import type { GymSession, Exercise, PersonalRecord } from '@/types';
-import QuickLogModal from '@/components/gym/QuickLogModal';
 import ExerciseCard from '@/components/gym/ExerciseCard';
 import toast from 'react-hot-toast';
 
@@ -107,20 +106,24 @@ const PPL_SPLITS: SplitConfig[] = [
   },
 ]
 
+const SPLIT_DURATIONS = [45, 60, 75, 90, 120]
+
 /* ─── Split Log Modal ───────────────────────────────────────────────── */
 function SplitLogModal({ split, open, onClose, onSave }: {
   split: SplitConfig | null
   open: boolean
   onClose: () => void
-  onSave: (lift: string, weight: number) => void
+  onSave: (lift: string, weight: number, duration: number) => void
 }) {
   const [selectedLift, setSelectedLift] = useState<string>('')
   const [weight, setWeight] = useState('')
+  const [duration, setDuration] = useState<number>(60)
 
   useEffect(() => {
     if (open && split) {
       setSelectedLift(split.lifts[0])
       setWeight('')
+      setDuration(60)
     }
   }, [open, split])
 
@@ -131,7 +134,7 @@ function SplitLogModal({ split, open, onClose, onSave }: {
 
   function handleSave() {
     if (!ready) return
-    onSave(selectedLift, w)
+    onSave(selectedLift, w, duration)
     setSelectedLift('')
     setWeight('')
     onClose()
@@ -211,6 +214,26 @@ function SplitLogModal({ split, open, onClose, onSave }: {
                 </div>
               </div>
 
+              {/* Duration selection */}
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Duración</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {SPLIT_DURATIONS.map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDuration(d)}
+                      className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                        duration === d
+                          ? 'border-[#DC143C] bg-[#DC143C]/20 text-white'
+                          : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20'
+                      }`}
+                    >
+                      {d}m
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <motion.button
                 whileHover={ready ? { scale: 1.02 } : {}}
                 whileTap={ready ? { scale: 0.98 } : {}}
@@ -223,7 +246,7 @@ function SplitLogModal({ split, open, onClose, onSave }: {
                 }`}
                 style={ready ? { boxShadow: '0 0 20px rgba(220,20,60,0.3)' } : {}}
               >
-                {ready ? `Registrar ${selectedLift} — ${w}kg` : 'Ingresa el peso'}
+                {ready ? `Registrar ${selectedLift} · ${w}kg · ${duration}min` : 'Ingresa el peso'}
               </motion.button>
             </div>
           </motion.div>
@@ -407,7 +430,6 @@ function WeekCalendar({ sessions }: { sessions: GymSession[] }) {
 /* ─── Page ──────────────────────────────────────────────────────────── */
 export default function GymPage() {
   const qc = useQueryClient()
-  const [modalOpen, setModalOpen]           = useState(false);
   const [cardioModalOpen, setCardioModalOpen] = useState(false)
   const [splitModalOpen, setSplitModalOpen] = useState(false)
   const [selectedSplit, setSelectedSplit]   = useState<SplitConfig | null>(null)
@@ -502,13 +524,14 @@ export default function GymPage() {
     return sessionList.find(s => s.name === split.sessionName && s.date.startsWith(todayStr))
   }
 
-  function handleSplitLog(lift: string, weight: number) {
+  function handleSplitLog(lift: string, weight: number, duration: number) {
     if (!selectedSplit) return
     logSplitMutation.mutate({
       splitId:      selectedSplit.id,
       splitName:    selectedSplit.sessionName,
       compoundLift: lift,
       weight,
+      duration,
       localDate:    todayStr,
     })
   }
@@ -528,23 +551,12 @@ export default function GymPage() {
       />
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
-            <Dumbbell className="w-7 h-7 text-[#DC143C]" />
-            Forja
-          </h1>
-          <p className="text-gray-500 mt-1">Forja tu cuerpo en el fuego del esfuerzo</p>
-        </div>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#DC143C] rounded-xl text-white font-semibold text-sm flex-shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Registrar Sesión</span>
-          <span className="sm:hidden">Sesión</span>
-        </motion.button>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+          <Dumbbell className="w-7 h-7 text-[#DC143C]" />
+          Forja
+        </h1>
+        <p className="text-gray-500 mt-1">Forja tu cuerpo en el fuego del esfuerzo</p>
       </div>
 
       <Tabs.Root defaultValue="splits">
@@ -934,11 +946,6 @@ export default function GymPage() {
         </Tabs.Content>
       </Tabs.Root>
 
-      <QuickLogModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onXP={(xp) => setXpFloat({ show: true, amount: xp })}
-      />
     </div>
   );
 }
