@@ -186,6 +186,7 @@ export default function NutritionPage() {
   });
 
   const totalCalories = meals.reduce((s: number, m: any) => s + (m.calories || 0), 0);
+  const totalMacros = todayData?.totals ?? { protein: 0, carbs: 0, fat: 0, fiber: 0 };
 
   return (
     <div className="space-y-6 pb-8">
@@ -302,6 +303,44 @@ export default function NutritionPage() {
           );
         })}
       </div>
+
+      {/* Macro totals bar */}
+      {(totalMacros.protein > 0 || totalMacros.carbs > 0 || totalMacros.fat > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl bg-white/5 border border-white/10 p-5"
+        >
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Macros de hoy</p>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Proteína', value: totalMacros.protein, goal: myGoals.protein, color: 'bg-blue-500', text: 'text-blue-400', unit: 'g' },
+              { label: 'Carbohidratos', value: totalMacros.carbs, goal: myGoals.carbs, color: 'bg-yellow-500', text: 'text-yellow-400', unit: 'g' },
+              { label: 'Grasa', value: totalMacros.fat, goal: myGoals.fat, color: 'bg-red-500', text: 'text-red-400', unit: 'g' },
+            ].map(({ label, value, goal, color, text, unit }) => {
+              const pct = Math.min(100, goal > 0 ? (value / goal) * 100 : 0)
+              return (
+                <div key={label} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">{label}</span>
+                    <span className={`text-xs font-bold ${text}`}>{value}{unit}</span>
+                  </div>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.6, delay: 0.1 }}
+                      className={`h-full rounded-full ${color}`}
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-600">/ {goal}{unit}</p>
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* Lista de comidas de hoy por momento */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

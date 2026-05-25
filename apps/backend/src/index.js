@@ -258,8 +258,18 @@ io.on('connection', (socket) => {
   socket.on('message:read', (data) => {
     const senderSocketId = onlineUsers.get(data.senderId);
     if (senderSocketId) {
-      io.to(senderSocketId).emit('message:read_ack', { messageId: data.messageId });
+      io.to(senderSocketId).emit('message:read_ack', { messageId: data.messageId, readBy: userId });
     }
+  });
+
+  socket.on('typing:start', (data) => {
+    const receiverSocketId = onlineUsers.get(data.to);
+    if (receiverSocketId) io.to(receiverSocketId).emit('typing:start', { from: userId });
+  });
+
+  socket.on('typing:stop', (data) => {
+    const receiverSocketId = onlineUsers.get(data.to);
+    if (receiverSocketId) io.to(receiverSocketId).emit('typing:stop', { from: userId });
   });
 
   socket.on('disconnect', () => {

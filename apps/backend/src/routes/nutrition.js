@@ -98,6 +98,43 @@ const FOOD_DB = [
   [['french toast','pan francés'],280,'2 rebanadas'],
 ];
 
+// Macro ratios per 100 kcal for different food types
+// Values are grams: [protein_g, carbs_g, fat_g, fiber_g] per 100 kcal
+const MACRO_RATIOS = {
+  protein:  [22, 1, 3, 0],    // chicken, fish, beef
+  fastfood: [5,  11, 6, 1],   // burgers, pizza, nuggets
+  mexican:  [6,  12, 4, 1],   // tacos, quesadillas, tortas
+  carbs:    [3,  20, 1, 1],   // tortillas, rice, bread, pasta
+  dairy:    [5,  8,  4, 0],   // milk, yogurt, cheese
+  fruit:    [1,  22, 0, 3],   // fruits
+  veggie:   [3,  12, 1, 4],   // vegetables, salads
+  snack:    [2,  14, 5, 1],   // chips, cookies, cereal
+  drink:    [0,  25, 0, 0],   // juices, sodas, beer
+  mixed:    [5,  13, 4, 1],   // generic
+};
+
+function getMacroRatio(text) {
+  if (/pechuga|pollo|salmon|atun|bistec|carne molida|jamon|huevo|proteina|chicken breast/.test(text))
+    return MACRO_RATIOS.protein;
+  if (/hamburguesa|pizza|nuggets|hot dog|alitas|papas fritas|french fries/.test(text))
+    return MACRO_RATIOS.fastfood;
+  if (/taco|quesadilla|torta|enchilada|tamale|tamal|chilaquile|sope|gordita|birria|pozole|flautas|tostada|molletes/.test(text))
+    return MACRO_RATIOS.mexican;
+  if (/tortilla|arroz|pan|pasta|fideos|avena|cereal|hotcakes|waffles|french toast/.test(text))
+    return MACRO_RATIOS.carbs;
+  if (/leche|yogurt|queso|cappuccino|latte|cafe con leche/.test(text))
+    return MACRO_RATIOS.dairy;
+  if (/manzana|platano|naranja|mango|fresa|sandia|uvas|aguacate|guayaba|jugo|smoothie|licuado/.test(text))
+    return MACRO_RATIOS.fruit;
+  if (/ensalada|verdura|brocoli|vegetal/.test(text))
+    return MACRO_RATIOS.veggie;
+  if (/sabritas|galletas|granola|chocolate|helado|palomitas|cereal/.test(text))
+    return MACRO_RATIOS.snack;
+  if (/refresco|coca|cerveza|vino|jugo/.test(text))
+    return MACRO_RATIOS.drink;
+  return MACRO_RATIOS.mixed;
+}
+
 function estimateLocal(description) {
   const text = description.toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g,'');
@@ -117,9 +154,18 @@ function estimateLocal(description) {
     }
   }
 
-  if (best === null) return { calories: null, confidence: 'low', unknown: true };
+  if (best === null) return { calories: null, protein: 0, carbs: 0, fat: 0, fiber: 0, confidence: 'low', unknown: true };
   const total = Math.round(best * qty);
-  return { calories: total, confidence: qty > 1 ? 'high' : 'medium', unknown: false };
+
+  // Estimate macros using food type ratios
+  const ratio = getMacroRatio(text);
+  const factor = total / 100;
+  const protein = Math.max(0, Math.round(ratio[0] * factor));
+  const carbs   = Math.max(0, Math.round(ratio[1] * factor));
+  const fat     = Math.max(0, Math.round(ratio[2] * factor));
+  const fiber   = Math.max(0, Math.round(ratio[3] * factor));
+
+  return { calories: total, protein, carbs, fat, fiber, confidence: qty > 1 ? 'high' : 'medium', unknown: false };
 }
 
 /* ─── Estimación nutricional con Groq (primaria) + fallback local ─── */

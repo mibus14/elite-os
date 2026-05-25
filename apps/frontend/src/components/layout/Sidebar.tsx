@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Dumbbell, Apple, Activity, BookOpen,
+  LayoutDashboard, Dumbbell, Apple, BookOpen,
   Target, CheckSquare, TrendingUp, Trophy, MessageCircle,
   Settings, ChevronLeft, ChevronRight, Zap, Flame, Sword, X, Moon, BarChart2, Shield,
   ShoppingBag, Coins,
@@ -22,7 +22,6 @@ const navItems = [
   { href: '/dashboard',   label: 'Cuartel',         icon: LayoutDashboard },
   { href: '/gym',         label: 'Forja',           icon: Dumbbell },
   { href: '/nutrition',   label: 'Taberna',         icon: Apple },
-  { href: '/cardio',      label: 'Campo',           icon: Activity },
   { href: '/learning',    label: 'Grimorio',        icon: BookOpen },
   { href: '/goals',       label: 'Misiones',        icon: Target },
   { href: '/habits',      label: 'Juramentos',      icon: CheckSquare },

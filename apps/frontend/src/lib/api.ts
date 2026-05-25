@@ -18,7 +18,8 @@ export const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('elite_token') : null
+  let token: string | null = null
+  try { token = typeof window !== 'undefined' ? localStorage.getItem('elite_token') : null } catch {}
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -77,6 +78,7 @@ export const gymApi = {
   records:       () => api.get('/gym/records'),
   createRecord:  (data: object) => api.post('/gym/records', data),
   stats:         () => api.get('/gym/stats'),
+  logSplit:      (data: object) => api.post('/gym/splits/log', data),
 }
 
 // ─── Nutrition ───────────────────────────────────────────────────
@@ -118,7 +120,8 @@ export const learningApi = {
   removeInterest:  (id: string) => api.delete(`/learning/interests/${id}`),
   items:           () => api.get('/learning/items'),
   toggleItem:      (id: string) => api.patch(`/learning/items/${id}`, {}),
-  generate:        (interests: string[]) => api.post('/learning/generate', { interests }),
+  generate:        (interests: string[], extra?: object) => api.post('/learning/generate', { interests, ...extra }),
+  studyTopic:      (topic: string, level?: string) => api.post('/learning/study', { topic, level }),
   addItems:        (items: { tag: string; title: string }[]) => api.post('/learning/items/bulk', { items }),
   deleteItem:      (id: string) => api.delete(`/learning/items/${id}`),
 }
@@ -129,6 +132,10 @@ export const financeApi = {
   create:        (data: object) => api.post('/finance/entries', data),
   remove:        (id: string) => api.delete(`/finance/entries/${id}`),
   summary:       () => api.get('/finance/summary'),
+  debts:         () => api.get('/finance/debts'),
+  createDebt:    (data: object) => api.post('/finance/debts', data),
+  payDebt:       (id: string, pay: number) => api.patch(`/finance/debts/${id}`, { pay }),
+  removeDebt:    (id: string) => api.delete(`/finance/debts/${id}`),
 }
 
 // ─── Bets ─────────────────────────────────────────────────────────
@@ -167,6 +174,7 @@ export const leaderboardApi = {
 
 // ─── Messages ────────────────────────────────────────────────────
 export const messagesApi = {
+  conversations: () => api.get('/messages/conversations'),
   conversation:  (userId: string) => api.get(`/messages/${userId}`),
   send:          (data: object) => api.post('/messages', data),
   markRead:      (id: string) => api.put(`/messages/${id}/read`),

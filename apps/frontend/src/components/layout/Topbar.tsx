@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, LogOut, User, Settings, ChevronDown, Zap, Menu } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Bell, LogOut, User, Settings, ChevronDown, Zap, Menu, MessageCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -10,7 +10,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { cn, getAvatarUrl } from '@/lib/utils'
 import { format } from 'date-fns'
 import type { RPGCharacter } from '@/types'
-import { rpgApi, dashboardApi, getLocalDate } from '@/lib/api'
+import { rpgApi, dashboardApi, messagesApi, getLocalDate } from '@/lib/api'
 
 interface DerivedNotif {
   id: string
@@ -27,15 +27,14 @@ export function Topbar({ title }: { title?: string }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [dateStr, setDateStr] = useState('')
-  useEffect(() => { setDateStr(format(new Date(), 'EEEE, MMMM d, yyyy')) }, [])
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setDateStr(format(new Date(), 'EEEE, MMMM d, yyyy')); setMounted(true) }, [])
 
-  // Cerrar dropdowns al navegar
   useEffect(() => {
     setUserMenuOpen(false)
     setNotifOpen(false)
   }, [pathname])
 
-  // Fetch RPG character for smart notifications
   const { data: character } = useQuery<RPGCharacter>({
     queryKey: ['rpg-character'],
     queryFn: () => rpgApi.character().then((r) => r.data.character as RPGCharacter),
@@ -43,7 +42,6 @@ export function Topbar({ title }: { title?: string }) {
     retry: false,
   })
 
-  // Fetch today's XP from dashboard stats (shares cache with dashboard page)
   const { data: dashStats } = useQuery({
     queryKey: ['dashboard-stats', getLocalDate()],
     queryFn: () => dashboardApi.stats().then(r => r.data),
@@ -52,37 +50,28 @@ export function Topbar({ title }: { title?: string }) {
   })
   const todayXP: number = (dashStats as { todayXP?: number })?.todayXP ?? 0
 
-  // Build dynamic notifications from character state
+  const { data: unreadMsgs } = useQuery({
+    queryKey: ['messages-unread'],
+    queryFn: () => messagesApi.unreadCount().then(r => r.data.count as number),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    retry: false,
+  })
+
   const rpgNotifications = useMemo<DerivedNotif[]>(() => {
     const n: DerivedNotif[] = []
     if (character?.debuffs && character.debuffs.length > 0) {
-      n.push({
-        id: 'debuff',
-        icon: '💀',
-        text: `${character.debuffs[0].name} activo`,
-        time: 'Ahora',
-      })
+      n.push({ id: 'debuff', icon: '💀', text: `${character.debuffs[0].name} activo`, time: 'Ahora' })
     }
     if (character?.comboActive) {
-      n.push({
-        id: 'combo',
-        icon: '🔥',
-        text: 'Combo del día activo — x1.5 XP',
-        time: 'Hoy',
-      })
+      n.push({ id: 'combo', icon: '🔥', text: 'Combo del día activo — x1.5 XP', time: 'Hoy' })
     }
     if (character?.inPenitence) {
-      n.push({
-        id: 'penitence',
-        icon: '💀',
-        text: '¡Estás en Penitencia! Completa la tarea para continuar',
-        time: 'Ahora',
-      })
+      n.push({ id: 'penitence', icon: '💀', text: '¡Estás en Penitencia! Completa la tarea para continuar', time: 'Ahora' })
     }
     return n
   }, [character])
 
-  // Merge store notifications with RPG-derived ones
   const allNotifications = useMemo<DerivedNotif[]>(() => {
     const fromStore: DerivedNotif[] = storeNotifs.map((n) => ({
       id: n.id,
@@ -90,7 +79,6 @@ export function Topbar({ title }: { title?: string }) {
       text: n.title + (n.message ? ` — ${n.message}` : ''),
       time: 'Hoy',
     }))
-    // Deduplicate by id
     const seen = new Set<string>()
     return [...rpgNotifications, ...fromStore].filter((n) => {
       if (seen.has(n.id)) return false
@@ -99,7 +87,8 @@ export function Topbar({ title }: { title?: string }) {
     })
   }, [rpgNotifications, storeNotifs])
 
-  const unreadCount = allNotifications.length
+  const msgUnread   = unreadMsgs ?? 0
+  const unreadCount = allNotifications.length + (msgUnread > 0 ? 1 : 0)
 
   const handleLogout = () => {
     logout()
@@ -137,6 +126,7 @@ export function Topbar({ title }: { title?: string }) {
             </span>
           </div>
         )}
+
         {/* Notifications */}
         <div className="relative">
           <button
@@ -150,42 +140,64 @@ export function Topbar({ title }: { title?: string }) {
               </span>
             )}
           </button>
-          <AnimatePresence>
-            {notifOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                className="absolute right-0 top-12 w-72 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
-              >
+
+          {mounted && notifOpen && createPortal(
+            <>
+              <div className="fixed inset-0 z-[9998]" onClick={() => setNotifOpen(false)} />
+              <div className="fixed top-14 md:top-16 right-3 md:right-6 w-80 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] z-[9999] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#1E1E1E] flex items-center justify-between">
-                  <p className="text-sm font-semibold text-white">Notificaciones</p>
+                  <p className="text-sm font-bold text-white">Notificaciones</p>
                   {unreadCount > 0 && (
                     <span className="text-xs font-bold text-[#DC143C]">{unreadCount} nueva{unreadCount !== 1 ? 's' : ''}</span>
                   )}
                 </div>
-                {allNotifications.length === 0 ? (
-                  <p className="px-4 py-6 text-sm text-gray-500 text-center">Sin notificaciones</p>
-                ) : (
-                  allNotifications.slice(0, 5).map((n) => (
-                    <div
-                      key={n.id}
-                      className="flex items-start gap-3 px-4 py-3 border-b border-[#1A1A1A] last:border-0 hover:bg-white/5 transition-colors"
+
+                <div className="max-h-96 overflow-y-auto">
+                  {/* Messages section */}
+                  {msgUnread > 0 && (
+                    <button
+                      onClick={() => { router.push('/chat'); setNotifOpen(false) }}
+                      className="w-full flex items-center gap-3 px-4 py-3 border-b border-[#1A1A1A] hover:bg-white/5 transition-colors text-left"
                     >
-                      <span className="text-base flex-shrink-0 leading-none mt-0.5">{n.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white leading-snug">{n.text}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">{n.time}</p>
+                      <div className="w-9 h-9 rounded-full bg-[#DC143C]/15 flex items-center justify-center flex-shrink-0">
+                        <MessageCircle className="w-4 h-4 text-[#DC143C]" />
                       </div>
-                    </div>
-                  ))
-                )}
-              </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white font-semibold leading-snug">
+                          {msgUnread} mensaje{msgUnread !== 1 ? 's' : ''} sin leer
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">Toca para ir al chat</p>
+                      </div>
+                      <span className="flex-shrink-0 min-w-[20px] h-5 rounded-full bg-[#DC143C] text-white text-[10px] font-bold flex items-center justify-center px-1.5">
+                        {msgUnread}
+                      </span>
+                    </button>
+                  )}
+
+                  {/* RPG & system notifications */}
+                  {allNotifications.length === 0 && msgUnread === 0 ? (
+                    <p className="px-4 py-8 text-sm text-gray-600 text-center">Sin notificaciones</p>
+                  ) : (
+                    allNotifications.slice(0, 5).map((n) => (
+                      <div
+                        key={n.id}
+                        className="flex items-start gap-3 px-4 py-3 border-b border-[#1A1A1A] last:border-0 hover:bg-white/[0.03] transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-white/[0.05] flex items-center justify-center flex-shrink-0 text-base leading-none">
+                          {n.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white leading-snug">{n.text}</p>
+                          <p className="text-xs text-gray-600 mt-0.5">{n.time}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>,
+            document.body
+          )}
         </div>
 
         {/* User menu */}
@@ -206,39 +218,33 @@ export function Topbar({ title }: { title?: string }) {
             <ChevronDown size={14} className="text-gray-400" />
           </button>
 
-          <AnimatePresence>
-            {userMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                  className="absolute right-0 top-12 w-48 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
+          {mounted && userMenuOpen && createPortal(
+            <>
+              <div className="fixed inset-0 z-[9998]" onClick={() => setUserMenuOpen(false)} />
+              <div className="fixed top-14 md:top-16 right-3 md:right-6 w-48 bg-[#111111] border border-[#1E1E1E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-[9999] overflow-hidden">
+                <button
+                  onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <button
-                    onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
-                  >
-                    <User size={15} /> Perfil
-                  </button>
-                  <button
-                    onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
-                  >
-                    <Settings size={15} /> Configuración
-                  </button>
-                  <div className="border-t border-[#1E1E1E] mx-3" />
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/10 transition-all"
-                  >
-                    <LogOut size={15} /> Cerrar Sesión
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+                  <User size={15} /> Perfil
+                </button>
+                <button
+                  onClick={() => { router.push('/settings'); setUserMenuOpen(false) }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <Settings size={15} /> Configuración
+                </button>
+                <div className="border-t border-[#1E1E1E] mx-3" />
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/10 transition-all"
+                >
+                  <LogOut size={15} /> Cerrar Sesión
+                </button>
+              </div>
+            </>,
+            document.body
+          )}
         </div>
       </div>
     </header>

@@ -6,6 +6,7 @@
       "use": "@vercel/node",
       "config": {
         "maxLambdaSize": "50mb",
+        "maxDuration": 60,
         "includeFiles": ["src/**", "prisma/**", "node_modules/.prisma/**", "node_modules/@prisma/**"]
       }
     }

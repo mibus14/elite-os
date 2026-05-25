@@ -5,6 +5,38 @@ const authenticate = require('../middleware/auth');
 
 const prisma = new PrismaClient();
 
+// GET /api/messages/conversations — all users with last message + unread count
+router.get('/conversations', authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const users = await prisma.user.findMany({
+      where: { id: { not: userId } },
+      select: { id: true, username: true, avatar: true, level: true, rank: true },
+      orderBy: { username: 'asc' },
+    });
+
+    const conversations = await Promise.all(users.map(async (user) => {
+      const [lastMessage, unreadCount] = await Promise.all([
+        prisma.message.findFirst({
+          where: { OR: [{ senderId: userId, receiverId: user.id }, { senderId: user.id, receiverId: userId }] },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.message.count({ where: { senderId: user.id, receiverId: userId, read: false } }),
+      ]);
+      return { user: { ...user, online: false }, lastMessage, unreadCount };
+    }));
+
+    conversations.sort((a, b) => {
+      const tA = a.lastMessage?.createdAt?.getTime() ?? 0;
+      const tB = b.lastMessage?.createdAt?.getTime() ?? 0;
+      return tB - tA;
+    });
+
+    const totalUnread = conversations.reduce((s, c) => s + c.unreadCount, 0);
+    res.json({ conversations, totalUnread });
+  } catch (err) { next(err); }
+});
+
 // GET /api/messages/users — all users except self (for chat list), with online status stub
 router.get('/users', authenticate, async (req, res, next) => {
   try {

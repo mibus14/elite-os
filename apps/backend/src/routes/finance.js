@@ -181,4 +181,61 @@ router.get('/summary', authenticate, async (req, res, next) => {
   }
 });
 
+/* ─── Debts ──────────────────────────────────────────────────────── */
+
+// GET /api/finance/debts
+router.get('/debts', authenticate, async (req, res, next) => {
+  try {
+    const debts = await prisma.debt.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ debts });
+  } catch (err) { next(err); }
+});
+
+// POST /api/finance/debts
+router.post('/debts', authenticate, async (req, res, next) => {
+  try {
+    const { label, amount, direction, dueDate, description } = req.body;
+    if (!label || !amount || !direction) return res.status(400).json({ error: 'label, amount y direction son requeridos' });
+    const debt = await prisma.debt.create({
+      data: {
+        userId: req.user.id,
+        label: String(label).trim(),
+        amount: parseFloat(amount),
+        direction: direction === 'owed' ? 'owed' : 'owe',
+        dueDate: dueDate ? new Date(dueDate) : null,
+        description: description ? String(description).trim() : null,
+      },
+    });
+    res.status(201).json({ debt });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/finance/debts/:id  — register partial/full payment
+router.patch('/debts/:id', authenticate, async (req, res, next) => {
+  try {
+    const existing = await prisma.debt.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!existing) return res.status(404).json({ error: 'Deuda no encontrada' });
+    const { pay } = req.body; // amount to add to paid
+    const newPaid = Math.min(existing.amount, existing.paid + parseFloat(pay || 0));
+    const debt = await prisma.debt.update({
+      where: { id: req.params.id },
+      data: { paid: newPaid },
+    });
+    res.json({ debt });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/finance/debts/:id
+router.delete('/debts/:id', authenticate, async (req, res, next) => {
+  try {
+    const existing = await prisma.debt.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!existing) return res.status(404).json({ error: 'Deuda no encontrada' });
+    await prisma.debt.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Eliminada' });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

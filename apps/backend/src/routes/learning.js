@@ -174,23 +174,40 @@ Responde ÚNICAMENTE con JSON válido en una sola línea, sin markdown, sin expl
 /* ─── POST /api/learning/generate — devuelve preview sin guardar ─── */
 router.post('/generate', authenticate, async (req, res, next) => {
   try {
-    const { interests } = req.body;
-    if (!Array.isArray(interests) || interests.length === 0)
-      return res.status(400).json({ error: 'interests required' });
+    const { interests, customTopic, excludeTitles = [], variationSeed = 0 } = req.body;
 
-    // Expand comma-separated interests (e.g. "Python, ML" → ["Python", "ML"])
-    const expanded = interests.flatMap((i) =>
-      i.split(',').map((s) => s.trim()).filter(Boolean)
-    );
-    const unique = [...new Set(expanded)];
+    // customTopic overrides interests for this generation
+    let topics;
+    if (customTopic && typeof customTopic === 'string' && customTopic.trim()) {
+      topics = [customTopic.trim()];
+    } else {
+      if (!Array.isArray(interests) || interests.length === 0)
+        return res.status(400).json({ error: 'interests required' });
+      const expanded = interests.flatMap((i) =>
+        i.split(',').map((s) => s.trim()).filter(Boolean)
+      );
+      topics = [...new Set(expanded)];
+    }
 
-    const prompt = `Temas de aprendizaje: ${unique.map((i) => `"${i}"`).join(', ')}.
+    // Build exclusion block for the prompt
+    const excluded = Array.isArray(excludeTitles) ? excludeTitles.slice(0, 30) : [];
+    const exclusionBlock = excluded.length > 0
+      ? `\n\nEVITA ESTAS (ya las conoce el usuario, NO las repitas ni generes algo similar):\n${excluded.map(t => `- ${t}`).join('\n')}`
+      : '';
 
-Para CADA tema genera exactamente 3 sugerencias. Cada título debe nombrar el subtema/método/ejercicio EXACTO dentro del tema, no el tema en general.
-Varía: 1 ejercicio/práctica específica, 1 concepto técnico con nombre propio, 1 proyecto/aplicación real con herramienta nombrada.
-Total de objetos en el array: ${unique.length * 3}.
+    // Increase temperature with each regeneration for more variety
+    const temperature = Math.min(0.95, 0.75 + variationSeed * 0.05);
 
-Responde ÚNICAMENTE con el array JSON. Sin texto extra, sin markdown, sin explicaciones.`;
+    const countPerTopic = 3;
+    const prompt = `Temas: ${topics.map((i) => `"${i}"`).join(', ')}.
+
+Para CADA tema genera exactamente ${countPerTopic} sugerencias DISTINTAS y ULTRA-ESPECÍFICAS.
+- Cada título nombra subtema exacto, método con nombre propio, o proyecto con herramienta real.
+- VARIACIÓN REQUERIDA (intento #${variationSeed + 1}): genera sugerencias que NUNCA se solapen con las anteriores. Cambia el ángulo, nivel, herramienta o aplicación.
+- Mezcla: práctica concreta, concepto técnico avanzado, proyecto aplicado.
+Total de objetos: ${topics.length * countPerTopic}.${exclusionBlock}
+
+Responde ÚNICAMENTE con el array JSON en una línea. Sin texto extra, sin markdown.`;
 
     let suggestions;
     try {
@@ -199,8 +216,8 @@ Responde ÚNICAMENTE con el array JSON. Sin texto extra, sin markdown, sin expli
         'https://api.groq.com/openai/v1/chat/completions',
         {
           model: 'llama-3.3-70b-versatile',
-          max_tokens: unique.length * 400,
-          temperature: 0.7,
+          max_tokens: topics.length * 500,
+          temperature,
           messages: [
             { role: 'system', content: GENERATE_SYSTEM },
             { role: 'user',   content: prompt },
@@ -222,14 +239,18 @@ Responde ÚNICAMENTE con el array JSON. Sin texto extra, sin markdown, sin expli
       if (!Array.isArray(suggestions) || suggestions.length === 0)
         throw new Error('Empty suggestions array');
 
-      // Ensure tags exist
       suggestions = suggestions.map((s) => ({
-        tag:   s.tag   || unique[0],
+        tag:   s.tag   || topics[0],
         title: s.title || String(s),
       }));
+
+      // Filter out any exact matches with excluded titles (safety net)
+      const excludedSet = new Set(excluded.map(t => t.toLowerCase()));
+      suggestions = suggestions.filter(s => !excludedSet.has(s.title.toLowerCase()));
+
     } catch (aiErr) {
       console.error('[Learning] Groq AI error:', aiErr.message);
-      suggestions = unique.flatMap((interest) => pickFallback(interest));
+      suggestions = topics.flatMap((interest) => pickFallback(interest));
     }
 
     res.json({ suggestions });
@@ -260,6 +281,109 @@ router.post('/items/bulk', authenticate, async (req, res, next) => {
 
     res.status(201).json({ items: all });
   } catch (err) {
+    next(err);
+  }
+});
+
+/* ─── Sistema de estudio (lección completa) ──────────────────────── */
+const STUDY_SYSTEM = `Eres el mejor tutor del mundo: riguroso, específico y práctico. Generas lecciones completas sobre cualquier tema.
+
+Responde ÚNICAMENTE con este JSON en una sola línea (sin markdown exterior, sin texto extra):
+{
+  "topic": "nombre exacto y específico del tema estudiado",
+  "summary": "2 oraciones: QUÉ es el tema y POR QUÉ importa dominarlo",
+  "keyPoints": ["concepto clave 1 con nombre propio", "concepto clave 2", "concepto clave 3", "concepto clave 4", "concepto clave 5"],
+  "explanation": "explicación completa en 3-5 párrafos técnicos y profundos. Usa nombres propios de métodos, librerías, técnicas. Cada párrafo separado por \\n\\n. Nada genérico.",
+  "hasCode": true,
+  "codeExample": "código real y ejecutable con comentarios explicativos, o null si no aplica",
+  "codeLanguage": "python|javascript|typescript|sql|bash|java|go|rust|html|css|null",
+  "steps": ["paso 1 concreto con detalle", "paso 2", "paso 3"],
+  "exercises": [
+    { "question": "ejercicio práctico concreto 1", "answer": "respuesta completa y detallada", "hint": "pista útil sin dar la respuesta" },
+    { "question": "ejercicio 2 más difícil", "answer": "respuesta", "hint": "pista" },
+    { "question": "ejercicio 3 aplicación real", "answer": "respuesta", "hint": "pista" }
+  ],
+  "nextTopics": ["subtema avanzado específico 1", "aplicación práctica del tema 2", "concepto relacionado que lo complementa 3"]
+}
+
+REGLAS CRÍTICAS:
+- keyPoints: 5-8 puntos, cada uno nombra un concepto/método/herramienta REAL con nombre propio
+- explanation: profundidad técnica real, usa terminología correcta, ejemplos dentro del texto
+- codeExample: si el tema es programación/matemáticas/data/shell → código REAL que funciona; si es fitness/idiomas/negocios → null
+- steps: si es un proceso (fitness, idiomas, negocios, método) → 4-7 pasos prácticos detallados; si ya hay código → []
+- exercises: 3-5 ejercicios graduados de fácil a difícil. Las respuestas deben ser COMPLETAS y educativas
+- nextTopics: 3 temas que el usuario debería estudiar a continuación para profundizar
+- Adapta el nivel según el campo 'level': beginner=conceptos base con analogías, intermediate=profundidad técnica, advanced=edge cases y optimizaciones
+- Todo en español excepto términos técnicos internacionales (Python, Docker, etc.)
+- NUNCA uses frases genéricas como "es importante", "hay que recordar", "como mencionamos"`;
+
+/* ─── POST /api/learning/study — genera lección completa ─────────── */
+router.post('/study', authenticate, async (req, res, next) => {
+  try {
+    const { topic, level = 'intermediate' } = req.body;
+    if (!topic || typeof topic !== 'string' || !topic.trim())
+      return res.status(400).json({ error: 'topic required' });
+
+    if (!process.env.GROQ_API_KEY)
+      return res.status(503).json({ error: 'AI no configurada' });
+
+    const levelLabel = {
+      beginner:     'Principiante (explica conceptos base con analogías, evita jerga excesiva)',
+      intermediate: 'Intermedio (profundidad técnica, asume conocimientos básicos)',
+      advanced:     'Avanzado (edge cases, optimización, patrones expertos, profundidad máxima)',
+    }[level] || 'Intermedio';
+
+    const userPrompt = `Tema: "${topic.trim()}"
+Nivel: ${levelLabel}
+
+Genera la lección completa según el sistema. Sé ultra-específico y práctico.`;
+
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model:       'llama-3.3-70b-versatile',
+        max_tokens:  2500,
+        temperature: 0.55,
+        messages: [
+          { role: 'system', content: STUDY_SYSTEM },
+          { role: 'user',   content: userPrompt },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 55000,
+      }
+    );
+
+    const raw = response.data.choices[0].message.content.trim();
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON in response');
+
+    let lesson;
+    try {
+      lesson = JSON.parse(match[0]);
+    } catch {
+      // Try to recover from truncated JSON
+      throw new Error('JSON parse failed');
+    }
+
+    // Sanitize fields
+    lesson.topic        = lesson.topic        || topic;
+    lesson.summary      = lesson.summary      || '';
+    lesson.keyPoints    = Array.isArray(lesson.keyPoints)  ? lesson.keyPoints  : [];
+    lesson.explanation  = lesson.explanation  || '';
+    lesson.codeExample  = lesson.codeExample  || null;
+    lesson.codeLanguage = lesson.codeLanguage || null;
+    lesson.steps        = Array.isArray(lesson.steps)      ? lesson.steps      : [];
+    lesson.exercises    = Array.isArray(lesson.exercises)  ? lesson.exercises  : [];
+    lesson.nextTopics   = Array.isArray(lesson.nextTopics) ? lesson.nextTopics : [];
+
+    res.json({ lesson });
+  } catch (err) {
+    console.error('[Learning/study] Error:', err.message);
     next(err);
   }
 });

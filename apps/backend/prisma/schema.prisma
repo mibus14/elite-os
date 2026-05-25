@@ -57,6 +57,7 @@ model User {
   sentMessages    Message[]    @relation("SentMessages")
   receivedMessages Message[]   @relation("ReceivedMessages")
   financeEntries  FinanceEntry[]
+  debts           Debt[]
   debuffs         Debuff[]
   dailyCombos     DailyCombo[]
   seasonResults   SeasonResult[]
@@ -430,6 +431,22 @@ model FinanceEntry {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("finance_entries")
+}
+
+model Debt {
+  id          String    @id @default(uuid())
+  userId      String
+  label       String
+  amount      Float
+  paid        Float     @default(0)
+  dueDate     DateTime? @db.Date
+  description String?
+  direction   String    // "owe" | "owed"
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("debts")
 }
 
 // status: open | active | won | lost | cancelled

@@ -112,18 +112,32 @@ export default function SettingsPage() {
   const [deletePassword, setDeletePassword]   = useState('')
   const [deleteError, setDeleteError]         = useState('')
 
-  /* ── Inventory (shop avatar skins) ─────────────────────────── */
+  /* ── Inventory (all shop items) ────────────────────────────── */
   const { data: inventoryData } = useQuery({
     queryKey: ['shop-inventory'],
     queryFn:  () => shopApi.inventory().then((r) => r.data),
     staleTime: 60_000,
     retry: false,
   })
-  const ownedAvatarSlugs: string[] = (inventoryData?.items ?? [])
+  const allOwnedItems: any[] = inventoryData?.items ?? []
+  const ownedAvatarSlugs: string[] = allOwnedItems
     .filter((i: any) => SHOP_AVATAR_SLUGS.includes(i.slug))
     .map((i: any) => i.slug)
+  const ownedFrames  = allOwnedItems.filter((i: any) => i.category === 'frame')
+  const ownedTitles  = allOwnedItems.filter((i: any) => i.category === 'title')
+  const ownedBgs     = allOwnedItems.filter((i: any) => i.category === 'background')
 
   /* ── Mutations ─────────────────────────────────────────────── */
+  const equipCosmeticMutation = useMutation({
+    mutationFn: (slug: string) => shopApi.equip(slug),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shop-inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['rpg-character'] })
+      toast.success('¡Actualizado!')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || 'Error al equipar'),
+  })
+
   const deleteAccountMutation = useMutation({
     mutationFn: (password: string) => usersApi.deleteAccount(password),
     onSuccess: () => { toast.success('Cuenta eliminada'); logout() },
@@ -468,6 +482,116 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </div>
+
+            {/* ── Cosmetics equipables ──────────────────────────── */}
+            {(ownedFrames.length > 0 || ownedTitles.length > 0 || ownedBgs.length > 0) && (
+              <div className="space-y-6">
+                {/* Frames */}
+                {ownedFrames.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 mb-1 block">Marcos de Avatar</label>
+                    <p className="text-xs text-gray-600 mb-3">Selecciona el marco que rodea tu avatar en el perfil</p>
+                    <div className="flex gap-3 flex-wrap">
+                      {ownedFrames.map((item: any) => {
+                        const rarityClass = RARITY_COLOR[item.rarity ?? 'common']
+                        return (
+                          <motion.button
+                            key={item.slug}
+                            type="button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => equipCosmeticMutation.mutate(item.slug)}
+                            className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                              item.equipped
+                                ? 'border-elite-600 bg-elite-600/10'
+                                : `${rarityClass.split(' ')[0]} hover:border-white/40 bg-white/[0.03]`
+                            }`}
+                          >
+                            <span className="text-2xl">{item.icon}</span>
+                            <span className={`text-[10px] font-semibold ${item.equipped ? 'text-white' : rarityClass.split(' ')[1]}`}>
+                              {item.name}
+                            </span>
+                            {item.equipped && (
+                              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-elite-600 rounded-full flex items-center justify-center">
+                                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                              </span>
+                            )}
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Titles */}
+                {ownedTitles.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 mb-1 block">Títulos</label>
+                    <p className="text-xs text-gray-600 mb-3">El título se muestra bajo tu nombre en el perfil</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {ownedTitles.map((item: any) => {
+                        const rarityClass = RARITY_COLOR[item.rarity ?? 'common']
+                        return (
+                          <motion.button
+                            key={item.slug}
+                            type="button"
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => equipCosmeticMutation.mutate(item.slug)}
+                            className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${
+                              item.equipped
+                                ? 'border-elite-600 bg-elite-600/10 text-white'
+                                : `${rarityClass.split(' ')[0]} hover:border-white/40 bg-white/[0.03] ${rarityClass.split(' ')[1]}`
+                            }`}
+                          >
+                            <span>{item.icon}</span>
+                            <span className="text-sm font-semibold">{item.name}</span>
+                            {item.equipped && <Check className="w-3.5 h-3.5 text-elite-600 ml-1" strokeWidth={3} />}
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Backgrounds */}
+                {ownedBgs.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 mb-1 block">Fondos de Perfil</label>
+                    <p className="text-xs text-gray-600 mb-3">El fondo aparece en tu tarjeta de perfil</p>
+                    <div className="flex gap-3 flex-wrap">
+                      {ownedBgs.map((item: any) => {
+                        const rarityClass = RARITY_COLOR[item.rarity ?? 'common']
+                        return (
+                          <motion.button
+                            key={item.slug}
+                            type="button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => equipCosmeticMutation.mutate(item.slug)}
+                            className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                              item.equipped
+                                ? 'border-elite-600 bg-elite-600/10'
+                                : `${rarityClass.split(' ')[0]} hover:border-white/40 bg-white/[0.03]`
+                            }`}
+                          >
+                            <div className={`w-12 h-8 rounded-lg bg-gradient-to-br ${item.gradient ?? 'from-gray-900 to-gray-950'} border border-white/10`} />
+                            <span className={`text-[10px] font-semibold ${item.equipped ? 'text-white' : rarityClass.split(' ')[1]}`}>
+                              {item.icon} {item.name}
+                            </span>
+                            {item.equipped && (
+                              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-elite-600 rounded-full flex items-center justify-center">
+                                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                              </span>
+                            )}
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Theme */}
             <div>

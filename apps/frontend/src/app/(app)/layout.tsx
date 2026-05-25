@@ -12,6 +12,10 @@ import { BottomNav } from '@/components/layout/BottomNav'
 import DebuffBar from '@/components/rpg/DebuffBar'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
+const TopbarFallback = () => (
+  <div className="h-14 md:h-16 flex-shrink-0 bg-[#0D0D0D]/80 border-b border-[#1E1E1E]" />
+)
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router          = useRouter()
   const pathname        = usePathname()
@@ -86,7 +90,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main area */}
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* Topbar */}
-        <Topbar />
+        <ErrorBoundary fallback={<TopbarFallback />}>
+          <Topbar />
+        </ErrorBoundary>
 
         {/* Debuff bar */}
         <DebuffBar />

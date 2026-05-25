@@ -268,6 +268,46 @@ router.post(
   }
 );
 
+// POST /api/gym/splits/log — quick split session (Upper/Lower/PPL)
+router.post('/splits/log', authenticate, async (req, res, next) => {
+  try {
+    const { splitId, splitName, compoundLift, weight, localDate } = req.body;
+    if (!splitId || !splitName || !weight) {
+      return res.status(400).json({ error: 'splitId, splitName and weight required' });
+    }
+    const w = parseFloat(weight);
+    if (isNaN(w) || w <= 0) return res.status(400).json({ error: 'Invalid weight' });
+
+    const sessionDate = parseLocalDate(localDate);
+    // Tonnage = working weight × 5 assumed reps (standard heavy compound set)
+    const totalVolume = w * 5;
+
+    const session = await prisma.gymSession.create({
+      data: {
+        userId: req.user.id,
+        name: splitName,
+        date: sessionDate,
+        duration: 60,
+        totalVolume,
+        notes: compoundLift ? `${compoundLift}: ${w}kg` : `${w}kg`,
+      },
+    });
+
+    const todayUTC = parseLocalDate(localDate);
+    let xpAwarded = 0;
+    if (sessionDate.getTime() === todayUTC.getTime()) {
+      const { finalXP } = await rpg.awardXP(req.user.id, 'gym', 50, prisma);
+      xpAwarded = finalXP;
+      await rpg.updateCombo(req.user.id, 'gym', prisma);
+      await rpg.checkAndUpdateStreak(req.user.id, prisma);
+    }
+
+    res.status(201).json({ session, xpAwarded });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/gym/stats
 router.get('/stats', authenticate, async (req, res, next) => {
   try {
